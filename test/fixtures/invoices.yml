@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  workspace: one
+  client: one
+  period_start: 2026-01-29
+  period_end: 2026-01-29
+  issued_on: 2026-01-29
+  status: MyString
+  total_cents: 1
+
+two:
+  workspace: two
+  client: two
+  period_start: 2026-01-29
+  period_end: 2026-01-29
+  issued_on: 2026-01-29
+  status: MyString
+  total_cents: 1

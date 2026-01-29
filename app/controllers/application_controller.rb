@@ -1,0 +1,79 @@
+class ApplicationController < ActionController::Base
+  include Pundit::Authorization
+  include InertiaRails::Controller
+
+  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
+  allow_browser versions: :modern
+
+  before_action :authenticate_user!
+  before_action :require_workspace
+  before_action :set_current_workspace
+
+  inertia_share auth: -> {
+    {
+      user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone ]),
+      workspace: current_workspace&.as_json(only: [ :id, :name ])
+    }
+  }
+
+  inertia_share flash: -> {
+    {
+      notice: flash[:notice],
+      alert: flash[:alert]
+    }
+  }
+
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+
+  private
+
+  def authenticate_user!
+    return if current_user
+
+    redirect_to signin_path, alert: "Please sign in to continue."
+  end
+
+  def current_user
+    @current_user ||= User.find_by(id: session[:user_id]) if session[:user_id]
+  end
+
+  helper_method :current_user
+
+  def current_workspace
+    @current_workspace ||= begin
+      if session[:workspace_id]
+        current_user&.workspaces&.find_by(id: session[:workspace_id])
+      else
+        current_user&.workspaces&.first
+      end
+    end
+  end
+
+  helper_method :current_workspace
+
+  def pundit_user
+    current_user
+  end
+
+  def set_current_workspace
+    return unless current_user && current_workspace
+
+    session[:workspace_id] = current_workspace.id
+  end
+
+  def require_workspace
+    return unless current_user
+    return if current_workspace
+
+    if current_user.workspaces.any?
+      session[:workspace_id] = current_user.workspaces.first.id
+    else
+      redirect_to signin_path, alert: "No workspace found. Please contact support."
+    end
+  end
+
+  def user_not_authorized
+    flash[:alert] = "You are not authorized to perform this action."
+    redirect_back(fallback_location: root_path)
+  end
+end

@@ -1,0 +1,226 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+
+@theme {
+  /* Gruvbox Dark Theme Colors */
+  --color-bg-primary: #1d2021;
+  --color-bg-secondary: #282828;
+  --color-bg-tertiary: #3c3836;
+  --color-bg-quaternary: #504945;
+  
+  /* Foreground colors */
+  --color-fg-primary: #ebdbb2;
+  --color-fg-secondary: #d5c4a1;
+  --color-fg-muted: #a89984;
+  --color-fg-dim: #928374;
+  
+  /* Accent colors - Gruvbox */
+  --color-accent-red: #cc241d;
+  --color-accent-green: #98971a;
+  --color-accent-yellow: #d79921;
+  --color-accent-blue: #458588;
+  --color-accent-purple: #b16286;
+  --color-accent-aqua: #689d6a;
+  --color-accent-orange: #d65d0e;
+  
+  /* Bright variants */
+  --color-bright-red: #fb4934;
+  --color-bright-green: #b8bb26;
+  --color-bright-yellow: #fabd2f;
+  --color-bright-blue: #83a598;
+  --color-bright-purple: #d3869b;
+  --color-bright-aqua: #8ec07c;
+  --color-bright-orange: #fe8019;
+  
+  /* Status colors */
+  --color-status-success: #b8bb26;
+  --color-status-warning: #fabd2f;
+  --color-status-error: #fb4934;
+  --color-status-info: #83a598;
+  
+  /* Typography */
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  
+  /* Animation timing - following spec */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in-out: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 250ms;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-primary);
+  color: var(--color-fg-primary);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animation keyframes - Entry/exit: translateY(4px) + opacity */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animation utilities - 180-220ms ease-out for entry/exit */
+.animate-slide-in {
+  animation: slide-in 200ms var(--ease-out);
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms var(--ease-out);
+}
+
+/* Reduced motion support - disable all animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .animate-slide-in,
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Focus styles - high contrast ring */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bright-blue);
+  border-radius: 2px;
+}
+
+/* Remove focus outline for mouse users only */
+*:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Touch device hover handling - only show hover on capable devices */
+@media (hover: hover) and (pointer: fine) {
+  .hover\:bg-bg-tertiary:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+  
+  .hover-trigger:hover .hover-target {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-bright-blue);
+  color: var(--color-bg-primary);
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+  transition: top var(--duration-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Custom scrollbar for Gruvbox theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-quaternary);
+  border-radius: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-fg-dim);
+  }
+}
+
+/* Typography utilities */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-secondary) 25%,
+    var(--color-bg-tertiary) 50%,
+    var(--color-bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-shimmer {
+    animation: none;
+    background: var(--color-bg-tertiary);
+  }
+}

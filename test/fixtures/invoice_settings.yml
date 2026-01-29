@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  workspace: one
+  billable_rate_cents: 1
+  sender_name: MyString
+  sender_address: MyText
+
+two:
+  workspace: two
+  billable_rate_cents: 1
+  sender_name: MyString
+  sender_address: MyText
