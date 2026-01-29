@@ -1,0 +1,31 @@
+{
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "date-picker-svelte": "^2.17.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.4.1",
+    "vite": "^7.3.1",
+    "vite-plugin-ruby": "^5.1.2"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.5",
+    "@inertiajs/svelte": "^2.3.12",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.18",
+    "@tsconfig/svelte": "^5.0.6",
+    "lucide-svelte": "^0.563.0",
+    "svelte": "^5.49.0",
+    "svelte-check": "^4.3.5",
+    "tailwindcss": "^4.1.18",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "format": "prettier --write 'app/**/*.{svelte,erb}'",
+    "format:check": "prettier --check 'app/**/*.{svelte,erb}'"
+  }
+}

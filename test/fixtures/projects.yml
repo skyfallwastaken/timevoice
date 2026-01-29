@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  workspace: one
+  client: one
+  name: MyString
+  color: MyString
+  billable_default: false
+
+two:
+  workspace: two
+  client: two
+  name: MyString
+  color: MyString
+  billable_default: false

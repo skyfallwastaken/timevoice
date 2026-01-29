@@ -1,0 +1,6 @@
+INVOICE FROM <%= @sender_name.upcase %> <%= '=' * (@sender_name.length + 13) %>
+AMOUNT DUE: <%= @invoice.formatted_total %> --- Billed to: <%=
+@invoice.client.name %> Invoice period: <%= @invoice.period_start.strftime('%b
+%d') %> – <%= @invoice.period_end.strftime('%b %d, %Y') %> <% if
+@message.present? %> --- MESSAGE: <%= @message %> <% end %> --- The full invoice
+is attached as a PDF.

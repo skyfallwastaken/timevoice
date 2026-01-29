@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  workspace: one
+  project: one
+  description: MyText
+  start_at: 2026-01-29 22:58:50
+  end_at: 2026-01-29 22:58:50
+  duration_seconds: 1
+  billable: false
+
+two:
+  user: two
+  workspace: two
+  project: two
+  description: MyText
+  start_at: 2026-01-29 22:58:50
+  end_at: 2026-01-29 22:58:50
+  duration_seconds: 1
+  billable: false

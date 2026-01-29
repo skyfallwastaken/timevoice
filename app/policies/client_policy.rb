@@ -1,0 +1,2 @@
+class ClientPolicy < WorkspaceResourcePolicy
+end

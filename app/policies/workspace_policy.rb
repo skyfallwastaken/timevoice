@@ -1,0 +1,35 @@
+class WorkspacePolicy < ApplicationPolicy
+  class Scope < Scope
+    def resolve
+      user.workspaces
+    end
+  end
+
+  def create?
+    user.present?
+  end
+
+  def show?
+    record.member?(user)
+  end
+
+  def update?
+    record.admin?(user)
+  end
+
+  def destroy?
+    record.owner?(user)
+  end
+
+  def invite_member?
+    record.admin?(user)
+  end
+
+  def remove_member?
+    record.admin?(user)
+  end
+
+  def change_role?
+    record.owner?(user)
+  end
+end
