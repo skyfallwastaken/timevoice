@@ -16,7 +16,11 @@ Rails.application.routes.draw do
   get "/entries", to: "time_entries#index"
   get "/reports", to: "reports#index"
   get "/invoices", to: "invoices#index"
+
+  # Workspace switching
+  patch "/workspaces/switch", to: "workspaces#switch", as: :switch_workspace
   get "/settings/workspace", to: "settings#workspace"
+  delete "/settings/workspace", to: "settings#destroy_workspace"
   get "/settings/billing", to: "settings#billing"
   patch "/settings/billing", to: "settings#update_billing"
 
@@ -33,8 +37,15 @@ Rails.application.routes.draw do
   resources :clients, only: [ :index, :create, :update, :destroy ]
   resources :tags, only: [ :index, :create, :update, :destroy ]
 
+  # Workspace memberships
+  resources :memberships, only: [ :create, :destroy ]
+
   # Invoices
-  resources :invoices, only: [ :index, :show, :create, :update, :destroy ]
+  resources :invoices, only: [ :index, :show, :create, :update, :destroy ] do
+    member do
+      get :pdf
+    end
+  end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

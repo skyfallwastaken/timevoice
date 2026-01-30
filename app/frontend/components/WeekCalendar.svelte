@@ -1,15 +1,15 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-svelte'
-  import { useForm } from '@inertiajs/svelte'
+  import { router, useForm } from '@inertiajs/svelte'
 
   let { entries = [], projects = [], currentWeek } = $props()
 
   let form = useForm({
     description: '',
-    project_id: null,
+    project_id: null as number | null,
     billable: false,
-    start_at: null,
-    end_at: null
+    start_at: null as string | null,
+    end_at: null as string | null
   })
 
   // Week configuration
@@ -17,14 +17,14 @@
   let endHour = 22 // 10 PM
   let hourHeight = 60 // pixels per hour
   let isDragging = $state(false)
-  let dragStart = $state(null)
-  let dragCurrent = $state(null)
-  let dragDay = $state(null)
+  let dragStart = $state(null as { hour: number; minute: number } | null)
+  let dragCurrent = $state(null as { hour: number; minute: number } | null)
+  let dragDay = $state(null as Date | null)
   let showQuickEdit = $state(false)
 
   // Calculate week days
   function getWeekDays(weekStart: string) {
-    const start = new Date(weekStart)
+    const start = new Date(`${weekStart}T00:00:00`)
     const weekDays = []
     for (let i = 0; i < 7; i++) {
       const day = new Date(start)
@@ -32,6 +32,24 @@
       weekDays.push(day)
     }
     return weekDays
+  }
+
+  function formatISODate(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  function goToWeek(offsetWeeks: number) {
+    const start = new Date(`${currentWeek.start}T00:00:00`)
+    start.setDate(start.getDate() + offsetWeeks * 7)
+
+    router.get(
+      '/calendar',
+      { week_start: formatISODate(start) },
+      { preserveScroll: true, preserveState: true }
+    )
   }
 
   let days = $derived(getWeekDays(currentWeek.start))
@@ -222,13 +240,23 @@
       <h2 class="text-2xl font-semibold">Week Calendar</h2>
     </div>
     <div class="flex items-center gap-2">
-      <button class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150">
+      <button
+        type="button"
+        class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+        aria-label="Previous week"
+        onclick={() => goToWeek(-1)}
+      >
         <ChevronLeft class="w-5 h-5" />
       </button>
       <span class="px-4 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] font-medium min-w-[200px] text-center">
         {currentWeek.start} - {currentWeek.end}
       </span>
-      <button class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150">
+      <button
+        type="button"
+        class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+        aria-label="Next week"
+        onclick={() => goToWeek(1)}
+      >
         <ChevronRight class="w-5 h-5" />
       </button>
     </div>

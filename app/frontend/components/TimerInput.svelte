@@ -1,13 +1,13 @@
 <script lang="ts">
   import { Play, Square, DollarSign, Check, X } from 'lucide-svelte'
-  import { useForm } from '@inertiajs/svelte'
+  import { router, useForm } from '@inertiajs/svelte'
 
   let { runningEntry, projects = [], tags = [] } = $props()
 
   let form = useForm({
     description: '',
-    project_id: null,
-    tag_ids: [],
+    project_id: null as number | null,
+    tag_ids: [] as number[],
     billable: false,
     start_at: new Date().toISOString()
   })
@@ -78,10 +78,8 @@
 
   function stopTimer() {
     if (!runningEntry) return
-    
-    $form.transform(() => ({
-      end_at: new Date().toISOString()
-    })).patch(`/time_entries/${runningEntry.id}`, {
+
+    router.patch(`/time_entries/${runningEntry.id}/stop`, {}, {
       preserveScroll: true,
       onSuccess: () => {
         // Focus back on description after stopping

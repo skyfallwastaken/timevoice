@@ -12,7 +12,8 @@ class ApplicationController < ActionController::Base
   inertia_share auth: -> {
     {
       user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone ]),
-      workspace: current_workspace&.as_json(only: [ :id, :name ])
+      workspace: current_workspace&.as_json(only: [ :id, :name ]),
+      workspaces: current_user&.workspaces&.order(:name)&.as_json(only: [ :id, :name ]) || []
     }
   }
 

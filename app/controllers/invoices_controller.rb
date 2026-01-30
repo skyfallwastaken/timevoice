@@ -1,3 +1,5 @@
+require Rails.root.join("app/services/invoice_pdf").to_s
+
 class InvoicesController < ApplicationController
   def index
     @invoices = current_workspace.invoices
@@ -7,13 +9,13 @@ class InvoicesController < ApplicationController
 
     @clients = current_workspace.clients.order(:name)
 
-    # Get unbilled entries (billable but not yet invoiced)
     @unbilled_entries = current_user.time_entries
       .where(workspace: current_workspace)
       .completed
       .where(billable: true)
       .left_outer_joins(:invoice_lines)
       .where(invoice_lines: { id: nil })
+      .where("time_entries.duration_seconds > 0")
       .includes(:project, :tags)
       .order(start_at: :desc)
 
@@ -36,18 +38,18 @@ class InvoicesController < ApplicationController
         )
       },
       clients: @clients.as_json(only: [ :id, :name, :billing_address ]),
-      unbilledEntries: @unbilled_entries.map { |entry|
-        entry.as_json(
-          only: [ :id, :description, :duration_seconds, :billable, :start_at ],
-          include: {
-            project: { only: [ :id, :name ] },
-            tags: { only: [ :id, :name ] }
-          }
-        ).merge(
-          formattedDuration: entry.formatted_duration,
-          hours: (entry.duration_seconds || 0) / 3600.0
-        )
-      },
+       unbilledEntries: @unbilled_entries.map { |entry|
+         entry.as_json(
+           only: [ :id, :description, :duration_seconds, :billable, :start_at ],
+           include: {
+             project: { only: [ :id, :name, :color ] },
+             tags: { only: [ :id, :name ] }
+           }
+         ).merge(
+           formattedDuration: entry.formatted_duration,
+           hours: (entry.duration_seconds || 0) / 3600.0
+         )
+       },
       invoiceSettings: {
         billable_rate_cents: @invoice_settings.billable_rate_cents,
         sender_name: @invoice_settings.sender_name,
@@ -81,12 +83,24 @@ class InvoicesController < ApplicationController
   end
 
   def create
-    client = current_workspace.clients.find(params[:client_id])
-    start_date = Date.parse(params[:period_start])
-    end_date = Date.parse(params[:period_end])
-    rate_cents = params[:rate_cents] || current_workspace.invoice_setting&.billable_rate_cents || 0
+    attrs = invoice_create_params
 
-    # Get billable entries for the client in the date range
+    if attrs[:client_id].blank?
+      redirect_to invoices_path, alert: "Please select a client."
+      return
+    end
+
+    client = current_workspace.clients.find(attrs[:client_id])
+
+    if attrs[:period_start].blank? || attrs[:period_end].blank?
+      redirect_to invoices_path, alert: "Please select an invoice period start and end date."
+      return
+    end
+
+    start_date = Date.parse(attrs[:period_start])
+    end_date = Date.parse(attrs[:period_end])
+    rate_cents = attrs[:rate_cents].presence || current_workspace.invoice_setting&.billable_rate_cents || 0
+
     entries = current_user.time_entries
       .where(workspace: current_workspace)
       .completed
@@ -96,6 +110,7 @@ class InvoicesController < ApplicationController
       .joins(:project)
       .where(projects: { client_id: client.id })
       .where(start_at: start_date.beginning_of_day..end_date.end_of_day)
+      .where("time_entries.duration_seconds > 0")
 
     if entries.empty?
       redirect_to invoices_path, alert: "No unbilled entries found for this client in the selected date range."
@@ -133,10 +148,18 @@ class InvoicesController < ApplicationController
     invoice.update!(total_cents: total)
 
     redirect_to invoices_path, notice: "Invoice ##{invoice.id} created successfully with #{entries.count} line items."
+  rescue ArgumentError
+    redirect_to invoices_path, alert: "Invalid invoice period dates."
+  rescue ActiveRecord::RecordNotFound
+    redirect_to invoices_path, alert: "Client not found."
   end
 
   def update
     @invoice = current_workspace.invoices.find(params[:id])
+
+    if params.dig(:invoice, :status) == "issued" && @invoice.issued_on.nil?
+      @invoice.issued_on = Date.current
+    end
 
     if @invoice.update(invoice_params)
       redirect_to invoices_path, notice: "Invoice updated successfully!"
@@ -152,7 +175,30 @@ class InvoicesController < ApplicationController
     redirect_to invoices_path, notice: "Invoice deleted successfully!"
   end
 
+  def pdf
+    @invoice = current_workspace.invoices
+      .includes(:client, :invoice_lines)
+      .find(params[:id])
+
+    invoice_setting = current_workspace.invoice_setting
+
+    pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
+
+    send_data pdf,
+      filename: "Invoice-#{@invoice.id}.pdf",
+      type: "application/pdf",
+      disposition: "inline"
+  end
+
   private
+
+  def invoice_create_params
+    if params[:invoice].present?
+      params.require(:invoice).permit(:client_id, :period_start, :period_end, :rate_cents)
+    else
+      params.permit(:client_id, :period_start, :period_end, :rate_cents)
+    end
+  end
 
   def invoice_params
     params.require(:invoice).permit(:status)

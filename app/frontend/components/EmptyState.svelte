@@ -1,6 +1,4 @@
 <script lang="ts">
-  import type { Component } from 'svelte'
-
   let { 
     icon: Icon,
     title,
@@ -9,7 +7,7 @@
     actionHref = null,
     onAction = null
   }: {
-    icon: Component
+    icon: any
     title: string
     description: string
     actionLabel?: string | null

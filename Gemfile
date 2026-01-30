@@ -1,11 +1,15 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.2"
+# Rails 8.2 from GitHub for Rails.app.creds feature
+gem "rails", github: "rails/rails", branch: "main"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use sqlite3 as the database for Active Record
+# Use sqlite3 as the database for Active Record in development/test
 gem "sqlite3", ">= 2.1"
+
+# PostgreSQL for production
+gem "pg", "~> 1.5"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
@@ -42,6 +46,10 @@ gem "inertia_rails", "~> 3.0"
 
 # Authorization with Pundit
 gem "pundit", "~> 2.3"
+
+# PDF generation
+gem "prawn", "~> 2.4"
+gem "prawn-table", "~> 0.2"
 
 # OmniAuth for Google OAuth
 gem "omniauth-google-oauth2", "~> 1.1"

@@ -38,9 +38,17 @@ class DashboardController < ApplicationController
   end
 
   def calendar
+    week_start_date = begin
+      params[:week_start].present? ? Date.parse(params[:week_start]) : Date.current.beginning_of_week
+    rescue ArgumentError
+      Date.current.beginning_of_week
+    end
+
+    week_end_date = week_start_date + 6.days
+
     @entries = current_user.time_entries
       .where(workspace: current_workspace)
-      .where(start_at: Time.current.beginning_of_week..Time.current.end_of_week)
+      .where(start_at: week_start_date.beginning_of_day..week_end_date.end_of_day)
       .order(start_at: :asc)
 
     @projects = current_workspace.projects.includes(:client).order(:name)
@@ -57,8 +65,8 @@ class DashboardController < ApplicationController
         ).merge(formattedDuration: entry.formatted_duration)
       },
       currentWeek: {
-        start: Time.current.beginning_of_week.to_date.to_s,
-        end: Time.current.end_of_week.to_date.to_s
+        start: week_start_date.to_s,
+        end: week_end_date.to_s
       },
       projects: @projects.map { |project|
         project.as_json(

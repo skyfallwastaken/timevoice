@@ -18,11 +18,11 @@ class WorkspacePolicy < ApplicationPolicy
   end
 
   def invite_member?
-    admin?
+    record.admin?(user)
   end
 
   def remove_member?
-    admin?
+    record.admin?(user)
   end
 
   def change_role?

@@ -10,7 +10,7 @@ class MembershipPolicy < ApplicationPolicy
   end
 
   def create?
-    user.current_workspace&.admin?(user)
+    record.workspace.admin?(user)
   end
 
   def update?

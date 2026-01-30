@@ -53,6 +53,35 @@
   --duration-slow: 250ms;
 }
 
+:root {
+  /* date-picker-svelte theming (match Gruvbox) */
+  --date-picker-background: var(--color-bg-secondary);
+  --date-picker-foreground: var(--color-fg-primary);
+  --date-picker-highlight-border: var(--color-bg-quaternary);
+  --date-picker-highlight-shadow: transparent;
+  --date-picker-selected-color: var(--color-bg-primary);
+  --date-picker-selected-background: var(--color-bright-blue);
+  --date-input-width: 100%;
+}
+
+/* date-picker-svelte input styling (match app inputs) */
+.date-input-gruvbox .date-time-field input {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border-color: var(--color-bg-tertiary);
+  background: var(--color-bg-primary);
+  color: var(--color-fg-primary);
+  width: 100%;
+}
+
+.date-input-gruvbox .date-time-field input::placeholder {
+  color: var(--color-fg-dim);
+}
+
+.date-input-gruvbox .picker {
+  z-index: 999;
+}
+
 /* Base styles */
 html {
   scroll-behavior: smooth;

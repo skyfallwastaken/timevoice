@@ -7,11 +7,10 @@ class Invoice < ApplicationRecord
   validates :period_start, presence: true
   validates :period_end, presence: true
   validates :issued_on, presence: true
-  validates :status, inclusion: { in: %w[draft sent paid] }
-  validates :total_cents, numericality: { greater_than_or_equal_to: 0 }
+  validates :status, inclusion: { in: %w[draft issued paid] }
 
   scope :draft, -> { where(status: "draft") }
-  scope :sent, -> { where(status: "sent") }
+  scope :issued, -> { where(status: "issued") }
   scope :paid, -> { where(status: "paid") }
 
   def total_amount

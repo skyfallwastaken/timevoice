@@ -57,7 +57,7 @@ class ReportsController < ApplicationController
     end
 
     # Group by project
-    by_project = entries.group_by(&:project).transform_values do |project_entries|
+    by_project = entries.group_by { |e| e.project&.name || "No Project" }.transform_values do |project_entries|
       {
         total: project_entries.sum(&:duration_seconds),
         billable: project_entries.select(&:billable).sum(&:duration_seconds)
@@ -65,7 +65,7 @@ class ReportsController < ApplicationController
     end
 
     # Group by client (through project)
-    by_client = entries.group_by { |e| e.project&.client }.transform_values do |client_entries|
+    by_client = entries.group_by { |e| e.project&.client&.name || "No Client" }.transform_values do |client_entries|
       {
         total: client_entries.sum(&:duration_seconds),
         billable: client_entries.select(&:billable).sum(&:duration_seconds)

@@ -12,8 +12,26 @@ class SettingsController < ApplicationController
           only: [ :id, :role, :created_at ],
           include: { user: { only: [ :id, :name, :email, :avatar_url ] } }
         )
-      }
+      },
+      canInvite: current_workspace.admin?(current_user)
     }
+  end
+
+  def destroy_workspace
+    @workspace = current_workspace
+    authorize @workspace, :destroy?
+
+    if current_user.workspaces.count <= 1
+      redirect_to settings_workspace_path, alert: "You can't delete your only workspace."
+      return
+    end
+
+    if @workspace.destroy
+      session.delete(:workspace_id)
+      redirect_to root_path, notice: "Workspace deleted successfully!"
+    else
+      redirect_to settings_workspace_path, alert: "Couldn't delete workspace. Please try again."
+    end
   end
 
   def billing
@@ -47,6 +65,10 @@ class SettingsController < ApplicationController
   private
 
   def billing_params
-    params.require(:invoice_setting).permit(:sender_name, :sender_address, :billable_rate_cents)
+    if params[:invoice_setting].present?
+      params.require(:invoice_setting).permit(:sender_name, :sender_address, :billable_rate_cents)
+    else
+      params.permit(:sender_name, :sender_address, :billable_rate_cents)
+    end
   end
 end
