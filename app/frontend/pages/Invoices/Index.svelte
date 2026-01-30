@@ -80,6 +80,45 @@
   let periodStartDate = $state<Date | null>(null);
   let periodEndDate = $state<Date | null>(null);
 
+  function setTodayAsDefault() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    periodEndDate = today;
+  }
+
+  function setLastWeek() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastWeek = new Date(today);
+    lastWeek.setDate(today.getDate() - 7);
+    periodEndDate = today;
+    periodStartDate = lastWeek;
+  }
+
+  function setLastTwoWeeks() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastTwoWeeks = new Date(today);
+    lastTwoWeeks.setDate(today.getDate() - 14);
+    periodEndDate = today;
+    periodStartDate = lastTwoWeeks;
+  }
+
+  function setLastMonth() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(today.getMonth() - 1);
+    periodEndDate = today;
+    periodStartDate = lastMonth;
+  }
+
+  $effect(() => {
+    if (showCreateForm && !periodEndDate) {
+      setTodayAsDefault();
+    }
+  });
+
   let createForm = useForm({
     client_id: "",
     period_start: "",
@@ -354,6 +393,33 @@
                 {$createForm.errors.period_end}
               </p>
             {/if}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <span class="block text-sm font-medium text-fg-secondary mb-2">Quick Select</span>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onclick={setLastWeek}
+              class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
+            >
+              Last Week
+            </button>
+            <button
+              type="button"
+              onclick={setLastTwoWeeks}
+              class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
+            >
+              Last 2 Weeks
+            </button>
+            <button
+              type="button"
+              onclick={setLastMonth}
+              class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
+            >
+              Last Month
+            </button>
           </div>
         </div>
 

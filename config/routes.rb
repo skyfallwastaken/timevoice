@@ -13,7 +13,6 @@ Rails.application.routes.draw do
   # Main app routes
   root "dashboard#index"
   get "/calendar", to: "dashboard#calendar"
-  get "/entries", to: "time_entries#index"
   get "/reports", to: "reports#index"
   get "/invoices", to: "invoices#index"
 

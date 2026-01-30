@@ -3,26 +3,6 @@ class TimeEntriesController < ApplicationController
   before_action :set_running_time_entry, only: [ :stop ]
   before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop ]
 
-  def index
-    @entries = current_user.time_entries
-      .where(workspace: current_workspace)
-      .completed
-      .order(start_at: :desc)
-      .limit(50)
-
-    render inertia: "TimeEntries/Index", props: {
-      entries: @entries.map { |entry|
-        entry.as_json(
-          only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
-          include: {
-            project: { only: [ :id, :name, :color ] },
-            tags: { only: [ :id, :name ] }
-          }
-        ).merge(formattedDuration: entry.formatted_duration)
-      }
-    }
-  end
-
   def create
     @time_entry = current_user.time_entries.build(time_entry_params)
     @time_entry.workspace = current_workspace

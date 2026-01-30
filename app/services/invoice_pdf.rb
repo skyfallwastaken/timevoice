@@ -53,7 +53,8 @@ class InvoicePdf
     # Invoice details in a table-like format
     details_data = [
       [ "Invoice number", invoice_number ],
-      [ "Invoice date", format_date(@invoice.issued_on) ]
+      [ "Invoice date", format_date(@invoice.issued_on) ],
+      [ "Period", "#{format_date(@invoice.period_start)} - #{format_date(@invoice.period_end)}" ]
     ]
 
     details_data.each do |label, value|
@@ -132,7 +133,7 @@ class InvoicePdf
     @document.move_down 30
 
     # Build table data (no Qty column)
-    table_data = [ [ "Description", "Unit price", "Amount" ] ]
+    table_data = [ [ "Description", "Hourly rate", "Amount" ] ]
 
     @invoice.invoice_lines.each do |line|
       hours = line.qty_hours || 0

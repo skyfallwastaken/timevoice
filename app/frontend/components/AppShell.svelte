@@ -3,7 +3,6 @@
   import { 
     Clock, 
     Calendar, 
-    List, 
     FolderKanban,
     BarChart3, 
     FileText, 
@@ -22,7 +21,6 @@
   const navItems = [
     { href: '/', icon: Clock, label: 'Timer' },
     { href: '/calendar', icon: Calendar, label: 'Calendar' },
-    { href: '/entries', icon: List, label: 'Entries' },
     { href: '/clients', icon: Building2, label: 'Clients' },
     { href: '/projects', icon: FolderKanban, label: 'Projects' },
     { href: '/tags', icon: Tag, label: 'Tags' },

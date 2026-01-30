@@ -19,7 +19,7 @@ class InvoicesController < ApplicationController
       .where(billable: true)
       .left_outer_joins(:invoice_lines)
       .where(invoice_lines: { id: nil })
-      .where("time_entries.duration_seconds > 0")
+      .where("time_entries.duration_seconds >= 36")
       .includes(:project, :tags)
       .order(start_at: :desc)
 
@@ -113,6 +113,7 @@ class InvoicesController < ApplicationController
       .where(projects: { client_id: client.id })
       .where(start_at: start_date.beginning_of_day..end_date.end_of_day)
       .where("time_entries.duration_seconds > 0")
+      .where("time_entries.duration_seconds >= 36")
 
     if entries.empty?
       redirect_to invoices_path, alert: "No unbilled entries found for this client in the selected date range."
@@ -179,8 +180,12 @@ class InvoicesController < ApplicationController
 
     pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
 
+    client_name = @invoice.client.name
+    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
+    filename = "Invoice to #{client_name} - #{date_range}.pdf"
+
     send_data pdf,
-      filename: "Invoice-#{@invoice.id}.pdf",
+      filename: filename,
       type: "application/pdf",
       disposition: "inline"
   end

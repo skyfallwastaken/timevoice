@@ -1,8 +1,8 @@
 @import "tailwindcss";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/ibm-plex-sans/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
 
 @theme {
   /* Gruvbox Dark Theme Colors */
@@ -42,7 +42,7 @@
   --color-status-info: #83a598;
   
   /* Typography */
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
   
   /* Animation timing - following spec */
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
