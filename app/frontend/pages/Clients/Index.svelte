@@ -5,6 +5,8 @@
   import { useForm } from '@inertiajs/svelte'
   import { Users, Plus, Edit2, Trash2, Check, X, Building2 } from 'lucide-svelte'
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
+
   type Client = {
     id: number
     name: string
@@ -39,7 +41,7 @@
   }
 
   function handleCreate() {
-    $createForm.post('/clients', {
+    $createForm.post(`/${workspaceId}/clients`, {
       onSuccess: () => {
         $createForm.reset()
       }
@@ -47,7 +49,7 @@
   }
 
   function handleUpdate(clientId: number) {
-    $editForm.patch(`/clients/${clientId}`, {
+    $editForm.patch(`/${workspaceId}/clients/${clientId}`, {
       onSuccess: () => {
         editingId = null
         $editForm.reset()
@@ -57,7 +59,7 @@
 
   function handleDelete(clientId: number) {
     if (confirm('Are you sure you want to delete this client? This will remove the client association from all projects.')) {
-      $editForm.delete(`/clients/${clientId}`)
+      $editForm.delete(`/${workspaceId}/clients/${clientId}`)
     }
   }
 </script>

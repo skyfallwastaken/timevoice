@@ -5,6 +5,7 @@
   import { page, router } from '@inertiajs/svelte'
   import { useForm } from '@inertiajs/svelte'
   import { Edit2, Trash2, DollarSign, Check, X, Search, Filter, ChevronDown, ChevronUp } from 'lucide-svelte'
+  import Modal from '../../components/Modal.svelte'
 
   type Project = { id: number; name: string; color: string; billable_default: boolean }
   type Tag = { id: number; name: string }
@@ -25,6 +26,8 @@
   let tags = $derived($page.props.tags as Tag[] || [])
 
   let editingEntry = $state<Entry | null>(null)
+  let showDeleteModal = $state(false)
+  let entryToDelete = $state<Entry | null>(null)
 
   // Filter state
   let showFilters = $state(false)
@@ -125,12 +128,22 @@
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
-  function deleteEntry(entryId: number, description?: string) {
-    const label = description?.trim() ? `"${description.trim()}"` : 'this entry'
-    const ok = window.confirm(`Delete ${label}? This cannot be undone.`)
-    if (!ok) return
+  function openDeleteModal(entry: Entry) {
+    entryToDelete = entry
+    showDeleteModal = true
+  }
 
-    router.delete(`/time_entries/${entryId}`, { preserveScroll: true })
+  function closeDeleteModal() {
+    showDeleteModal = false
+    entryToDelete = null
+  }
+
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
+
+  function confirmDeleteEntry() {
+    if (!entryToDelete) return
+    router.delete(`/${workspaceId}/time_entries/${entryToDelete.id}`, { preserveScroll: true })
+    closeDeleteModal()
   }
 
   function openEdit(entry: Entry) {
@@ -157,7 +170,7 @@
   function saveEdit() {
     if (!editingEntry) return
 
-    $editForm.patch(`/time_entries/${editingEntry.id}`, {
+    $editForm.patch(`/${workspaceId}/time_entries/${editingEntry.id}`, {
       preserveScroll: true,
       onSuccess: () => {
         closeEdit()
@@ -276,7 +289,7 @@
                 <button
                   class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
                   aria-label="Delete entry"
-                  onclick={() => deleteEntry(entry.id, entry.description || undefined)}
+                  onclick={() => openDeleteModal(entry)}
                 >
                   <Trash2 class="w-4 h-4" />
                 </button>
@@ -385,5 +398,38 @@
         </div>
       </div>
     {/if}
+
+    <Modal bind:open={showDeleteModal} title="Delete Time Entry" onclose={closeDeleteModal}>
+      <div class="space-y-4">
+        <p class="text-fg-primary">
+          Are you sure you want to delete this time entry?
+        </p>
+        {#if entryToDelete?.description}
+          <p class="text-sm text-fg-muted italic">"{entryToDelete.description}"</p>
+        {/if}
+        <p class="text-sm text-fg-muted">
+          This action cannot be undone.
+        </p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeDeleteModal}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+            onclick={confirmDeleteEntry}
+          >
+            Delete Entry
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
   </PageLayout>
 </AppShell>

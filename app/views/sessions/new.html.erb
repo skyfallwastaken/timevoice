@@ -1,18 +1,18 @@
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<div class="min-h-[100dvh] p-6 flex items-center justify-center" role="main" id="main-content" tabindex="-1">
-  <div class="w-full max-w-[440px] flex flex-col items-center gap-8">
+<div class="min-h-screen w-full p-6 flex items-center justify-center overflow-x-hidden" role="main" id="main-content" tabindex="-1">
+  <div class="max-w-md flex flex-col items-center" style="gap: 2.5rem;">
     <div class="flex flex-col items-center gap-4">
-      <div class="h-14 w-14 rounded-[14px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center">
+      <div class="h-14 w-14 rounded-[10px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center">
         <span class="text-xl font-semibold tracking-tight" aria-hidden="true">T</span>
       </div>
       <h1 class="text-2xl font-semibold text-center text-fg-primary">Sign in to Timevoice</h1>
     </div>
 
-    <div class="w-full bg-bg-secondary border border-bg-tertiary rounded-[14px] p-6">
+    <div class="w-full max-w-[440px] mx-auto bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 space-y-4" style="max-width: 440px;">
       <% if flash[:alert] %>
         <div
-          class="bg-bright-red/10 border border-bright-red text-bright-red px-4 py-3 rounded-[12px] text-sm mb-5"
+          class="bg-bright-red/10 border border-bright-red text-bright-red px-4 py-3 rounded-[10px] text-sm"
           role="alert"
           aria-live="polite"
         >
@@ -22,7 +22,7 @@
 
       <%= button_to "/auth/google_oauth2",
           method: :post,
-          class: "w-full flex items-center justify-center gap-3 bg-bg-tertiary hover:bg-bg-quaternary text-fg-primary px-4 py-3 rounded-[12px] transition-colors duration-150 font-medium",
+          class: "w-full flex items-center justify-center gap-3 bg-bg-tertiary hover:bg-bg-quaternary text-fg-primary px-4 py-3 rounded-[10px] transition-colors duration-150 font-medium",
           aria: { label: "Sign in with Google" } do %>
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -33,13 +33,11 @@
         Continue with Google
       <% end %>
 
-      <p class="mt-5 text-center text-sm text-fg-dim">
+      <p class="text-center text-sm text-fg-dim">
         Signing in will create your workspace if you do not have one yet.
       </p>
     </div>
 
-    <p class="text-center text-sm text-fg-dim">
-      Use your Google account to continue.
-    </p>
+
   </div>
 </div>

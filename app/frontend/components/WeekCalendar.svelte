@@ -1,8 +1,9 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-svelte'
-  import { router, useForm } from '@inertiajs/svelte'
+  import { router, useForm, page } from '@inertiajs/svelte'
 
   let { entries = [], projects = [], currentWeek } = $props()
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
 
   let form = useForm({
     description: '',
@@ -190,7 +191,7 @@
   function saveQuickEntry() {
     if (!$form.description.trim()) return
 
-    $form.post('/time_entries', {
+    $form.post(`/${workspaceId}/time_entries`, {
       preserveScroll: true,
       onSuccess: () => {
         showQuickEdit = false

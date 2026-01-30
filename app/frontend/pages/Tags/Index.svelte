@@ -5,6 +5,8 @@
   import { useForm } from '@inertiajs/svelte'
   import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from 'lucide-svelte'
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
+
   type TagItem = {
     id: number
     name: string
@@ -35,7 +37,7 @@
   }
 
   function handleCreate() {
-    $createForm.post('/tags', {
+    $createForm.post(`/${workspaceId}/tags`, {
       onSuccess: () => {
         $createForm.reset()
       }
@@ -43,7 +45,7 @@
   }
 
   function handleUpdate(tagId: number) {
-    $editForm.patch(`/tags/${tagId}`, {
+    $editForm.patch(`/${workspaceId}/tags/${tagId}`, {
       onSuccess: () => {
         editingId = null
         $editForm.reset()
@@ -53,7 +55,7 @@
 
   function handleDelete(tagId: number) {
     if (confirm('Are you sure you want to delete this tag? This will remove the tag from all time entries.')) {
-      $editForm.delete(`/tags/${tagId}`)
+      $editForm.delete(`/${workspaceId}/tags/${tagId}`)
     }
   }
 </script>

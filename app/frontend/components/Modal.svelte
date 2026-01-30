@@ -1,0 +1,70 @@
+<script lang="ts">
+  import { X } from 'lucide-svelte'
+  import { fade, fly } from 'svelte/transition'
+  import { quintOut } from 'svelte/easing'
+
+  interface Props {
+    open: boolean
+    title?: string
+    onclose?: () => void
+    maxWidth?: string
+    children?: any
+    footer?: any
+  }
+
+  let { open = $bindable(), title, onclose, maxWidth = 'max-w-md', children, footer }: Props = $props()
+
+  function close() {
+    onclose?.()
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && open) {
+      close()
+    }
+  }
+</script>
+
+<svelte:window onkeydown={handleKeydown} />
+
+{#if open}
+  <div 
+    class="fixed inset-0 z-50 flex items-center justify-center p-4" 
+    role="dialog" 
+    aria-modal="true" 
+    aria-label={title}
+    transition:fade={{ duration: 150 }}
+  >
+    <div 
+      class="absolute inset-0 bg-black/50 cursor-pointer" 
+      onclick={close} 
+      aria-hidden="true"
+    ></div>
+    <div 
+      class="relative w-full {maxWidth} bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
+      transition:fly={{ y: 20, duration: 250, easing: quintOut }}
+    >
+      {#if title}
+        <div class="p-4 border-b border-bg-tertiary flex items-center justify-between">
+          <h3 class="font-semibold">{title}</h3>
+          <button
+            type="button"
+            class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={close}
+            aria-label="Close"
+          >
+            <X class="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      {/if}
+      <div class="p-4 space-y-4">
+        {@render children?.()}
+      </div>
+      {#if footer}
+        <div class="p-4 border-t border-bg-tertiary">
+          {@render footer()}
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}

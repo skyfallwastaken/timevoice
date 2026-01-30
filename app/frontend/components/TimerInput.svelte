@@ -1,8 +1,10 @@
 <script lang="ts">
   import { Play, Square, DollarSign, Check, X } from 'lucide-svelte'
-  import { router, useForm } from '@inertiajs/svelte'
+  import { router, useForm, page } from '@inertiajs/svelte'
 
   let { runningEntry, projects = [], tags = [] } = $props()
+  
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
 
   let form = useForm({
     description: '',
@@ -66,7 +68,7 @@
     if (!$form.description.trim()) return
     
     $form.start_at = new Date().toISOString()
-    $form.post('/time_entries', {
+    $form.post(`/${workspaceId}/time_entries`, {
       preserveScroll: true,
       onSuccess: () => {
         $form.reset()
@@ -79,7 +81,7 @@
   function stopTimer() {
     if (!runningEntry) return
 
-    router.patch(`/time_entries/${runningEntry.id}/stop`, {}, {
+    router.patch(`/${workspaceId}/time_entries/${runningEntry.id}/stop`, {}, {
       preserveScroll: true,
       onSuccess: () => {
         // Focus back on description after stopping
@@ -126,10 +128,10 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="bg-bg-secondary border-b border-bg-tertiary p-4" role="region" aria-label="Time tracker">
-  <div class="flex items-center gap-4">
+<div class="bg-bg-secondary border-b border-bg-tertiary p-3 md:p-4" role="region" aria-label="Time tracker">
+  <div class="flex flex-col md:flex-row gap-3 md:gap-4">
     <!-- Description Input -->
-    <div class="flex-1">
+    <div class="flex-1 w-full">
       <label for="timer-description" class="sr-only">What are you working on?</label>
       <input
         id="timer-description"
@@ -139,12 +141,14 @@
          bind:this={descriptionInput}
          disabled={isRunning}
          onkeydown={handleDescriptionKeydown}
-         class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-3 text-fg-primary placeholder:text-fg-dim focus:border-bright-blue transition-colors duration-150 disabled:opacity-50"
+         class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-3 md:px-4 py-2.5 md:py-3 text-fg-primary placeholder:text-fg-dim focus:border-bright-blue transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
         aria-label="Task description"
         autocomplete="off"
       />
     </div>
 
+    <!-- Controls Row -->
+    <div class="flex items-center gap-2 md:gap-4 flex-wrap md:flex-nowrap">
     <!-- Project Selector -->
     <div class="relative">
       {#if selectedProject}
@@ -152,7 +156,7 @@
           <button 
             disabled={isRunning}
             onclick={() => !isRunning && (showProjectDropdown = !showProjectDropdown)}
-            class="flex items-center gap-2 px-4 py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] hover:border-bright-blue transition-colors duration-150 disabled:opacity-50"
+            class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] hover:border-bright-blue transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
             aria-haspopup="listbox"
             aria-expanded={showProjectDropdown}
             aria-label="Selected project: {selectedProject.name}"
@@ -175,7 +179,7 @@
         <button 
           disabled={isRunning}
           onclick={() => showProjectDropdown = !showProjectDropdown}
-          class="px-4 py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50"
+          class="px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
           aria-haspopup="listbox"
           aria-expanded={showProjectDropdown}
           aria-label="Select project"
@@ -192,7 +196,7 @@
         >
           <div class="p-2 max-h-64 overflow-y-auto">
             {#if projects.length === 0}
-              <p class="p-3 text-fg-muted text-sm">No projects yet. <a href="/projects" class="text-bright-blue hover:underline">Create one</a>.</p>
+              <p class="p-3 text-fg-muted text-sm">No projects yet. <a href="/{workspaceId}/projects" class="text-bright-blue hover:underline">Create one</a>.</p>
             {:else}
               {#each projects as project}
                 <button
@@ -224,7 +228,7 @@
       <button 
         disabled={isRunning}
         onclick={() => showTagDropdown = !showTagDropdown}
-        class="flex items-center gap-2 px-4 py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50"
+        class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
         aria-haspopup="listbox"
         aria-expanded={showTagDropdown}
         aria-label={selectedTags.length > 0 ? `Selected ${selectedTags.length} tags` : 'Select tags'}
@@ -245,7 +249,7 @@
         >
           <div class="p-2 max-h-64 overflow-y-auto">
             {#if tags.length === 0}
-              <p class="p-3 text-fg-muted text-sm">No tags yet. <a href="/tags" class="text-bright-blue hover:underline">Create one</a>.</p>
+              <p class="p-3 text-fg-muted text-sm">No tags yet. <a href="/{workspaceId}/tags" class="text-bright-blue hover:underline">Create one</a>.</p>
             {:else}
               {#each tags as tag}
                 <button
@@ -271,7 +275,7 @@
       type="button"
       onclick={() => $form.billable = !$form.billable}
       disabled={isRunning}
-      class="flex items-center gap-2 px-4 py-3 bg-bg-primary border rounded-[10px] transition-colors duration-150 disabled:opacity-50 {$form.billable ? 'border-bright-green text-bright-green' : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
+      class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border rounded-[10px] transition-colors duration-150 disabled:opacity-50 text-sm md:text-base {$form.billable ? 'border-bright-green text-bright-green' : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
       aria-pressed={$form.billable}
     >
       <DollarSign class="w-4 h-4" aria-hidden="true" />
@@ -279,29 +283,30 @@
     </button>
 
     <!-- Timer Display & Controls -->
-    <div class="flex items-center gap-3" role="timer" aria-label={isRunning ? 'Timer running' : 'Timer stopped'}>
-      <span class="text-3xl font-tabular font-semibold text-fg-primary min-w-[100px] text-center" aria-live="polite" aria-atomic="true">
+    <div class="flex items-center gap-2 md:gap-3 ml-auto md:ml-0" role="timer" aria-label={isRunning ? 'Timer running' : 'Timer stopped'}>
+      <span class="text-2xl md:text-3xl font-tabular font-semibold text-fg-primary min-w-[80px] md:min-w-[100px] text-center" aria-live="polite" aria-atomic="true">
         {formatDuration(elapsed)}
       </span>
       
       {#if runningEntry}
         <button
           onclick={stopTimer}
-          class="p-4 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150"
+          class="p-3 md:p-4 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150"
           aria-label="Stop timer"
         >
-          <Square class="w-6 h-6 fill-current" aria-hidden="true" />
+          <Square class="w-5 h-5 md:w-6 md:h-6 fill-current" aria-hidden="true" />
         </button>
       {:else}
         <button
           onclick={startTimer}
           disabled={!$form.description.trim()}
-          class="p-4 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="p-3 md:p-4 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Start timer"
         >
-          <Play class="w-6 h-6 fill-current" aria-hidden="true" />
+          <Play class="w-5 h-5 md:w-6 md:h-6 fill-current" aria-hidden="true" />
         </button>
       {/if}
+    </div>
     </div>
   </div>
 </div>

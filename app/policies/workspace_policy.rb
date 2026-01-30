@@ -5,6 +5,10 @@ class WorkspacePolicy < ApplicationPolicy
     end
   end
 
+  def create?
+    user.present?
+  end
+
   def show?
     record.member?(user)
   end

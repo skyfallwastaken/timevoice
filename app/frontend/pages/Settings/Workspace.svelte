@@ -3,8 +3,9 @@
   import PageLayout from '../../components/PageLayout.svelte'
   import { page, router } from '@inertiajs/svelte'
   import { useForm } from '@inertiajs/svelte'
-  import { Settings, Users, Shield, Trash2, Plus, Crown, X } from 'lucide-svelte'
+  import { Settings, Users, Shield, Trash2, Plus, Crown } from 'lucide-svelte'
   import EmptyState from '../../components/EmptyState.svelte'
+  import Modal from '../../components/Modal.svelte'
 
   type Membership = {
     id: number
@@ -28,6 +29,7 @@
   const canDeleteWorkspace = $derived(myRole === 'owner')
 
   let showInviteModal = $state(false)
+  let showDeleteModal = $state(false)
   let inviteForm = useForm({
     email: '',
     role: 'member'
@@ -43,8 +45,10 @@
     $inviteForm.reset()
   }
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
+
   function submitInvite() {
-    $inviteForm.post('/memberships', {
+    $inviteForm.post(`/${workspaceId}/memberships`, {
       preserveScroll: true,
       onSuccess: () => {
         closeInvite()
@@ -52,21 +56,25 @@
     })
   }
 
-  function deleteWorkspace() {
+  function openDeleteModal() {
     if (!canDeleteWorkspace) return
+    showDeleteModal = true
+  }
 
-    const name = workspace?.name || 'this workspace'
-    const ok = window.confirm(`Delete ${name}? This cannot be undone.`)
-    if (!ok) return
+  function closeDeleteModal() {
+    showDeleteModal = false
+  }
 
-    router.delete('/settings/workspace')
+  function confirmDeleteWorkspace() {
+    router.delete(`/${workspaceId}/settings/workspace`)
+    closeDeleteModal()
   }
 
   function removeMember(membershipId: number, memberName: string) {
     const ok = window.confirm(`Remove ${memberName} from this workspace?`)
     if (!ok) return
 
-    router.delete(`/memberships/${membershipId}`, { preserveScroll: true })
+    router.delete(`/${workspaceId}/memberships/${membershipId}`, { preserveScroll: true })
   }
 
   function getRoleIcon(role: string) {
@@ -88,14 +96,14 @@
     <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden">
       <div class="grid grid-cols-2">
         <a
-          href="/settings/workspace"
+          href="/{workspaceId}/settings/workspace"
           class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary border-r border-bg-tertiary"
           aria-current="page"
         >
           Workspace
         </a>
         <a
-          href="/settings/billing"
+          href="/{workspaceId}/settings/billing"
           class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150"
         >
           Billing
@@ -196,7 +204,7 @@
             title="No members yet"
             description="Invite team members to collaborate on time tracking."
             actionLabel="Invite Member"
-            actionHref="/settings/workspace"
+            actionHref="/{workspaceId}/settings/workspace"
           />
         {/each}
       </div>
@@ -211,7 +219,7 @@
       <button 
         class="px-4 py-2 border border-bright-red text-bright-red hover:bg-bright-red hover:text-bg-primary rounded-[10px] transition-colors duration-150 text-sm"
         aria-label="Delete workspace"
-        onclick={deleteWorkspace}
+        onclick={openDeleteModal}
         disabled={!canDeleteWorkspace}
         title={canDeleteWorkspace ? 'Delete workspace' : 'Only the owner can delete the workspace'}
       >
@@ -219,67 +227,82 @@
       </button>
     </div>
 
-    {#if showInviteModal}
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Invite member">
-        <div class="absolute inset-0 bg-black/50" onclick={closeInvite} aria-hidden="true"></div>
-        <div class="relative w-full max-w-md bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden">
-          <div class="p-4 border-b border-bg-tertiary flex items-center justify-between">
-            <h3 class="font-semibold">Invite Member</h3>
-            <button
-              type="button"
-              class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-              onclick={closeInvite}
-              aria-label="Close"
-            >
-              <X class="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-          <div class="p-4 space-y-4">
-            <div>
-              <label for="invite-email" class="block text-sm font-medium text-fg-secondary mb-1">Email</label>
-              <input
-                id="invite-email"
-                type="email"
-                bind:value={$inviteForm.email}
-                placeholder="name@company.com"
-                class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
-                autocomplete="email"
-              />
-            </div>
-
-            <div>
-              <label for="invite-role" class="block text-sm font-medium text-fg-secondary mb-1">Role</label>
-              <select
-                id="invite-role"
-                bind:value={$inviteForm.role}
-                class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
-              >
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-              </select>
-              <p class="text-xs text-fg-muted mt-1">They must have signed in before you can add them.</p>
-            </div>
-          </div>
-          <div class="p-4 border-t border-bg-tertiary flex items-center justify-end gap-2">
-            <button
-              type="button"
-              class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-              onclick={closeInvite}
-              disabled={$inviteForm.processing}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
-              onclick={submitInvite}
-              disabled={$inviteForm.processing || !$inviteForm.email}
-            >
-              {$inviteForm.processing ? 'Inviting...' : 'Invite'}
-            </button>
-          </div>
-        </div>
+    <Modal bind:open={showInviteModal} title="Invite Member" onclose={closeInvite}>
+      <div>
+        <label for="invite-email" class="block text-sm font-medium text-fg-secondary mb-1">Email</label>
+        <input
+          id="invite-email"
+          type="email"
+          bind:value={$inviteForm.email}
+          placeholder="name@company.com"
+          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
+          autocomplete="email"
+        />
       </div>
-    {/if}
+
+      <div>
+        <label for="invite-role" class="block text-sm font-medium text-fg-secondary mb-1">Role</label>
+        <select
+          id="invite-role"
+          bind:value={$inviteForm.role}
+          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
+        >
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select>
+        <p class="text-xs text-fg-muted mt-1">They must have signed in before you can add them.</p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeInvite}
+            disabled={$inviteForm.processing}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
+            onclick={submitInvite}
+            disabled={$inviteForm.processing || !$inviteForm.email}
+          >
+            {$inviteForm.processing ? 'Inviting...' : 'Invite'}
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
+
+    <Modal bind:open={showDeleteModal} title="Delete Workspace" onclose={closeDeleteModal}>
+      <div class="space-y-4">
+        <p class="text-fg-primary">
+          Are you sure you want to delete <span class="font-semibold">{workspace?.name || 'this workspace'}</span>?
+        </p>
+        <p class="text-sm text-fg-muted">
+          This action cannot be undone. All data including time entries, projects, clients, and invoices will be permanently deleted.
+        </p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeDeleteModal}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+            onclick={confirmDeleteWorkspace}
+          >
+            Delete Workspace
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
   </PageLayout>
 </AppShell>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_29_231725) do
+ActiveRecord::Schema[8.2].define(version: 2026_01_30_203000) do
   create_table "clients", force: :cascade do |t|
     t.text "billing_address"
     t.datetime "created_at", null: false
@@ -129,11 +129,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_29_231725) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "google_uid", null: false
+    t.integer "last_used_workspace_id"
     t.string "name", null: false
     t.string "timezone", default: "UTC"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["google_uid"], name: "index_users_on_google_uid", unique: true
+    t.index ["last_used_workspace_id"], name: "index_users_on_last_used_workspace_id"
   end
 
   create_table "workspaces", force: :cascade do |t|
@@ -161,5 +163,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_29_231725) do
   add_foreign_key "time_entries", "workspaces"
   add_foreign_key "time_entry_tags", "tags"
   add_foreign_key "time_entry_tags", "time_entries"
+  add_foreign_key "users", "workspaces", column: "last_used_workspace_id"
   add_foreign_key "workspaces", "users", column: "owner_id"
 end

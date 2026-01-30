@@ -42,7 +42,9 @@ class ApplicationController < ActionController::Base
 
   def current_workspace
     @current_workspace ||= begin
-      if session[:workspace_id]
+      if params[:workspace_id].present?
+        current_user&.workspaces&.find_by(id: params[:workspace_id])
+      elsif session[:workspace_id]
         current_user&.workspaces&.find_by(id: session[:workspace_id])
       else
         current_user&.workspaces&.first
@@ -60,14 +62,33 @@ class ApplicationController < ActionController::Base
     return unless current_user && current_workspace
 
     session[:workspace_id] = current_workspace.id
+
+    # Save last used workspace for the user
+    if current_user.last_used_workspace_id != current_workspace.id
+      current_user.update_column(:last_used_workspace_id, current_workspace.id)
+    end
   end
 
   def require_workspace
     return unless current_user
+
+    # If at root path, redirect to last used workspace timer or first workspace
+    if request.path == "/"
+      target_workspace = current_user.last_used_workspace || current_user.workspaces.first
+      if target_workspace
+        redirect_to "/#{target_workspace.id}/timer"
+        return
+      else
+        redirect_to signin_path, alert: "No workspace found. Please contact support."
+        return
+      end
+    end
+
     return if current_workspace
 
     if current_user.workspaces.any?
-      session[:workspace_id] = current_user.workspaces.first.id
+      first_workspace = current_user.workspaces.first
+      session[:workspace_id] = first_workspace.id
     else
       redirect_to signin_path, alert: "No workspace found. Please contact support."
     end

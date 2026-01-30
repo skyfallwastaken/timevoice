@@ -5,6 +5,8 @@
   import { useForm } from '@inertiajs/svelte'
   import { FolderKanban, Plus, Edit2, Trash2, Check, X, Briefcase } from 'lucide-svelte'
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
+
   type Project = {
     id: number
     name: string
@@ -64,7 +66,7 @@
   }
 
   function handleCreate() {
-    $createForm.post('/projects', {
+    $createForm.post(`/${workspaceId}/projects`, {
       onSuccess: () => {
         $createForm.reset()
         // Reset color to default
@@ -76,7 +78,7 @@
   }
 
   function handleUpdate(projectId: number) {
-    $editForm.patch(`/projects/${projectId}`, {
+    $editForm.patch(`/${workspaceId}/projects/${projectId}`, {
       onSuccess: () => {
         editingId = null
         $editForm.reset()
@@ -86,7 +88,7 @@
 
   function handleDelete(projectId: number) {
     if (confirm('Are you sure you want to delete this project? This will remove the project association from all time entries.')) {
-      $editForm.delete(`/projects/${projectId}`)
+      $editForm.delete(`/${workspaceId}/projects/${projectId}`)
     }
   }
 </script>

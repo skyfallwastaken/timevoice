@@ -10,41 +10,42 @@ Rails.application.routes.draw do
   get "/auth/google_oauth2/callback", to: "sessions#create"
   get "/auth/failure", to: "sessions#failure"
 
-  # Main app routes
-  root "dashboard#index"
-  get "/calendar", to: "dashboard#calendar"
-  get "/reports", to: "reports#index"
-  get "/invoices", to: "invoices#index"
+  # Workspace-scoped resources (URLs like /:workspace_id/projects)
+  scope "/:workspace_id", constraints: { workspace_id: /\d+/ } do
+    get "/timer", to: "dashboard#index"
+    get "/calendar", to: "dashboard#calendar"
+    get "/reports", to: "reports#index"
+    get "/invoices", to: "invoices#index"
+    get "/settings", to: "settings#workspace"
+    delete "/settings", to: "settings#destroy_workspace"
+    get "/billing", to: "settings#billing"
+    patch "/billing", to: "settings#update_billing"
 
-  # Workspace switching
+    resources :time_entries, only: [ :create, :update, :destroy ] do
+      member do
+        patch :stop
+        put :stop
+      end
+    end
+
+    resources :projects, only: [ :index, :create, :update, :destroy ]
+    resources :clients, only: [ :index, :create, :update, :destroy ]
+    resources :tags, only: [ :index, :create, :update, :destroy ]
+    resources :memberships, only: [ :create, :destroy ]
+    resources :invoices, only: [ :index, :show, :create, :update, :destroy ] do
+      member do
+        get :pdf
+      end
+    end
+  end
+
+  # Workspaces
+  resources :workspaces, only: [ :create ]
   patch "/workspaces/switch", to: "workspaces#switch", as: :switch_workspace
-  get "/settings/workspace", to: "settings#workspace"
-  delete "/settings/workspace", to: "settings#destroy_workspace"
-  get "/settings/billing", to: "settings#billing"
-  patch "/settings/billing", to: "settings#update_billing"
 
-  # Time entries API
-  resources :time_entries, only: [ :create, :update, :destroy ] do
-    member do
-      patch :stop
-      put :stop
-    end
-  end
-
-  # Projects, Clients, and Tags
-  resources :projects, only: [ :index, :create, :update, :destroy ]
-  resources :clients, only: [ :index, :create, :update, :destroy ]
-  resources :tags, only: [ :index, :create, :update, :destroy ]
-
-  # Workspace memberships
-  resources :memberships, only: [ :create, :destroy ]
-
-  # Invoices
-  resources :invoices, only: [ :index, :show, :create, :update, :destroy ] do
-    member do
-      get :pdf
-    end
-  end
+  # Root route - redirects to first workspace
+  root "dashboard#index"
+  get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /\d+/ }
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

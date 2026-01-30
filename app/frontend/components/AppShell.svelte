@@ -1,41 +1,51 @@
 <script lang="ts">
   import { page } from '@inertiajs/svelte'
-  import { 
-    Clock, 
-    Calendar, 
+  import {
+    Clock,
+    Calendar,
     FolderKanban,
-    BarChart3, 
-    FileText, 
+    BarChart3,
+    FileText,
     Building2,
     Tag,
     Settings,
     LogOut,
     ChevronDown,
     Menu,
-    X
+    X,
+    Plus
   } from 'lucide-svelte'
   import { router } from '@inertiajs/svelte'
+  import { useForm } from '@inertiajs/svelte'
+  import Modal from './Modal.svelte'
+  import { fly, fade } from 'svelte/transition'
+  import { quintOut } from 'svelte/easing'
 
   let { children } = $props()
 
-  const navItems = [
-    { href: '/', icon: Clock, label: 'Timer' },
-    { href: '/calendar', icon: Calendar, label: 'Calendar' },
-    { href: '/clients', icon: Building2, label: 'Clients' },
-    { href: '/projects', icon: FolderKanban, label: 'Projects' },
-    { href: '/tags', icon: Tag, label: 'Tags' },
-    { href: '/reports', icon: BarChart3, label: 'Reports' },
-    { href: '/invoices', icon: FileText, label: 'Invoices' },
-    { href: '/settings/workspace', icon: Settings, label: 'Settings' },
-  ]
-
   const user = $derived($page.props.auth?.user)
   const workspace = $derived($page.props.auth?.workspace)
+  
+  const navItems = $derived([
+    { href: `/${workspace?.id || ''}/timer`, icon: Clock, label: 'Timer' },
+    { href: `/${workspace?.id || ''}/calendar`, icon: Calendar, label: 'Calendar' },
+    { href: `/${workspace?.id || ''}/clients`, icon: Building2, label: 'Clients' },
+    { href: `/${workspace?.id || ''}/projects`, icon: FolderKanban, label: 'Projects' },
+    { href: `/${workspace?.id || ''}/tags`, icon: Tag, label: 'Tags' },
+    { href: `/${workspace?.id || ''}/reports`, icon: BarChart3, label: 'Reports' },
+    { href: `/${workspace?.id || ''}/invoices`, icon: FileText, label: 'Invoices' },
+    { href: `/${workspace?.id || ''}/settings`, icon: Settings, label: 'Settings' },
+  ])
   const workspaces = $derived($page.props.auth?.workspaces || [])
 
   let mobileNavOpen = $state(false)
   let mobileWorkspaceOpen = $state(false)
   let desktopWorkspaceOpen = $state(false)
+  let showCreateModal = $state(false)
+
+  let createForm = useForm({
+    name: ''
+  })
 
   function signOut() {
     router.delete('/signout')
@@ -44,6 +54,26 @@
   function closeMobileNav() {
     mobileNavOpen = false
     mobileWorkspaceOpen = false
+  }
+
+  function openCreateModal() {
+    $createForm.reset()
+    showCreateModal = true
+    mobileWorkspaceOpen = false
+    desktopWorkspaceOpen = false
+  }
+
+  function closeCreateModal() {
+    showCreateModal = false
+    $createForm.reset()
+  }
+
+  function submitCreateWorkspace() {
+    $createForm.transform((data) => ({ workspace: data })).post('/workspaces', {
+      onSuccess: () => {
+        closeCreateModal()
+      }
+    })
   }
 
   function switchWorkspace(workspaceId: number) {
@@ -111,8 +141,14 @@
   <!-- Mobile Drawer -->
   {#if mobileNavOpen}
     <div class="md:hidden fixed inset-0 z-40" aria-label="Mobile navigation">
-      <div class="absolute inset-0 bg-black/50" onclick={closeMobileNav} aria-hidden="true"></div>
-      <aside class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col">
+      <button 
+        type="button"
+        class="absolute inset-0 bg-black/50" 
+        onclick={closeMobileNav} 
+        aria-label="Close navigation"
+        transition:fade={{ duration: 200 }}
+      ></button>
+      <aside class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col" transition:fly={{ x: -300, duration: 300, easing: quintOut }}>
         <div class="p-4 border-b border-bg-tertiary flex items-center justify-between">
           <h1 class="text-lg font-bold text-bright-purple">Timevoice</h1>
           <button
@@ -149,6 +185,14 @@
                   {ws.name}
                 </button>
               {/each}
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary transition-colors duration-150 border-t border-bg-tertiary"
+                onclick={openCreateModal}
+              >
+                <Plus class="w-4 h-4" />
+                Create workspace
+              </button>
             </div>
           {/if}
         </div>
@@ -229,6 +273,14 @@
                 {ws.name}
               </button>
             {/each}
+            <button
+              type="button"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary transition-colors duration-150 border-t border-bg-tertiary"
+              onclick={openCreateModal}
+            >
+              <Plus class="w-4 h-4" />
+              Create workspace
+            </button>
           </div>
         {/if}
       </div>
@@ -279,4 +331,41 @@
   <main id="main-content" class="flex-1 flex flex-col min-w-0 pt-14 md:pt-0" tabindex="-1">
     {@render children()}
   </main>
+
+  <Modal bind:open={showCreateModal} title="Create Workspace" onclose={closeCreateModal}>
+    <div>
+      <label for="workspace-name" class="block text-sm font-medium text-fg-secondary mb-1">Workspace Name</label>
+      <input
+        id="workspace-name"
+        type="text"
+        bind:value={$createForm.name}
+        placeholder="My Team"
+        class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
+      />
+      {#if $createForm.errors?.name}
+        <p class="text-sm text-bright-red mt-1">{$createForm.errors.name}</p>
+      {/if}
+    </div>
+
+    {#snippet footer()}
+      <div class="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          onclick={closeCreateModal}
+          disabled={$createForm.processing}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
+          onclick={submitCreateWorkspace}
+          disabled={$createForm.processing || !$createForm.name}
+        >
+          {$createForm.processing ? 'Creating...' : 'Create Workspace'}
+        </button>
+      </div>
+    {/snippet}
+  </Modal>
 </div>

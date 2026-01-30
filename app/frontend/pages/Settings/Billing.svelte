@@ -5,6 +5,7 @@
   import { useForm } from '@inertiajs/svelte'
   import { DollarSign } from 'lucide-svelte'
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id)
   let invoiceSettings = $derived($page.props.invoiceSettings || {})
   let flash = $derived($page.props.flash || {})
 
@@ -23,7 +24,7 @@
   })
 
   function saveSettings() {
-    $form.patch('/settings/billing', {
+    $form.patch(`/${workspaceId}/billing`, {
       preserveScroll: true,
       onSuccess: () => {
         // Flash message handled by server
@@ -47,13 +48,13 @@
     <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden">
       <div class="grid grid-cols-2">
         <a
-          href="/settings/workspace"
+          href="/{workspaceId}/settings/workspace"
           class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
         >
           Workspace
         </a>
         <a
-          href="/settings/billing"
+          href="/{workspaceId}/settings/billing"
           class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary"
           aria-current="page"
         >
@@ -161,7 +162,7 @@
         </p>
         <p>
           <strong class="text-fg-primary">Client Addresses:</strong> 
-          Client billing addresses are managed in the <a href="/clients" class="text-bright-purple hover:text-accent-purple transition-colors duration-150">Clients</a> section.
+          Client billing addresses are managed in the <a href="/{workspaceId}/clients" class="text-bright-purple hover:text-accent-purple transition-colors duration-150">Clients</a> section.
         </p>
       </div>
     </div>

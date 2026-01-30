@@ -61,6 +61,7 @@
     sender_address: string | null;
   };
 
+  const workspaceId = $derived($page.props.auth?.workspace?.id);
   let invoices = $derived(($page.props.invoices as Invoice[]) || []);
   let clients = $derived(($page.props.clients as Client[]) || []);
   let unbilledEntries = $derived(
@@ -163,7 +164,7 @@
   );
 
   function handleCreateInvoice() {
-    $createForm.post("/invoices", {
+    $createForm.post(`/${workspaceId}/invoices`, {
       onSuccess: () => {
         $createForm.reset();
         periodStartDate = null;
@@ -196,7 +197,7 @@
 
   function updateInvoiceStatus(invoiceId: number, status: string) {
     router.patch(
-      `/invoices/${invoiceId}`,
+      `/${workspaceId}/invoices/${invoiceId}`,
       { invoice: { status } },
       { preserveScroll: true },
     );
@@ -292,7 +293,7 @@
       </div>
       <div class="px-4 pb-4 pt-4 border-t border-bg-tertiary">
         <a
-          href="/settings/billing"
+          href="/{workspaceId}/settings/billing"
           class="text-sm text-bright-purple hover:text-accent-purple transition-colors duration-150"
         >
           Edit invoice settings in Billing Settings →
@@ -570,7 +571,7 @@
 
                   <div class="flex gap-2">
                     <a
-                      href={`/invoices/${invoice.id}`}
+                      href={`/${workspaceId}/invoices/${invoice.id}`}
                       class="flex items-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bg-quaternary rounded-[10px] text-fg-primary transition-colors duration-150"
                     >
                       <FileText class="w-4 h-4" />
