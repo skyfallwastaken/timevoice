@@ -1,4 +1,7 @@
 class TagsController < ApplicationController
+  before_action :set_tag, only: [ :update, :destroy ]
+  before_action :authorize_tag, only: [ :create, :update, :destroy ]
+
   def index
     @tags = current_workspace.tags.order(:name)
 
@@ -18,8 +21,6 @@ class TagsController < ApplicationController
   end
 
   def update
-    @tag = current_workspace.tags.find(params[:id])
-
     if @tag.update(tag_params)
       redirect_to tags_path, notice: "Tag updated successfully!"
     else
@@ -28,13 +29,20 @@ class TagsController < ApplicationController
   end
 
   def destroy
-    @tag = current_workspace.tags.find(params[:id])
     @tag.destroy
 
     redirect_to tags_path, notice: "Tag deleted successfully!"
   end
 
   private
+
+  def set_tag
+    @tag = current_workspace.tags.find(params[:id])
+  end
+
+  def authorize_tag
+    authorize(@tag || Tag.new(workspace: current_workspace))
+  end
 
   def tag_params
     params.require(:tag).permit(:name)

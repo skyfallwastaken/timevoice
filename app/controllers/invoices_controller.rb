@@ -1,6 +1,10 @@
 require Rails.root.join("app/services/invoice_pdf").to_s
 
 class InvoicesController < ApplicationController
+  before_action :set_invoice, only: [ :show, :update, :destroy, :pdf ]
+  before_action :authorize_invoice, only: [ :create, :update, :destroy ]
+  before_action :authorize_invoice_show, only: [ :show, :pdf ]
+
   def index
     @invoices = current_workspace.invoices
       .includes(:client, :invoice_lines)
@@ -59,8 +63,6 @@ class InvoicesController < ApplicationController
   end
 
   def show
-    @invoice = current_workspace.invoices.find(params[:id])
-
     render inertia: "Invoices/Show", props: {
       invoice: @invoice.as_json(
         only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
@@ -155,8 +157,6 @@ class InvoicesController < ApplicationController
   end
 
   def update
-    @invoice = current_workspace.invoices.find(params[:id])
-
     if params.dig(:invoice, :status) == "issued" && @invoice.issued_on.nil?
       @invoice.issued_on = Date.current
     end
@@ -169,17 +169,12 @@ class InvoicesController < ApplicationController
   end
 
   def destroy
-    @invoice = current_workspace.invoices.find(params[:id])
     @invoice.destroy
 
     redirect_to invoices_path, notice: "Invoice deleted successfully!"
   end
 
   def pdf
-    @invoice = current_workspace.invoices
-      .includes(:client, :invoice_lines)
-      .find(params[:id])
-
     invoice_setting = current_workspace.invoice_setting
 
     pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
@@ -191,6 +186,20 @@ class InvoicesController < ApplicationController
   end
 
   private
+
+  def set_invoice
+    @invoice = current_workspace.invoices
+      .includes(:client, :invoice_lines)
+      .find(params[:id])
+  end
+
+  def authorize_invoice
+    authorize(@invoice || Invoice.new(workspace: current_workspace))
+  end
+
+  def authorize_invoice_show
+    authorize(@invoice, :show?)
+  end
 
   def invoice_create_params
     if params[:invoice].present?

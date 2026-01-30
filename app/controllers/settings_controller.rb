@@ -54,6 +54,7 @@ class SettingsController < ApplicationController
 
   def update_billing
     @invoice_settings = current_workspace.invoice_setting || current_workspace.build_invoice_setting
+    authorize current_workspace, :update?
 
     if @invoice_settings.update(billing_params)
       redirect_to settings_billing_path, notice: "Billing settings updated successfully!"

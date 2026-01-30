@@ -1,4 +1,7 @@
 class ClientsController < ApplicationController
+  before_action :set_client, only: [ :update, :destroy ]
+  before_action :authorize_client, only: [ :create, :update, :destroy ]
+
   def index
     @clients = current_workspace.clients.order(:name)
 
@@ -18,8 +21,6 @@ class ClientsController < ApplicationController
   end
 
   def update
-    @client = current_workspace.clients.find(params[:id])
-
     if @client.update(client_params)
       redirect_to clients_path, notice: "Client updated successfully!"
     else
@@ -28,13 +29,20 @@ class ClientsController < ApplicationController
   end
 
   def destroy
-    @client = current_workspace.clients.find(params[:id])
     @client.destroy
 
     redirect_to clients_path, notice: "Client deleted successfully!"
   end
 
   private
+
+  def set_client
+    @client = current_workspace.clients.find(params[:id])
+  end
+
+  def authorize_client
+    authorize(@client || Client.new(workspace: current_workspace))
+  end
 
   def client_params
     params.require(:client).permit(:name, :billing_address)

@@ -1,4 +1,7 @@
 class ProjectsController < ApplicationController
+  before_action :set_project, only: [ :update, :destroy ]
+  before_action :authorize_project, only: [ :create, :update, :destroy ]
+
   def index
     @projects = current_workspace.projects.includes(:client).order(:name)
     @clients = current_workspace.clients.order(:name)
@@ -26,8 +29,6 @@ class ProjectsController < ApplicationController
   end
 
   def update
-    @project = current_workspace.projects.find(params[:id])
-
     if @project.update(project_params)
       redirect_to projects_path, notice: "Project updated successfully!"
     else
@@ -36,13 +37,20 @@ class ProjectsController < ApplicationController
   end
 
   def destroy
-    @project = current_workspace.projects.find(params[:id])
     @project.destroy
 
     redirect_to projects_path, notice: "Project deleted successfully!"
   end
 
   private
+
+  def set_project
+    @project = current_workspace.projects.find(params[:id])
+  end
+
+  def authorize_project
+    authorize(@project || Project.new(workspace: current_workspace))
+  end
 
   def project_params
     params.require(:project).permit(:name, :client_id, :color, :billable_default)

@@ -1,4 +1,8 @@
 class TimeEntriesController < ApplicationController
+  before_action :set_time_entry, only: [ :update, :destroy ]
+  before_action :set_running_time_entry, only: [ :stop ]
+  before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop ]
+
   def index
     @entries = current_user.time_entries
       .where(workspace: current_workspace)
@@ -38,8 +42,6 @@ class TimeEntriesController < ApplicationController
   end
 
   def update
-    @time_entry = current_user.time_entries.find(params[:id])
-
     if @time_entry.update(time_entry_params)
       # Update tags if provided
       if params[:time_entry].key?(:tag_ids)
@@ -55,14 +57,12 @@ class TimeEntriesController < ApplicationController
   end
 
   def destroy
-    @time_entry = current_user.time_entries.find(params[:id])
     @time_entry.destroy
 
     redirect_back(fallback_location: root_path, notice: "Entry deleted!")
   end
 
   def stop
-    @time_entry = current_user.time_entries.running.find(params[:id])
     @time_entry.stop!
 
     redirect_back(fallback_location: root_path, notice: "Timer stopped!")
@@ -71,6 +71,18 @@ class TimeEntriesController < ApplicationController
   end
 
   private
+
+  def set_time_entry
+    @time_entry = current_user.time_entries.find(params[:id])
+  end
+
+  def set_running_time_entry
+    @time_entry = current_user.time_entries.running.find(params[:id])
+  end
+
+  def authorize_time_entry
+    authorize(@time_entry || TimeEntry.new(user: current_user, workspace: current_workspace))
+  end
 
   def time_entry_params
     params.require(:time_entry).permit(:description, :project_id, :billable, :start_at, :end_at, tag_ids: [])
