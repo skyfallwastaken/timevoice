@@ -1,6 +1,6 @@
 class MembershipsController < ApplicationController
   def create
-    membership = current_workspace.memberships.new(role: membership_params[:role])
+    membership = current_workspace.memberships.new
     authorize membership
 
     email = membership_params[:email].to_s.strip.downcase
@@ -21,7 +21,13 @@ class MembershipsController < ApplicationController
     end
 
     membership.user = user
-    membership.role = membership.role.presence_in([ "member", "admin" ]) || "member"
+    # Only owners can assign admin role; admins can only add members
+    requested_role = params[:role].to_s.presence_in([ "member", "admin" ])
+    membership.role = if current_workspace.owner?(current_user) && requested_role
+      requested_role
+    else
+      "member"
+    end
 
     if membership.save
       redirect_to settings_workspace_path, notice: "Invited #{user.name} to the workspace."
@@ -49,9 +55,9 @@ class MembershipsController < ApplicationController
 
   def membership_params
     if params[:membership].present?
-      params.require(:membership).permit(:email, :role)
+      params.require(:membership).permit(:email)
     else
-      params.permit(:email, :role)
+      params.permit(:email)
     end
   end
 end

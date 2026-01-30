@@ -1,3 +1,19 @@
+# SQLite for development and test
+# PostgreSQL for production
+
+default: &default
+  adapter: sqlite3
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+development:
+  <<: *default
+  database: storage/development.sqlite3
+
+test:
+  <<: *default
+  database: storage/test.sqlite3
+
 production:
   primary:
     adapter: postgresql
