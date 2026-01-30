@@ -1,57 +1,40 @@
-# SQLite for development and test
-# PostgreSQL for production
-
-default: &default
-  adapter: sqlite3
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
-
-development:
-  <<: *default
-  database: storage/development.sqlite3
-
-test:
-  <<: *default
-  database: storage/test.sqlite3
-
-# Production uses PostgreSQL via Rails.app.creds
 production:
   primary:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: <%= Rails.app.creds.dig(:database, :name) %>
-    username: <%= Rails.app.creds.dig(:database, :username) %>
-    password: <%= Rails.app.creds.dig(:database, :password) %>
-    host: <%= Rails.app.creds.dig(:database, :host) || "localhost" %>
-    port: <%= Rails.app.creds.dig(:database, :port) || 5432 %>
+    database: "<%= Rails.app.creds.require(:database, :name) %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
+    host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
+    port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
   cache:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: <%= Rails.app.creds.dig(:database, :cache_name) || "#{Rails.app.creds.dig(:database, :name)}_cache" %>
-    username: <%= Rails.app.creds.dig(:database, :username) %>
-    password: <%= Rails.app.creds.dig(:database, :password) %>
-    host: <%= Rails.app.creds.dig(:database, :host) || "localhost" %>
-    port: <%= Rails.app.creds.dig(:database, :port) || 5432 %>
+    database: "<%= Rails.app.creds.option(:database, :cache_name, default: "#{Rails.app.creds.require(:database, :name)}_cache") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
+    host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
+    port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/cache_migrate
   queue:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: <%= Rails.app.creds.dig(:database, :queue_name) || "#{Rails.app.creds.dig(:database, :name)}_queue" %>
-    username: <%= Rails.app.creds.dig(:database, :username) %>
-    password: <%= Rails.app.creds.dig(:database, :password) %>
-    host: <%= Rails.app.creds.dig(:database, :host) || "localhost" %>
-    port: <%= Rails.app.creds.dig(:database, :port) || 5432 %>
+    database: "<%= Rails.app.creds.option(:database, :queue_name, default: "#{Rails.app.creds.require(:database, :name)}_queue") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
+    host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
+    port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/queue_migrate
   cable:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: <%= Rails.app.creds.dig(:database, :cable_name) || "#{Rails.app.creds.dig(:database, :name)}_cable" %>
-    username: <%= Rails.app.creds.dig(:database, :username) %>
-    password: <%= Rails.app.creds.dig(:database, :password) %>
-    host: <%= Rails.app.creds.dig(:database, :host) || "localhost" %>
-    port: <%= Rails.app.creds.dig(:database, :port) || 5432 %>
+    database: "<%= Rails.app.creds.option(:database, :cable_name, default: "#{Rails.app.creds.require(:database, :name)}_cable") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
+    host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
+    port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/cable_migrate
