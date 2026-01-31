@@ -53,7 +53,7 @@ gem "prawn-table", "~> 0.2"
 
 # OmniAuth for Google OAuth
 gem "omniauth-google-oauth2", "~> 1.1"
-gem "omniauth-rails_csrf_protection", "~> 1.0"
+gem "omniauth-rails_csrf_protection", "~> 2.0"
 
 # Hashids for friendly IDs
 gem "hashids", "~> 1.0"
