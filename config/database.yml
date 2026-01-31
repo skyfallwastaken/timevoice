@@ -19,18 +19,18 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :name) %>"
-    username: "<%= Rails.app.creds.option(:database, :username) %>"
-    password: "<%= Rails.app.creds.option(:database, :password) %>"
+    database: "<%= Rails.app.creds.require(:database, :name) %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
     host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
     port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
   cache:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :cache_name, default: "#{Rails.app.creds.option(:database, :name)}_cache") %>"
-    username: "<%= Rails.app.creds.option(:database, :username) %>"
-    password: "<%= Rails.app.creds.option(:database, :password) %>"
+    database: "<%= Rails.app.creds.option(:database, :cache_name, default: "#{Rails.app.creds.require(:database, :name)}_cache") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
     host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
     port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/cache_migrate
@@ -38,9 +38,9 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :queue_name, default: "#{Rails.app.creds.option(:database, :name)}_queue") %>"
-    username: "<%= Rails.app.creds.option(:database, :username) %>"
-    password: "<%= Rails.app.creds.option(:database, :password) %>"
+    database: "<%= Rails.app.creds.option(:database, :queue_name, default: "#{Rails.app.creds.require(:database, :name)}_queue") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
     host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
     port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/queue_migrate
@@ -48,9 +48,9 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :cable_name, default: "#{Rails.app.creds.option(:database, :name)}_cable") %>"
-    username: "<%= Rails.app.creds.option(:database, :username) %>"
-    password: "<%= Rails.app.creds.option(:database, :password) %>"
+    database: "<%= Rails.app.creds.option(:database, :cable_name, default: "#{Rails.app.creds.require(:database, :name)}_cable") %>"
+    username: "<%= Rails.app.creds.require(:database, :username) %>"
+    password: "<%= Rails.app.creds.require(:database, :password) %>"
     host: "<%= Rails.app.creds.option(:database, :host, default: 'localhost') %>"
     port: "<%= Rails.app.creds.option(:database, :port, default: 5432) %>"
     migrations_paths: db/cable_migrate
