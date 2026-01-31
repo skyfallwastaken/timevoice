@@ -12,8 +12,8 @@ class ApplicationController < ActionController::Base
   inertia_share auth: -> {
     {
       user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone ]),
-      workspace: current_workspace&.as_json(only: [ :id, :name ]),
-      workspaces: current_user&.workspaces&.order(:name)&.as_json(only: [ :id, :name ]) || []
+      workspace: current_workspace&.as_json(only: [ :id, :name ], methods: [ :hashid ]),
+      workspaces: current_user&.workspaces&.order(:name)&.map { |w| { id: w.id, name: w.name, hashid: w.hashid } } || []
     }
   }
 
@@ -43,7 +43,9 @@ class ApplicationController < ActionController::Base
   def current_workspace
     @current_workspace ||= begin
       if params[:workspace_id].present?
-        current_user&.workspaces&.find_by(id: params[:workspace_id])
+        # Decode hashid to get the numeric ID
+        workspace_id = Workspace.decode_id(params[:workspace_id])
+        current_user&.workspaces&.find_by(id: workspace_id)
       elsif session[:workspace_id]
         current_user&.workspaces&.find_by(id: session[:workspace_id])
       else
@@ -76,7 +78,7 @@ class ApplicationController < ActionController::Base
     if request.path == "/"
       target_workspace = current_user.last_used_workspace || current_user.workspaces.first
       if target_workspace
-        redirect_to "/#{target_workspace.id}/timer"
+        redirect_to "/#{target_workspace.hashid}/timer"
         return
       else
         redirect_to signin_path, alert: "No workspace found. Please contact support."

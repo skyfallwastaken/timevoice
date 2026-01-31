@@ -32,6 +32,7 @@ class InvoicesController < ApplicationController
       invoices: @invoices.map { |invoice|
         invoice.as_json(
           only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+          methods: [ :hashid ],
           include: {
             client: { only: [ :id, :name ] },
             invoice_lines: { only: [ :id, :description, :qty_hours, :amount_cents ] }
@@ -66,6 +67,7 @@ class InvoicesController < ApplicationController
     render inertia: "Invoices/Show", props: {
       invoice: @invoice.as_json(
         only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+        methods: [ :hashid ],
         include: {
           client: { only: [ :id, :name, :billing_address ] },
           invoice_lines: { only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ] }
@@ -195,7 +197,7 @@ class InvoicesController < ApplicationController
   def set_invoice
     @invoice = current_workspace.invoices
       .includes(:client, :invoice_lines)
-      .find(params[:id])
+      .find_by_hashid!(params[:id])
   end
 
   def authorize_invoice

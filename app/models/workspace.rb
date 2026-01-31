@@ -1,4 +1,6 @@
 class Workspace < ApplicationRecord
+  include Hashidable
+
   belongs_to :owner, class_name: "User"
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships

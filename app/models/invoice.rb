@@ -1,4 +1,6 @@
 class Invoice < ApplicationRecord
+  include Hashidable
+
   belongs_to :workspace
   belongs_to :client
   has_many :invoice_lines, dependent: :destroy

@@ -1,10 +1,12 @@
 <script lang="ts">
   import AppShell from '../../components/AppShell.svelte'
   import PageLayout from '../../components/PageLayout.svelte'
-  import { page } from '@inertiajs/svelte'
-  import { FileText, ArrowLeft, Calendar, Building2, Download } from 'lucide-svelte'
+	import { page } from '@inertiajs/svelte'
+	import { FileText, ArrowLeft, Calendar, Building2, Download } from 'lucide-svelte'
 
-  type InvoiceLine = {
+	const workspaceId = $derived($page.props.auth?.workspace?.id)
+
+	type InvoiceLine = {
     id: number
     description: string | null
     qty_hours: number
@@ -16,6 +18,7 @@
 
   type Invoice = {
     id: number
+    hashid: string
     status: string
     period_start: string
     period_end: string
@@ -54,7 +57,7 @@
     {#snippet headerActions()}
       <div class="flex items-center gap-2">
         <a
-          href="/invoices/{invoice.id}/pdf"
+          href="/{workspaceId}/invoices/{invoice.hashid}/pdf"
           target="_blank"
           class="inline-flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
         >
@@ -62,7 +65,7 @@
           Download PDF
         </a>
         <a
-          href="/invoices"
+          href="/{workspaceId}/invoices"
           class="inline-flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
         >
           <ArrowLeft class="w-4 h-4" />

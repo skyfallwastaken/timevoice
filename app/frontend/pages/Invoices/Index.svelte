@@ -23,6 +23,7 @@
 
   type Invoice = {
     id: number;
+    hashid: string;
     status: string;
     total_cents: number;
     period_start: string;
@@ -571,7 +572,7 @@
 
                   <div class="flex gap-2">
                     <a
-                      href={`/${workspaceId}/invoices/${invoice.id}`}
+                      href={`/${workspaceId}/invoices/${invoice.hashid}`}
                       class="flex items-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bg-quaternary rounded-[10px] text-fg-primary transition-colors duration-150"
                     >
                       <FileText class="w-4 h-4" />

@@ -11,15 +11,15 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "sessions#failure"
 
   # Workspace-scoped resources (URLs like /:workspace_id/projects)
-  scope "/:workspace_id", constraints: { workspace_id: /\d+/ } do
+  scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
     get "/timer", to: "dashboard#index"
     get "/calendar", to: "dashboard#calendar"
     get "/reports", to: "reports#index"
     get "/invoices", to: "invoices#index"
     get "/settings", to: "settings#workspace"
     delete "/settings", to: "settings#destroy_workspace"
-    get "/billing", to: "settings#billing"
-    patch "/billing", to: "settings#update_billing"
+    get "/settings/billing", to: "settings#billing"
+    patch "/settings/billing", to: "settings#update_billing"
 
     resources :time_entries, only: [ :create, :update, :destroy ] do
       member do
@@ -45,7 +45,7 @@ Rails.application.routes.draw do
 
   # Root route - redirects to first workspace
   root "dashboard#index"
-  get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /\d+/ }
+  get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

@@ -17,7 +17,8 @@ class WorkspacesController < ApplicationController
   end
 
   def switch
-    workspace_id = params[:workspace_id]
+    workspace_hashid = params[:workspace_id]
+    workspace_id = Workspace.decode_id(workspace_hashid)
     workspace = current_user.workspaces.find(workspace_id)
     authorize workspace, :show?
 
