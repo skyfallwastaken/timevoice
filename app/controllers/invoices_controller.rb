@@ -19,7 +19,7 @@ class InvoicesController < ApplicationController
       .where(billable: true)
       .left_outer_joins(:invoice_lines)
       .where(invoice_lines: { id: nil })
-      .where("time_entries.duration_seconds >= 36")
+      .where(TimeEntry.arel_table[:duration_seconds].gteq(36))
       .includes(:project, :tags)
       .order(start_at: :desc)
 
@@ -105,54 +105,21 @@ class InvoicesController < ApplicationController
     end_date = Date.parse(attrs[:period_end])
     rate_cents = attrs[:rate_cents].presence || current_workspace.invoice_setting&.billable_rate_cents || 0
 
-    entries = current_user.time_entries
-      .where(workspace: current_workspace)
-      .completed
-      .where(billable: true)
-      .left_outer_joins(:invoice_lines)
-      .where(invoice_lines: { id: nil })
-      .joins(:project)
-      .where(projects: { client_id: client.id })
-      .where(start_at: start_date.beginning_of_day..end_date.end_of_day)
-      .where("time_entries.duration_seconds > 0")
-      .where("time_entries.duration_seconds >= 36")
+    invoice = Invoice.generate_from_time_entries(
+      current_workspace,
+      client,
+      start_date,
+      end_date,
+      rate_cents,
+      current_user
+    )
 
-    if entries.empty?
+    if invoice.nil?
       redirect_to invoices_path, alert: "No unbilled entries found for this client in the selected date range."
       return
     end
 
-    invoice = Invoice.create!(
-      workspace: current_workspace,
-      client: client,
-      period_start: start_date,
-      period_end: end_date,
-      issued_on: Date.current,
-      status: "draft",
-      total_cents: 0
-    )
-
-    total = 0
-
-    entries.each do |entry|
-      hours = (entry.duration_seconds || 0) / 3600.0
-      amount = (hours * rate_cents).round
-
-      InvoiceLine.create!(
-        invoice: invoice,
-        time_entry: entry,
-        description: entry.description,
-        qty_hours: hours,
-        rate_cents: rate_cents,
-        amount_cents: amount
-      )
-
-      total += amount
-    end
-
-    invoice.update!(total_cents: total)
-
-    redirect_to invoices_path, notice: "Invoice ##{invoice.id} created successfully with #{entries.count} line items."
+    redirect_to invoices_path, notice: "Invoice ##{invoice.id} created successfully with #{invoice.invoice_lines.count} line items."
   rescue ArgumentError
     redirect_to invoices_path, alert: "Invalid invoice period dates."
   rescue ActiveRecord::RecordNotFound
@@ -209,11 +176,7 @@ class InvoicesController < ApplicationController
   end
 
   def invoice_create_params
-    if params[:invoice].present?
-      params.require(:invoice).permit(:client_id, :period_start, :period_end, :rate_cents)
-    else
-      params.permit(:client_id, :period_start, :period_end, :rate_cents)
-    end
+    optional_params(:invoice, :client_id, :period_start, :period_end, :rate_cents)
   end
 
   def invoice_params

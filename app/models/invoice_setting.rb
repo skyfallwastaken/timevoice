@@ -1,4 +1,6 @@
 class InvoiceSetting < ApplicationRecord
+  include CurrencyFormatter
+
   belongs_to :workspace
 
   validates :billable_rate_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -10,6 +12,6 @@ class InvoiceSetting < ApplicationRecord
   end
 
   def formatted_rate
-    "$#{'%.2f' % billable_rate}"
+    format_cents(billable_rate_cents)
   end
 end

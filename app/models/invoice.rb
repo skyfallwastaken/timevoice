@@ -1,5 +1,6 @@
 class Invoice < ApplicationRecord
   include Hashidable
+  include CurrencyFormatter
 
   belongs_to :workspace
   belongs_to :client
@@ -20,19 +21,27 @@ class Invoice < ApplicationRecord
   end
 
   def formatted_total
-    "$#{'%.2f' % total_amount}"
+    format_cents(total_cents)
   end
 
-  def self.generate_from_time_entries(workspace, client, period_start, period_start_date, period_end_date, rate_cents)
-    # Get billable time entries for the client in the date range
-    entries = TimeEntry
-      .joins(project: :client)
-      .where(workspace: workspace, projects: { client_id: client.id })
+  def self.generate_from_time_entries(workspace, client, period_start_date, period_end_date, rate_cents, user = nil)
+    # Get unbilled, billable time entries for the client in the date range
+    entries_query = TimeEntry
+      .where(workspace: workspace)
+      .completed
       .where(billable: true)
+      .left_outer_joins(:invoice_lines)
+      .where(invoice_lines: { id: nil })
+      .joins(:project)
+      .where(projects: { client_id: client.id })
       .where(start_at: period_start_date.beginning_of_day..period_end_date.end_of_day)
-      .where.not(end_at: nil)
-      .where.not(invoice_lines: { time_entry_id: nil })
-      .distinct
+      .where(TimeEntry.arel_table[:duration_seconds].gt(0))
+      .where(TimeEntry.arel_table[:duration_seconds].gteq(36))
+
+    # Scope to specific user if provided
+    entries_query = entries_query.where(user: user) if user
+
+    entries = entries_query
 
     return nil if entries.empty?
 

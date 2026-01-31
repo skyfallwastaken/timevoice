@@ -66,10 +66,6 @@ class SettingsController < ApplicationController
   private
 
   def billing_params
-    if params[:invoice_setting].present?
-      params.require(:invoice_setting).permit(:sender_name, :sender_address, :billable_rate_cents)
-    else
-      params.permit(:sender_name, :sender_address, :billable_rate_cents)
-    end
+    optional_params(:invoice_setting, :sender_name, :sender_address, :billable_rate_cents)
   end
 end

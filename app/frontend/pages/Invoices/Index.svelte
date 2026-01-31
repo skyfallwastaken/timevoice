@@ -285,7 +285,7 @@
               <span class="block text-sm font-medium text-fg-secondary mb-1"
                 >Sender Address</span
               >
-              <p class="text-fg-primary text-sm">
+              <p class="text-fg-primary text-sm whitespace-pre-line">
                 {invoiceSettings.sender_address}
               </p>
             </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import AppShell from '../../components/AppShell.svelte'
   import PageLayout from '../../components/PageLayout.svelte'
+  import Modal from '../../components/Modal.svelte'
   import { page } from '@inertiajs/svelte'
   import { useForm } from '@inertiajs/svelte'
   import { FolderKanban, Plus, Edit2, Trash2, Check, X, Briefcase } from 'lucide-svelte'
@@ -86,10 +87,24 @@
     })
   }
 
-  function handleDelete(projectId: number) {
-    if (confirm('Are you sure you want to delete this project? This will remove the project association from all time entries.')) {
-      $editForm.delete(`/${workspaceId}/projects/${projectId}`)
+  let showDeleteModal = $state(false)
+  let projectToDelete: Project | null = $state(null)
+
+  function openDeleteModal(project: Project) {
+    projectToDelete = project
+    showDeleteModal = true
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false
+    projectToDelete = null
+  }
+
+  function confirmDelete() {
+    if (projectToDelete) {
+      $editForm.delete(`/${workspaceId}/projects/${projectToDelete.id}`)
     }
+    closeDeleteModal()
   }
 </script>
 
@@ -281,7 +296,7 @@
                       <Edit2 class="w-4 h-4" />
                     </button>
                     <button
-                      onclick={() => handleDelete(project.id)}
+                      onclick={() => openDeleteModal(project)}
                       class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
                       aria-label="Delete project"
                     >
@@ -295,5 +310,36 @@
         </div>
       {/if}
     </div>
+
+    <!-- Delete Project Modal -->
+    <Modal bind:open={showDeleteModal} title="Delete Project" onclose={closeDeleteModal}>
+      <div class="space-y-4">
+        <p class="text-fg-primary">
+          Are you sure you want to delete <span class="font-semibold">{projectToDelete?.name || 'this project'}</span>?
+        </p>
+        <p class="text-sm text-fg-muted">
+          This action cannot be undone. This will remove the project association from all time entries.
+        </p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeDeleteModal}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+            onclick={confirmDelete}
+          >
+            Delete Project
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
   </PageLayout>
 </AppShell>

@@ -1,4 +1,6 @@
 class InvoiceLine < ApplicationRecord
+  include CurrencyFormatter
+
   belongs_to :invoice
   belongs_to :time_entry, optional: true
 
@@ -11,7 +13,7 @@ class InvoiceLine < ApplicationRecord
   end
 
   def formatted_amount
-    "$#{'%.2f' % amount}"
+    format_cents(amount_cents)
   end
 
   def rate
@@ -19,6 +21,6 @@ class InvoiceLine < ApplicationRecord
   end
 
   def formatted_rate
-    rate ? "$#{'%.2f' % rate}/hr" : nil
+    rate_cents ? format_rate(rate_cents) : nil
   end
 end

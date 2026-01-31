@@ -54,10 +54,6 @@ class MembershipsController < ApplicationController
   private
 
   def membership_params
-    if params[:membership].present?
-      params.require(:membership).permit(:email)
-    else
-      params.permit(:email)
-    end
+    optional_params(:membership, :email)
   end
 end

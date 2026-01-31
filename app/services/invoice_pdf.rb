@@ -137,7 +137,8 @@ class InvoicePdf
 
     @invoice.invoice_lines.each do |line|
       hours = line.qty_hours || 0
-      description = line.description || "No description"
+      # Sanitize user input to prevent potential PDF rendering issues
+      description = sanitize_text(line.description) || "No description"
       description_with_hours = "#{description} (#{format("%.2f", hours)} hrs)"
 
       table_data << [
@@ -237,5 +238,16 @@ class InvoicePdf
   def invoice_number
     # Format: 14B36550-0006 style
     "#{@invoice.id.to_s(16).upcase.rjust(8, '0')}-#{@invoice.id.to_s.rjust(4, '0')}"
+  end
+
+  def sanitize_text(text)
+    return nil if text.nil?
+
+    # Remove null bytes and control characters that could affect PDF rendering
+    # Allow only printable ASCII and common Unicode characters
+    text
+      .gsub(/\x00/, "")      # Remove null bytes
+      .gsub(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/, "") # Remove control characters except tab, LF, CR
+      .strip
   end
 end

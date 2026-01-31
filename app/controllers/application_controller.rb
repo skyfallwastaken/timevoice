@@ -100,4 +100,13 @@ class ApplicationController < ActionController::Base
     flash[:alert] = "You are not authorized to perform this action."
     redirect_back(fallback_location: root_path)
   end
+
+  # Helper for permitting parameters that may or may not be wrapped in a key
+  def optional_params(key, *fields)
+    if params[key].present?
+      params.require(key).permit(*fields)
+    else
+      params.permit(*fields)
+    end
+  end
 end

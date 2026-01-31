@@ -17,7 +17,8 @@ Rails.application.routes.draw do
     get "/reports", to: "reports#index"
     get "/invoices", to: "invoices#index"
     get "/settings", to: "settings#workspace"
-    delete "/settings", to: "settings#destroy_workspace"
+    get "/settings/workspace", to: "settings#workspace"
+    delete "/settings/workspace", to: "settings#destroy_workspace"
     get "/settings/billing", to: "settings#billing"
     patch "/settings/billing", to: "settings#update_billing"
 

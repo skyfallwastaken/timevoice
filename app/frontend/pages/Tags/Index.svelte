@@ -1,6 +1,7 @@
 <script lang="ts">
   import AppShell from '../../components/AppShell.svelte'
   import PageLayout from '../../components/PageLayout.svelte'
+  import Modal from '../../components/Modal.svelte'
   import { page } from '@inertiajs/svelte'
   import { useForm } from '@inertiajs/svelte'
   import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from 'lucide-svelte'
@@ -15,6 +16,8 @@
   let tags = $derived($page.props.tags as TagItem[] || [])
 
   let editingId: number | null = $state(null)
+  let showDeleteModal = $state(false)
+  let tagToDelete: TagItem | null = $state(null)
 
   // Create form
   let createForm = useForm({
@@ -53,10 +56,21 @@
     })
   }
 
-  function handleDelete(tagId: number) {
-    if (confirm('Are you sure you want to delete this tag? This will remove the tag from all time entries.')) {
-      $editForm.delete(`/${workspaceId}/tags/${tagId}`)
+  function openDeleteModal(tagItem: TagItem) {
+    tagToDelete = tagItem
+    showDeleteModal = true
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false
+    tagToDelete = null
+  }
+
+  function confirmDelete() {
+    if (tagToDelete) {
+      $editForm.delete(`/${workspaceId}/tags/${tagToDelete.id}`)
     }
+    closeDeleteModal()
   }
 </script>
 
@@ -158,7 +172,7 @@
                       <Edit2 class="w-4 h-4" />
                     </button>
                     <button
-                      onclick={() => handleDelete(tagItem.id)}
+                      onclick={() => openDeleteModal(tagItem)}
                       class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
                       aria-label="Delete tag"
                     >
@@ -172,5 +186,36 @@
         </div>
       {/if}
     </div>
+
+    <!-- Delete Tag Modal -->
+    <Modal bind:open={showDeleteModal} title="Delete Tag" onclose={closeDeleteModal}>
+      <div class="space-y-4">
+        <p class="text-fg-primary">
+          Are you sure you want to delete <span class="font-semibold">{tagToDelete?.name || 'this tag'}</span>?
+        </p>
+        <p class="text-sm text-fg-muted">
+          This action cannot be undone. This will remove the tag from all time entries.
+        </p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeDeleteModal}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+            onclick={confirmDelete}
+          >
+            Delete Tag
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
   </PageLayout>
 </AppShell>

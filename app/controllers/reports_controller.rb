@@ -38,6 +38,10 @@ class ReportsController < ApplicationController
 
   def parse_date(date_string)
     return nil if date_string.blank?
+
+    # Strict validation: only allow ISO 8601 format (YYYY-MM-DD)
+    return nil unless date_string.match?(/^\d{4}-\d{2}-\d{2}$/)
+
     Date.parse(date_string)
   rescue ArgumentError
     nil

@@ -1,6 +1,7 @@
 <script lang="ts">
   import AppShell from '../../components/AppShell.svelte'
   import PageLayout from '../../components/PageLayout.svelte'
+  import Modal from '../../components/Modal.svelte'
   import { page } from '@inertiajs/svelte'
   import { useForm } from '@inertiajs/svelte'
   import { Users, Plus, Edit2, Trash2, Check, X, Building2 } from 'lucide-svelte'
@@ -57,10 +58,24 @@
     })
   }
 
-  function handleDelete(clientId: number) {
-    if (confirm('Are you sure you want to delete this client? This will remove the client association from all projects.')) {
-      $editForm.delete(`/${workspaceId}/clients/${clientId}`)
+  let showDeleteModal = $state(false)
+  let clientToDelete: Client | null = $state(null)
+
+  function openDeleteModal(client: Client) {
+    clientToDelete = client
+    showDeleteModal = true
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false
+    clientToDelete = null
+  }
+
+  function confirmDelete() {
+    if (clientToDelete) {
+      $editForm.delete(`/${workspaceId}/clients/${clientToDelete.id}`)
     }
+    closeDeleteModal()
   }
 </script>
 
@@ -192,7 +207,7 @@ Country"
                       <Edit2 class="w-4 h-4" />
                     </button>
                     <button
-                      onclick={() => handleDelete(client.id)}
+                      onclick={() => openDeleteModal(client)}
                       class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
                       aria-label="Delete client"
                     >
@@ -206,5 +221,36 @@ Country"
         </div>
       {/if}
     </div>
+
+    <!-- Delete Client Modal -->
+    <Modal bind:open={showDeleteModal} title="Delete Client" onclose={closeDeleteModal}>
+      <div class="space-y-4">
+        <p class="text-fg-primary">
+          Are you sure you want to delete <span class="font-semibold">{clientToDelete?.name || 'this client'}</span>?
+        </p>
+        <p class="text-sm text-fg-muted">
+          This action cannot be undone. This will remove the client association from all projects.
+        </p>
+      </div>
+
+      {#snippet footer()}
+        <div class="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+            onclick={closeDeleteModal}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+            onclick={confirmDelete}
+          >
+            Delete Client
+          </button>
+        </div>
+      {/snippet}
+    </Modal>
   </PageLayout>
 </AppShell>

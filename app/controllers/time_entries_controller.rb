@@ -8,10 +8,17 @@ class TimeEntriesController < ApplicationController
     @time_entry.workspace = current_workspace
 
     if @time_entry.save
-      # Attach tags if provided
+      # Attach tags if provided - validate all tag_ids belong to workspace
       if params[:time_entry][:tag_ids].present?
-        tag_ids = params[:time_entry][:tag_ids]
+        tag_ids = Array(params[:time_entry][:tag_ids]).map(&:to_i)
         valid_tags = current_workspace.tags.where(id: tag_ids)
+
+        # Log if invalid tag IDs were provided (potential IDOR attempt)
+        if valid_tags.count != tag_ids.uniq.count
+          invalid_count = tag_ids.uniq.count - valid_tags.count
+          Rails.logger.warn("TimeEntriesController: #{invalid_count} invalid tag_ids provided by user #{current_user.id} in workspace #{current_workspace.id}")
+        end
+
         @time_entry.tags = valid_tags
       end
 
@@ -23,10 +30,17 @@ class TimeEntriesController < ApplicationController
 
   def update
     if @time_entry.update(time_entry_params)
-      # Update tags if provided
+      # Update tags if provided - validate all tag_ids belong to workspace
       if params[:time_entry].key?(:tag_ids)
-        tag_ids = params[:time_entry][:tag_ids] || []
+        tag_ids = Array(params[:time_entry][:tag_ids]).map(&:to_i)
         valid_tags = current_workspace.tags.where(id: tag_ids)
+
+        # Log if invalid tag IDs were provided (potential IDOR attempt)
+        if valid_tags.count != tag_ids.uniq.count
+          invalid_count = tag_ids.uniq.count - valid_tags.count
+          Rails.logger.warn("TimeEntriesController: #{invalid_count} invalid tag_ids provided by user #{current_user.id} in workspace #{current_workspace.id}")
+        end
+
         @time_entry.tags = valid_tags
       end
 

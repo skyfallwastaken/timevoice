@@ -1,7 +1,6 @@
 <script lang="ts">
   import { X } from 'lucide-svelte'
   import { fade, fly } from 'svelte/transition'
-  import { quintOut } from 'svelte/easing'
 
   interface Props {
     open: boolean
@@ -23,6 +22,12 @@
       close()
     }
   }
+
+  // Spring easing: overshoot for bouncy effect (0.34, 1.56, 0.64, 1)
+  function springEasing(t: number): number {
+    const c4 = (2 * Math.PI) / 3
+    return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -42,7 +47,7 @@
     ></div>
     <div 
       class="relative w-full {maxWidth} bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-      transition:fly={{ y: 20, duration: 250, easing: quintOut }}
+      transition:fly={{ y: 30, duration: 400, easing: springEasing }}
     >
       {#if title}
         <div class="p-4 border-b border-bg-tertiary flex items-center justify-between">
