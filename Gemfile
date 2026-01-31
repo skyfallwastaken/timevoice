@@ -48,7 +48,7 @@ gem "inertia_rails", "~> 3.0"
 gem "pundit", "~> 2.3"
 
 # PDF generation
-gem "prawn", "~> 2.4"
+gem "prawn", "~> 2.5"
 gem "prawn-table", "~> 0.2"
 
 # OmniAuth for Google OAuth
