@@ -27,14 +27,14 @@
   const workspace = $derived($page.props.auth?.workspace)
   
   const navItems = $derived([
-    { href: `/${workspace?.id || ''}/timer`, icon: Clock, label: 'Timer' },
-    { href: `/${workspace?.id || ''}/calendar`, icon: Calendar, label: 'Calendar' },
-    { href: `/${workspace?.id || ''}/clients`, icon: Building2, label: 'Clients' },
-    { href: `/${workspace?.id || ''}/projects`, icon: FolderKanban, label: 'Projects' },
-    { href: `/${workspace?.id || ''}/tags`, icon: Tag, label: 'Tags' },
-    { href: `/${workspace?.id || ''}/reports`, icon: BarChart3, label: 'Reports' },
-    { href: `/${workspace?.id || ''}/invoices`, icon: FileText, label: 'Invoices' },
-    { href: `/${workspace?.id || ''}/settings`, icon: Settings, label: 'Settings' },
+    { href: `/${workspace?.hashid || ''}/timer`, icon: Clock, label: 'Timer' },
+    { href: `/${workspace?.hashid || ''}/calendar`, icon: Calendar, label: 'Calendar' },
+    { href: `/${workspace?.hashid || ''}/clients`, icon: Building2, label: 'Clients' },
+    { href: `/${workspace?.hashid || ''}/projects`, icon: FolderKanban, label: 'Projects' },
+    { href: `/${workspace?.hashid || ''}/tags`, icon: Tag, label: 'Tags' },
+    { href: `/${workspace?.hashid || ''}/reports`, icon: BarChart3, label: 'Reports' },
+    { href: `/${workspace?.hashid || ''}/invoices`, icon: FileText, label: 'Invoices' },
+    { href: `/${workspace?.hashid || ''}/settings`, icon: Settings, label: 'Settings' },
   ])
   const workspaces = $derived($page.props.auth?.workspaces || [])
 
@@ -76,10 +76,10 @@
     })
   }
 
-  function switchWorkspace(workspaceId: number) {
+  function switchWorkspace(workspaceHashid: string) {
     router.patch(
       '/workspaces/switch',
-      { workspace_id: workspaceId },
+      { workspace_id: workspaceHashid },
       {
         preserveScroll: true,
         onSuccess: () => {
@@ -178,9 +178,9 @@
               {#each workspaces as ws}
                 <button
                   type="button"
-                  class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.id === workspace?.id ? 'bg-bright-purple/20 text-bright-purple' : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
-                  onclick={() => switchWorkspace(ws.id)}
-                  disabled={ws.id === workspace?.id}
+                  class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.hashid === workspace?.hashid ? 'bg-bright-purple/20 text-bright-purple' : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
+                  onclick={() => switchWorkspace(ws.hashid)}
+                  disabled={ws.hashid === workspace?.hashid}
                 >
                   {ws.name}
                 </button>
@@ -266,9 +266,9 @@
             {#each workspaces as ws}
               <button
                 type="button"
-                class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.id === workspace?.id ? 'bg-bright-purple/20 text-bright-purple' : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
-                onclick={() => switchWorkspace(ws.id)}
-                disabled={ws.id === workspace?.id}
+                class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.hashid === workspace?.hashid ? 'bg-bright-purple/20 text-bright-purple' : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
+                onclick={() => switchWorkspace(ws.hashid)}
+                disabled={ws.hashid === workspace?.hashid}
               >
                 {ws.name}
               </button>

@@ -3,7 +3,7 @@
   import { router, useForm, page } from '@inertiajs/svelte'
 
   let { entries = [], projects = [], currentWeek } = $props()
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   let form = useForm({
     description: '',

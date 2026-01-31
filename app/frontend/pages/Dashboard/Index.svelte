@@ -138,7 +138,7 @@
     entryToDelete = null
   }
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   function confirmDeleteEntry() {
     if (!entryToDelete) return

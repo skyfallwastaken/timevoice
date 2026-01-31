@@ -4,7 +4,7 @@
 
   let { runningEntry, projects = [], tags = [] } = $props()
   
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   let form = useForm({
     description: '',

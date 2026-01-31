@@ -5,7 +5,7 @@
   import { useForm } from '@inertiajs/svelte'
   import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from 'lucide-svelte'
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   type TagItem = {
     id: number

@@ -5,7 +5,7 @@
   import { useForm } from '@inertiajs/svelte'
   import { Users, Plus, Edit2, Trash2, Check, X, Building2 } from 'lucide-svelte'
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   type Client = {
     id: number

@@ -4,7 +4,7 @@
 	import { page } from '@inertiajs/svelte'
 	import { FileText, ArrowLeft, Calendar, Building2, Download } from 'lucide-svelte'
 
-	const workspaceId = $derived($page.props.auth?.workspace?.id)
+	const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
 	type InvoiceLine = {
     id: number

@@ -45,7 +45,7 @@
     $inviteForm.reset()
   }
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   function submitInvite() {
     $inviteForm.post(`/${workspaceId}/memberships`, {

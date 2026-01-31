@@ -5,7 +5,7 @@
   import { useForm } from '@inertiajs/svelte'
   import { FolderKanban, Plus, Edit2, Trash2, Check, X, Briefcase } from 'lucide-svelte'
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
 
   type Project = {
     id: number

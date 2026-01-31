@@ -62,7 +62,7 @@
     sender_address: string | null;
   };
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id);
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
   let invoices = $derived(($page.props.invoices as Invoice[]) || []);
   let clients = $derived(($page.props.clients as Client[]) || []);
   let unbilledEntries = $derived(

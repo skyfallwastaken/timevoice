@@ -5,7 +5,7 @@
   import { useForm } from '@inertiajs/svelte'
   import { DollarSign } from 'lucide-svelte'
 
-  const workspaceId = $derived($page.props.auth?.workspace?.id)
+  const workspaceId = $derived($page.props.auth?.workspace?.hashid)
   let invoiceSettings = $derived($page.props.invoiceSettings || {})
   let flash = $derived($page.props.flash || {})
 
