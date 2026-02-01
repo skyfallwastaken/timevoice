@@ -1,6 +1,6 @@
 import "../assets/tailwind.css";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
-import { mount, type ComponentType } from "svelte";
+import { mount } from "svelte";
 import AppShell from "../components/AppShell.svelte";
 
 createInertiaApp({
@@ -13,8 +13,7 @@ createInertiaApp({
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
 
-    // Make the layout persistent by assigning to page.default
-    (page.default as any).layout = (page.default as any).layout || AppShell;
+    return { ...page, layout: page.layout || AppShell };
 
     return page;
   },

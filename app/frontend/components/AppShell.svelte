@@ -197,7 +197,7 @@
 <div class="h-screen bg-bg-primary text-fg-primary flex overflow-hidden">
   {#if isDevMode}
     <div
-      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-50 bg-yellow-500 text-black text-center text-xs font-bold py-1 px-2"
+      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-30 bg-yellow-500 text-black text-center text-xs font-bold py-1 px-2"
     >
       DEV MODE
     </div>
@@ -327,7 +327,7 @@
   {/if}
 
   <aside
-    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col"
+    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col z-50"
     aria-label="Application sidebar"
   >
     <div class="p-6 border-b border-bg-tertiary">
