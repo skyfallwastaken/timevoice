@@ -27,7 +27,7 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  config.action_mailer.default_url_options = { host: Rails.app.creds.require(:host) }
+  config.action_mailer.default_url_options = { host: Rails.app.creds.require(:site_host) }
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {
     address: Rails.app.creds.require(:smtp, :address),
@@ -50,9 +50,7 @@ Rails.application.configure do
     httponly: true,
     same_site: :lax
 
-  config.hosts = [
-    Rails.app.creds.require(:host)
-  ]
+  config.hosts << Rails.app.creds.require(:site_host)
 
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
