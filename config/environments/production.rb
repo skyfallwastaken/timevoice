@@ -27,7 +27,16 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  config.action_mailer.default_url_options = { host: "example.com" }
+  config.action_mailer.default_url_options = { host: Rails.app.creds.require(:host) }
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: Rails.app.creds.require(:smtp, :address),
+    port: Rails.app.creds.option(:smtp, :port, default: 587),
+    user_name: Rails.app.creds.require(:smtp, :user_name),
+    password: Rails.app.creds.require(:smtp, :password),
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
 
   config.i18n.fallbacks = true
 
@@ -42,7 +51,7 @@ Rails.application.configure do
     same_site: :lax
 
   config.hosts = [
-    "timevoice.mahadk.com"
+    Rails.app.creds.require(:host)
   ]
 
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
