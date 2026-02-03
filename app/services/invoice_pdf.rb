@@ -109,7 +109,7 @@ class InvoicePdf
 
     @document.bounding_box([ col_width + 30, start_y ], width: col_width) do
       @document.text "Bill To",
-        size: 9,
+        size: 10,
         color: TEXT_SECONDARY
 
       @document.move_down 8
@@ -123,7 +123,7 @@ class InvoicePdf
 
       if @invoice.client.billing_address.present?
         @document.text @invoice.client.billing_address,
-          size: 10,
+          size: 9,
           color: TEXT_SECONDARY,
           leading: 4
       end
