@@ -13,7 +13,6 @@ class InvoiceMailer < ApplicationMailer
     }
 
     mail(
-      from: "timevoice@mahadk.com",
       to: recipients,
       cc: cc.presence,
       subject: "You received a #{invoice.formatted_total} invoice from #{@sender_name}"
