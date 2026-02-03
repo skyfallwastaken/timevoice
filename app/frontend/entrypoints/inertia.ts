@@ -13,9 +13,7 @@ createInertiaApp({
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
 
-    return { ...page, layout: page.layout || AppShell };
-
-    return page;
+    return { ...page, layout: page.layout === undefined ? AppShell : page.layout };
   },
 
   setup({ el, App, props }) {

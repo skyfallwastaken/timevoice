@@ -13,6 +13,8 @@ class TimeEntry < ApplicationRecord
   validate :file_count_limit
   validates :files, size: { less_than: 10.megabytes, message: "must be less than 10MB" }
 
+  before_save :calculate_duration_seconds, if: :should_calculate_duration?
+
   MAX_FILES = 3
 
   scope :running, -> { where(end_at: nil) }
@@ -71,5 +73,13 @@ class TimeEntry < ApplicationRecord
     if files.attached? && files.count > MAX_FILES
       errors.add(:files, "can only have up to #{MAX_FILES} files")
     end
+  end
+
+  def should_calculate_duration?
+    end_at.present? && start_at.present? && (end_at_changed? || start_at_changed? || duration_seconds.nil?)
+  end
+
+  def calculate_duration_seconds
+    self.duration_seconds = (end_at - start_at).to_i
   end
 end

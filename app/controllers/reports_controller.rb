@@ -45,28 +45,28 @@ class ReportsController < ApplicationController
   end
 
   def calculate_totals(entries)
-    total_seconds = entries.sum(&:duration_seconds)
-    billable_seconds = entries.where(billable: true).sum(&:duration_seconds)
+    total_seconds = entries.sum { |e| e.duration_seconds || 0 }
+    billable_seconds = entries.where(billable: true).sum { |e| e.duration_seconds || 0 }
     non_billable_seconds = total_seconds - billable_seconds
 
     daily = entries.group_by { |e| e.start_at.to_date }.transform_values do |day_entries|
       {
-        total: day_entries.sum(&:duration_seconds),
-        billable: day_entries.select(&:billable).sum(&:duration_seconds)
+        total: day_entries.sum { |e| e.duration_seconds || 0 },
+        billable: day_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
       }
     end
 
     by_project = entries.group_by { |e| e.project&.name || "No Project" }.transform_values do |project_entries|
       {
-        total: project_entries.sum(&:duration_seconds),
-        billable: project_entries.select(&:billable).sum(&:duration_seconds)
+        total: project_entries.sum { |e| e.duration_seconds || 0 },
+        billable: project_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
       }
     end
 
     by_client = entries.group_by { |e| e.project&.client&.name || "No Client" }.transform_values do |client_entries|
       {
-        total: client_entries.sum(&:duration_seconds),
-        billable: client_entries.select(&:billable).sum(&:duration_seconds)
+        total: client_entries.sum { |e| e.duration_seconds || 0 },
+        billable: client_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
       }
     end
 

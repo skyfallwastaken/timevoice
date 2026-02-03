@@ -4,6 +4,7 @@ Rails.application.routes.draw do
     get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
   end
 
+  get "/home", to: "marketing#home", as: :marketing_home
   get "/signin", to: "sessions#new", as: :signin
   delete "/signout", to: "sessions#destroy", as: :signout
   get "/auth/google_oauth2/callback", to: "sessions#create"
@@ -44,7 +45,7 @@ Rails.application.routes.draw do
   resources :workspaces, only: [ :create ]
   patch "/workspaces/switch", to: "workspaces#switch", as: :switch_workspace
 
-  root "dashboard#index"
+  root "marketing#home"
   get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
 
   get "up" => "rails/health#show", as: :rails_health_check
