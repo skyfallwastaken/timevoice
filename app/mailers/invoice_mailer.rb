@@ -1,5 +1,5 @@
 class InvoiceMailer < ApplicationMailer
-  def send_invoice(invoice:, recipients:, cc:, sender_email:, message:)
+  def send_invoice(invoice:, recipients:, cc:, message:)
     @invoice = invoice
     @message = message
     @sender_name = invoice.workspace.invoice_setting&.sender_name || "Your Company"
@@ -13,7 +13,7 @@ class InvoiceMailer < ApplicationMailer
     }
 
     mail(
-      from: sender_email,
+      from: "timevoice@mahadk.com",
       to: recipients,
       cc: cc.presence,
       subject: "You received a #{invoice.formatted_total} invoice from #{@sender_name}"

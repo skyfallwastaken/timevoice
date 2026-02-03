@@ -179,7 +179,6 @@ class InvoicesController < ApplicationController
       invoice_id: @invoice.id,
       recipients: recipients,
       cc: cc,
-      sender_email: current_user.email,
       message: message
     )
 
