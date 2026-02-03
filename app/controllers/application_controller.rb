@@ -27,6 +27,10 @@ class ApplicationController < ActionController::Base
     Rails.env.to_s
   }
 
+  inertia_share csrf_token: -> {
+    form_authenticity_token
+  }
+
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   private

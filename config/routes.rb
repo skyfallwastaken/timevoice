@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
+  constraints ->(req) { User.find_by(id: req.session[:user_id])&.admin? } do
+    mount MissionControl::Jobs::Engine, at: "/jobs"
+  end
+
   constraints(host: "127.0.0.1") do
     get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
   end

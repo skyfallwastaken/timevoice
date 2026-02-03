@@ -51,4 +51,8 @@ class User < ApplicationRecord
   def current_workspace
     @current_workspace ||= workspaces.first
   end
+
+  def admin?
+    admin
+  end
 end

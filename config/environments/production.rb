@@ -51,6 +51,7 @@ Rails.application.configure do
     same_site: :lax
 
   config.hosts << Rails.app.creds.require(:site_host)
+  config.hosts << "0.0.0.0:3100"
 
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
