@@ -12,7 +12,8 @@ class ApplicationController < ActionController::Base
     {
       user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone ]),
       workspace: current_workspace&.as_json(only: [ :id, :name ], methods: [ :hashid ]),
-      workspaces: current_user&.workspaces&.order(:name)&.map { |w| { id: w.id, name: w.name, hashid: w.hashid } } || []
+      workspaces: current_user&.workspaces&.order(:name)&.map { |w| { id: w.id, name: w.name, hashid: w.hashid } } || [],
+      is_admin: current_user&.admin? || false
     }
   }
 

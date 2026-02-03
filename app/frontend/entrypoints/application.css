@@ -2,3 +2,19 @@
 
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
+
+/* Admin tools dotted border styling */
+.admin-tools {
+  position: relative;
+  overflow: visible;
+}
+
+.admin-tools::before {
+  content: '';
+  border-radius: 0.5rem;
+  border: 2px dotted rgba(251, 191, 36, 0.3); /* amber-400 with opacity */
+  background: rgba(251, 191, 36, 0.08);
+  position: absolute;
+  inset: -2.5px;
+  pointer-events: none;
+}

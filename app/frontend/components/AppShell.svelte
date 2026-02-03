@@ -14,6 +14,7 @@
     Menu,
     X,
     Plus,
+    Workflow,
   } from "lucide-svelte";
   import { router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
@@ -26,6 +27,7 @@
 
   const user = $derived($page.props.auth?.user);
   const workspace = $derived($page.props.auth?.workspace);
+  const isAdmin = $derived($page.props.auth?.is_admin);
   const isDevMode = $derived($page.props.rails_env === "development");
 
   const navItems = $derived([
@@ -310,6 +312,24 @@
           {@render navItemsTemplate(closeMobileNav)}
         </nav>
 
+        {#if isAdmin}
+          <div class="px-4 pb-4">
+            <div class="admin-tools rounded-lg">
+              <p class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2">
+                Admin
+              </p>
+              <a
+                href="/admin/jobs"
+                onclick={closeMobileNav}
+                class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
+              >
+                <Workflow class="w-4 h-4" aria-hidden="true" />
+                <span class="text-sm font-medium">Jobs</span>
+              </a>
+            </div>
+          </div>
+        {/if}
+
         <div class="p-4 border-t border-bg-tertiary">
           {@render userProfile()}
         </div>
@@ -382,6 +402,23 @@
     <nav class="flex-1 p-4" aria-label="Main navigation">
       {@render navItemsTemplate(undefined, true)}
     </nav>
+
+    {#if isAdmin}
+      <div class="px-4 pb-4">
+        <div class="admin-tools rounded-lg">
+          <p class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2">
+            Admin
+          </p>
+          <a
+            href="/admin/jobs"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
+          >
+            <Workflow class="w-4 h-4" aria-hidden="true" />
+            <span class="text-sm font-medium">Jobs</span>
+          </a>
+        </div>
+      </div>
+    {/if}
 
     <div class="p-4 border-t border-bg-tertiary">
       {@render userProfile()}
