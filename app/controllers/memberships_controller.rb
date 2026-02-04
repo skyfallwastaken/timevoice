@@ -9,30 +9,53 @@ class MembershipsController < ApplicationController
       return
     end
 
-    user = User.find_by("lower(email) = ?", email)
-    if user.nil?
-      redirect_to settings_workspace_path, alert: "No user found with that email. They need to sign in first."
+    unless email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to settings_workspace_path, alert: "Please enter a valid email address."
       return
     end
 
-    if current_workspace.member?(user)
+    user = User.find_by("lower(email) = ?", email)
+
+    if user && current_workspace.member?(user)
       redirect_to settings_workspace_path, alert: "That user is already a member of this workspace."
       return
     end
 
-    membership.user = user
+    existing_invite = current_workspace.invites.pending.find_by("lower(email) = ?", email)
+    if existing_invite
+      redirect_to settings_workspace_path, alert: "An invitation has already been sent to this email."
+      return
+    end
 
-    requested_role = params[:role].to_s.presence_in([ "member", "admin" ])
-    membership.role = if current_workspace.owner?(current_user) && requested_role
+    requested_role = params[:role].to_s.presence_in(%w[member admin]) || "member"
+    role = if current_workspace.owner?(current_user)
       requested_role
     else
       "member"
     end
 
-    if membership.save
-      redirect_to settings_workspace_path, notice: "Invited #{user.name} to the workspace."
+    if user
+      membership.user = user
+      membership.role = role
+
+      if membership.save
+        redirect_to settings_workspace_path, notice: "Added #{user.name} to the workspace."
+      else
+        redirect_to settings_workspace_path, alert: membership.errors.full_messages.join(", ")
+      end
     else
-      redirect_to settings_workspace_path, alert: membership.errors.full_messages.join(", ")
+      invite = current_workspace.invites.build(
+        email: email,
+        role: role,
+        inviter: current_user
+      )
+
+      if invite.save
+        SendInviteEmailJob.perform_later(invite_id: invite.id)
+        redirect_to settings_workspace_path, notice: "Invitation sent to #{email}."
+      else
+        redirect_to settings_workspace_path, alert: invite.errors.full_messages.join(", ")
+      end
     end
   end
 
@@ -48,7 +71,11 @@ class MembershipsController < ApplicationController
     member_name = membership.user&.name || "Member"
     membership.destroy
 
-    redirect_to settings_workspace_path, notice: "Removed #{member_name} from the workspace."
+    if membership.user == current_user
+      redirect_to root_path, notice: "You have left the workspace."
+    else
+      redirect_to settings_workspace_path, notice: "Removed #{member_name} from the workspace."
+    end
   end
 
   private

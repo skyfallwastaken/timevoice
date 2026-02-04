@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_02_03_183706) do
+ActiveRecord::Schema[8.2].define(version: 2026_02_03_193421) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -47,6 +47,23 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_03_183706) do
     t.integer "workspace_id", null: false
     t.index ["workspace_id", "name"], name: "index_clients_on_workspace_id_and_name", unique: true
     t.index ["workspace_id"], name: "index_clients_on_workspace_id"
+  end
+
+  create_table "invites", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.integer "inviter_id", null: false
+    t.string "role", default: "member", null: false
+    t.string "status", default: "pending", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["email"], name: "index_invites_on_email"
+    t.index ["inviter_id"], name: "index_invites_on_inviter_id"
+    t.index ["token"], name: "index_invites_on_token", unique: true
+    t.index ["workspace_id", "email"], name: "index_invites_on_workspace_id_and_email", unique: true, where: "status = 'pending'"
+    t.index ["workspace_id"], name: "index_invites_on_workspace_id"
   end
 
   create_table "invoice_lines", force: :cascade do |t|
@@ -179,6 +196,8 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_03_183706) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "clients", "workspaces"
+  add_foreign_key "invites", "users", column: "inviter_id"
+  add_foreign_key "invites", "workspaces"
   add_foreign_key "invoice_lines", "invoices"
   add_foreign_key "invoice_lines", "time_entries"
   add_foreign_key "invoice_settings", "workspaces"

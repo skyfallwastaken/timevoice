@@ -15,6 +15,11 @@ Rails.application.routes.draw do
   get "/auth/google_oauth2/callback", to: "sessions#create"
   get "/auth/failure", to: "sessions#failure"
 
+  get "/invites", to: "invites#index", as: :invites
+  get "/invite/:token", to: "invites#show", as: :invite
+  post "/invite/:token/accept", to: "invites#accept", as: :accept_invite
+  post "/invite/:token/decline", to: "invites#decline", as: :decline_invite
+
   scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
     get "/timer", to: "dashboard#index"
     get "/calendar", to: "dashboard#calendar"
@@ -39,6 +44,7 @@ Rails.application.routes.draw do
     resources :clients, only: [ :index, :create, :update, :destroy ]
     resources :tags, only: [ :index, :create, :update, :destroy ]
     resources :memberships, only: [ :create, :destroy ]
+    resources :workspace_invites, only: [ :destroy ], path: "invites"
     resources :invoices, only: [ :index, :show, :create, :update, :destroy ] do
       member do
         get :pdf

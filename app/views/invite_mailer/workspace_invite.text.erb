@@ -1,0 +1,19 @@
+You're invited to join <%= @workspace.name %> on Timevoice!
+
+<%= @inviter.name %> has invited you to join their workspace as a <%= @invite.role %>.
+
+<% if @is_new_user %>
+New to Timevoice? Timevoice is a simple time tracking and invoicing app that helps teams track their work and bill clients.
+
+Sign in with Google to accept this invitation and start collaborating.
+<% end %>
+
+Accept the invitation: <%= @accept_url %>
+
+This invitation expires in 7 days.
+
+If you don't want to join, you can ignore this email.
+
+---
+Powered by Timevoice
+<%= root_url %>

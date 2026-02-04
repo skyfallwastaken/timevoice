@@ -17,8 +17,20 @@
     };
   };
 
+  type PendingInvite = {
+    id: number;
+    email: string;
+    role: string;
+    inviter_name: string;
+    expires_at: string;
+    created_at: string;
+  };
+
   let workspace = $derived($page.props.workspace || {});
   let members = $derived(($page.props.members as Membership[]) || []);
+  let pendingInvites = $derived(
+    ($page.props.pendingInvites as PendingInvite[]) || [],
+  );
   let flash = $derived($page.props.flash || {});
   let canInvite = $derived(!!$page.props.canInvite);
 
@@ -37,6 +49,10 @@
 
   let showInviteModal = $state(false);
   let showDeleteModal = $state(false);
+  let showRemoveMemberModal = $state(false);
+  let showCancelInviteModal = $state(false);
+  let memberToRemove = $state<{ id: number; name: string; isSelf: boolean } | null>(null);
+  let inviteToCancel = $state<{ id: number; email: string } | null>(null);
   let inviteForm = useForm({
     email: "",
     role: "member",
@@ -45,7 +61,10 @@
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
   function submitInvite() {
-    $inviteForm.post(`/${workspaceId}/memberships`, {
+    $inviteForm.transform((data) => ({
+      membership: { email: data.email },
+      role: data.role,
+    })).post(`/${workspaceId}/memberships`, {
       preserveScroll: true,
       onSuccess: () => {
         showInviteModal = false;
@@ -71,13 +90,18 @@
     }
   }
 
-  function removeMember(membershipId: number, memberName: string) {
-    const ok = window.confirm(`Remove ${memberName} from this workspace?`);
-    if (!ok) return;
+  function openRemoveMemberModal(membershipId: number, memberName: string, isSelf: boolean) {
+    memberToRemove = { id: membershipId, name: memberName, isSelf };
+    showRemoveMemberModal = true;
+  }
 
-    router.delete(`/${workspaceId}/memberships/${membershipId}`, {
-      preserveScroll: true,
+  function confirmRemoveMember() {
+    if (!memberToRemove) return;
+    router.delete(`/${workspaceId}/memberships/${memberToRemove.id}`, {
+      preserveScroll: !memberToRemove.isSelf,
     });
+    showRemoveMemberModal = false;
+    memberToRemove = null;
   }
 
   function getRoleIcon(role: string) {
@@ -90,6 +114,33 @@
     if (role === "owner") return "text-bright-yellow";
     if (role === "admin") return "text-bright-blue";
     return "text-fg-muted";
+  }
+
+  function openCancelInviteModal(inviteId: number, email: string) {
+    inviteToCancel = { id: inviteId, email };
+    showCancelInviteModal = true;
+  }
+
+  function confirmCancelInvite() {
+    if (!inviteToCancel) return;
+    router.delete(`/${workspaceId}/invites/${inviteToCancel.id}`, {
+      preserveScroll: true,
+    });
+    showCancelInviteModal = false;
+    inviteToCancel = null;
+  }
+
+  function formatTimeAgo(dateStr: string) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   }
 </script>
 
@@ -226,11 +277,12 @@
               <span class="capitalize">{membership.role}</span>
             </span>
             {#if membership.role !== "owner" && (canManageMembers || membership.user?.id === currentUserId)}
+              {@const isSelf = membership.user?.id === currentUserId}
               <button
                 class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
-                aria-label="Remove {membership.user.name} from workspace"
+                aria-label={isSelf ? "Leave workspace" : `Remove ${membership.user.name} from workspace`}
                 onclick={() =>
-                  removeMember(membership.id, membership.user.name)}
+                  openRemoveMemberModal(membership.id, membership.user.name, isSelf)}
               >
                 <Trash2 class="w-4 h-4" aria-hidden="true" />
               </button>
@@ -248,6 +300,65 @@
       {/each}
     </div>
   </div>
+
+  {#if pendingInvites.length > 0 && canManageMembers}
+    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
+      <div
+        class="p-4 border-b border-bg-tertiary flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2">
+          <Users class="w-5 h-5 text-fg-muted" aria-hidden="true" />
+          <h3 class="font-semibold">Pending Invites ({pendingInvites.length})</h3>
+        </div>
+      </div>
+      <div
+        class="divide-y divide-bg-tertiary"
+        role="list"
+        aria-label="Pending invitations"
+      >
+        {#each pendingInvites as invite}
+          <div
+            class="p-4 flex items-center justify-between hover:bg-bg-tertiary/50 transition-colors duration-150"
+            role="listitem"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-lg font-semibold text-fg-muted"
+                aria-hidden="true"
+              >
+                ?
+              </div>
+              <div>
+                <p class="font-medium text-fg-primary">{invite.email}</p>
+                <p class="text-sm text-fg-muted">
+                  Invited by {invite.inviter_name} · {formatTimeAgo(invite.created_at)}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span
+                class="flex items-center gap-1 text-sm {getRoleColor(invite.role)}"
+              >
+                {#if invite.role === "admin"}
+                  <Shield class="w-4 h-4" aria-hidden="true" />
+                {:else}
+                  <Users class="w-4 h-4" aria-hidden="true" />
+                {/if}
+                <span class="capitalize">{invite.role}</span>
+              </span>
+              <button
+                class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+                aria-label="Cancel invitation to {invite.email}"
+                onclick={() => openCancelInviteModal(invite.id, invite.email)}
+              >
+                <Trash2 class="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <div class="bg-bg-tertiary/50 border border-bright-red/30 rounded-[10px] p-4">
     <h3 class="font-semibold text-bright-red mb-2">Danger Zone</h3>
@@ -304,7 +415,7 @@
         <option value="admin">Admin</option>
       </select>
       <p class="text-xs text-fg-muted mt-1">
-        They must have signed in before you can add them.
+        If they haven't signed up yet, they'll receive an invitation email.
       </p>
     </div>
 
@@ -365,6 +476,95 @@
           onclick={confirmDeleteWorkspace}
         >
           Delete Workspace
+        </button>
+      </div>
+    {/snippet}
+  </Modal>
+
+  <Modal
+    bind:open={showRemoveMemberModal}
+    title={memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
+    onclose={() => {
+      showRemoveMemberModal = false;
+      memberToRemove = null;
+    }}
+  >
+    <div class="space-y-4">
+      {#if memberToRemove?.isSelf}
+        <p class="text-fg-primary">
+          Are you sure you want to leave this workspace?
+        </p>
+        <p class="text-sm text-fg-muted">
+          You will no longer have access to this workspace's time entries, projects, or invoices.
+        </p>
+      {:else}
+        <p class="text-fg-primary">
+          Are you sure you want to remove <span class="font-semibold">{memberToRemove?.name}</span> from this workspace?
+        </p>
+        <p class="text-sm text-fg-muted">
+          They will no longer have access to this workspace.
+        </p>
+      {/if}
+    </div>
+
+    {#snippet footer()}
+      <div class="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          onclick={() => {
+            showRemoveMemberModal = false;
+            memberToRemove = null;
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+          onclick={confirmRemoveMember}
+        >
+          {memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
+        </button>
+      </div>
+    {/snippet}
+  </Modal>
+
+  <Modal
+    bind:open={showCancelInviteModal}
+    title="Cancel Invitation"
+    onclose={() => {
+      showCancelInviteModal = false;
+      inviteToCancel = null;
+    }}
+  >
+    <div class="space-y-4">
+      <p class="text-fg-primary">
+        Are you sure you want to cancel the invitation to <span class="font-semibold">{inviteToCancel?.email}</span>?
+      </p>
+      <p class="text-sm text-fg-muted">
+        They will no longer be able to join this workspace using this invitation.
+      </p>
+    </div>
+
+    {#snippet footer()}
+      <div class="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          onclick={() => {
+            showCancelInviteModal = false;
+            inviteToCancel = null;
+          }}
+        >
+          Keep Invitation
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
+          onclick={confirmCancelInvite}
+        >
+          Cancel Invitation
         </button>
       </div>
     {/snippet}

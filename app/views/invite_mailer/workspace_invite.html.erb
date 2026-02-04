@@ -1,0 +1,36 @@
+<div class="header header-centered">
+  <h1>You're invited!</h1>
+  <p class="subtitle"><%= @inviter.name %> wants you to join their workspace</p>
+</div>
+
+<div class="content">
+  <div class="highlight-box">
+    <p class="title"><%= @workspace.name %></p>
+    <p class="meta">Role: <%= @invite.role.capitalize %></p>
+  </div>
+
+  <% if @is_new_user %>
+  <p>
+    <strong>New to Timevoice?</strong> Timevoice is a simple time tracking and invoicing app 
+    that helps teams track their work and bill clients.
+  </p>
+  <p>
+    Sign in with Google to accept this invitation and start collaborating with <%= @inviter.name %>.
+  </p>
+  <% else %>
+  <p>
+    Click the button below to accept this invitation and join the workspace.
+  </p>
+  <% end %>
+</div>
+
+<div class="cta-section">
+  <a href="<%= @accept_url %>" class="cta-button">
+    Accept invite
+  </a>
+</div>
+
+<div class="footer">
+  <p>This invitation expires in 7 days.</p>
+  <p style="margin-top: 6px;">If you don't want to join, you can ignore this email.</p>
+</div>

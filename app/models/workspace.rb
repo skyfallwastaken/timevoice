@@ -9,6 +9,7 @@ class Workspace < ApplicationRecord
   has_many :projects, dependent: :destroy
   has_many :tags, dependent: :destroy
   has_many :invoices, dependent: :destroy
+  has_many :invites, dependent: :destroy
   has_one :invoice_setting, dependent: :destroy
 
   validates :name, presence: true

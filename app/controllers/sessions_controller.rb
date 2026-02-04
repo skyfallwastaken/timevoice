@@ -17,6 +17,14 @@ class SessionsController < ApplicationController
     session[:user_id] = user.id
     session[:workspace_id] = user.current_workspace&.id
 
+    if (token = session.delete(:pending_invite_token))
+      invite = Invite.valid.find_by(token: token)
+      if invite && invite.email.downcase == user.email.downcase
+        redirect_to invite_path(token: invite.token), notice: "Signed in! Review your invitation below."
+        return
+      end
+    end
+
     redirect_to root_path, notice: "Signed in successfully!"
   end
 

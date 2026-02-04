@@ -4,6 +4,7 @@ class SettingsController < ApplicationController
     @members = current_workspace.memberships
       .includes(:user)
       .order(created_at: :desc)
+    @pending_invites = current_workspace.invites.pending.includes(:inviter).order(created_at: :desc)
 
     render inertia: "Settings/Workspace", props: {
       workspace: @workspace.as_json(only: [ :id, :name, :created_at ]),
@@ -12,6 +13,16 @@ class SettingsController < ApplicationController
           only: [ :id, :role, :created_at ],
           include: { user: { only: [ :id, :name, :email, :avatar_url ] } }
         )
+      },
+      pendingInvites: @pending_invites.map { |invite|
+        {
+          id: invite.id,
+          email: invite.email,
+          role: invite.role,
+          inviter_name: invite.inviter.name,
+          expires_at: invite.expires_at.iso8601,
+          created_at: invite.created_at.iso8601
+        }
       },
       canInvite: current_workspace.admin?(current_user)
     }
