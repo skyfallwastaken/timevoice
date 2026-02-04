@@ -1,8 +1,11 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import Modal from "../../components/Modal.svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
+  import ColorPicker from "../../components/ColorPicker.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
+  import { routes } from "../../lib/routes";
   import {
     FolderKanban,
     Plus,
@@ -12,24 +15,9 @@
     X,
     Briefcase,
   } from "lucide-svelte";
+  import type { Project, Client } from "../../types";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
-
-  type Project = {
-    id: number;
-    name: string;
-    color: string;
-    billable_default: boolean;
-    client?: {
-      id: number;
-      name: string;
-    };
-  };
-
-  type Client = {
-    id: number;
-    name: string;
-  };
 
   let projects = $derived(($page.props.projects as Project[]) || []);
   let clients = $derived(($page.props.clients as Client[]) || []);
@@ -65,7 +53,8 @@
   }
 
   function handleCreate() {
-    $createForm.post(`/${workspaceId}/projects`, {
+    if (!workspaceId) return;
+    $createForm.post(routes.projects.create(workspaceId), {
       onSuccess: () => {
         $createForm.reset();
         $createForm.color = colors[0] ?? "";
@@ -74,7 +63,8 @@
   }
 
   function handleUpdate(projectId: number) {
-    $editForm.patch(`/${workspaceId}/projects/${projectId}`, {
+    if (!workspaceId) return;
+    $editForm.patch(routes.projects.update(workspaceId, projectId), {
       onSuccess: () => {
         editingId = null;
         $editForm.reset();
@@ -85,8 +75,8 @@
   let projectToDelete: Project | null = $state(null);
 
   function confirmDelete() {
-    if (projectToDelete) {
-      $editForm.delete(`/${workspaceId}/projects/${projectToDelete.id}`);
+    if (projectToDelete && workspaceId) {
+      $editForm.delete(routes.projects.delete(workspaceId, projectToDelete.id));
     }
     projectToDelete = null;
   }
@@ -142,25 +132,7 @@
         </div>
       </div>
 
-      <div>
-        <span class="block text-sm font-medium text-fg-secondary mb-2"
-          >Color</span
-        >
-        <div class="flex flex-wrap gap-2">
-          {#each colors as color}
-            <button
-              type="button"
-              onclick={() => ($createForm.color = color)}
-              class="w-8 h-8 rounded-full border-2 transition-all duration-150 {$createForm.color ===
-              color
-                ? 'border-fg-primary scale-110'
-                : 'border-transparent hover:scale-105'}"
-              style="background-color: {color}"
-              aria-label="Select color {color}"
-            ></button>
-          {/each}
-        </div>
-      </div>
+      <ColorPicker {colors} bind:value={$createForm.color} />
 
       <div class="flex items-center justify-between">
         <label class="flex items-center gap-2 cursor-pointer">
@@ -233,25 +205,7 @@
                   </div>
                 </div>
 
-                <div>
-                  <span class="block text-sm font-medium text-fg-secondary mb-2"
-                    >Color</span
-                  >
-                  <div class="flex flex-wrap gap-2">
-                    {#each colors as color}
-                      <button
-                        type="button"
-                        onclick={() => ($editForm.color = color)}
-                        class="w-8 h-8 rounded-full border-2 transition-all duration-150 {$editForm.color ===
-                        color
-                          ? 'border-fg-primary scale-110'
-                          : 'border-transparent hover:scale-105'}"
-                        style="background-color: {color}"
-                        aria-label="Select color {color}"
-                      ></button>
-                    {/each}
-                  </div>
-                </div>
+                <ColorPicker {colors} bind:value={$editForm.color} />
 
                 <div class="flex items-center justify-between">
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -331,40 +285,12 @@
     {/if}
   </div>
 
-  <Modal
+  <ConfirmDeleteModal
     open={projectToDelete !== null}
     title="Delete Project"
-    onclose={() => (projectToDelete = null)}
-  >
-    <div class="space-y-4">
-      <p class="text-fg-primary">
-        Are you sure you want to delete <span class="font-semibold"
-          >{projectToDelete?.name || "this project"}</span
-        >?
-      </p>
-      <p class="text-sm text-fg-muted">
-        This action cannot be undone. This will remove the project association
-        from all time entries.
-      </p>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-          onclick={() => (projectToDelete = null)}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmDelete}
-        >
-          Delete Project
-        </button>
-      </div>
-    {/snippet}
-  </Modal>
+    itemName={projectToDelete?.name || "this project"}
+    warningMessage="This action cannot be undone. This will remove the project association from all time entries."
+    onConfirm={confirmDelete}
+    onClose={() => (projectToDelete = null)}
+  />
 </PageLayout>

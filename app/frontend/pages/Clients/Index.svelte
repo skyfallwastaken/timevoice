@@ -1,8 +1,9 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import Modal from "../../components/Modal.svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
+  import { routes } from "../../lib/routes";
   import {
     Users,
     Plus,
@@ -12,14 +13,9 @@
     X,
     Building2,
   } from "lucide-svelte";
+  import type { Client } from "../../types";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
-
-  type Client = {
-    id: number;
-    name: string;
-    billing_address: string | null;
-  };
 
   let clients = $derived(($page.props.clients as Client[]) || []);
 
@@ -47,7 +43,8 @@
   }
 
   function handleCreate() {
-    $createForm.post(`/${workspaceId}/clients`, {
+    if (!workspaceId) return;
+    $createForm.post(routes.clients.create(workspaceId), {
       onSuccess: () => {
         $createForm.reset();
       },
@@ -55,7 +52,8 @@
   }
 
   function handleUpdate(clientId: number) {
-    $editForm.patch(`/${workspaceId}/clients/${clientId}`, {
+    if (!workspaceId) return;
+    $editForm.patch(routes.clients.update(workspaceId, clientId), {
       onSuccess: () => {
         editingId = null;
         $editForm.reset();
@@ -66,8 +64,8 @@
   let clientToDelete: Client | null = $state(null);
 
   function confirmDelete() {
-    if (clientToDelete) {
-      $editForm.delete(`/${workspaceId}/clients/${clientToDelete.id}`);
+    if (clientToDelete && workspaceId) {
+      $editForm.delete(routes.clients.delete(workspaceId, clientToDelete.id));
     }
     clientToDelete = null;
   }
@@ -87,9 +85,12 @@
         <h3 class="font-semibold">Create New Client</h3>
       </div>
     </div>
-    <div
+    <form
       class="p-4 space-y-4"
-      onkeydown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && $createForm.name && handleCreate()}
+      onsubmit={(e) => {
+        e.preventDefault();
+        if ($createForm.name) handleCreate();
+      }}
     >
       <div>
         <label
@@ -122,13 +123,13 @@ Country"
           class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue transition-colors duration-150 resize-none"
         ></textarea>
         <p class="text-xs text-fg-muted mt-1">
-          Line breaks will appear on invoices. Press ⌘/Ctrl+Enter to create.
+          Line breaks will appear on invoices. Press Enter to create.
         </p>
       </div>
 
       <div class="flex justify-end">
         <button
-          onclick={handleCreate}
+          type="submit"
           disabled={$createForm.processing || !$createForm.name}
           class="flex items-center gap-2 px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -136,7 +137,7 @@ Country"
           Create Client
         </button>
       </div>
-    </div>
+    </form>
   </div>
 
   <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
@@ -240,38 +241,12 @@ Country"
     {/if}
   </div>
 
-  <Modal
+  <ConfirmDeleteModal
     open={!!clientToDelete}
     title="Delete Client"
-    onclose={() => (clientToDelete = null)}
-  >
-    <p class="text-fg-primary">
-      Are you sure you want to delete <span class="font-semibold"
-        >{clientToDelete?.name || "this client"}</span
-      >?
-    </p>
-    <p class="text-sm text-fg-muted">
-      This action cannot be undone. This will remove the client association from
-      all projects.
-    </p>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-          onclick={() => (clientToDelete = null)}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmDelete}
-        >
-          Delete Client
-        </button>
-      </div>
-    {/snippet}
-  </Modal>
+    itemName={clientToDelete?.name || "this client"}
+    warningMessage="This action cannot be undone. This will remove the client association from all projects."
+    onConfirm={confirmDelete}
+    onClose={() => (clientToDelete = null)}
+  />
 </PageLayout>

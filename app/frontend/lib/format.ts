@@ -89,3 +89,33 @@ export function getLastMonthRange(): { start: Date; end: Date } {
   start.setMonth(end.getMonth() - 1)
   return { start, end }
 }
+
+/**
+ * Format a date to short format (e.g., "Jan 15")
+ */
+export function formatShortDate(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/**
+ * Format a time to 12-hour format (e.g., "02:30 PM")
+ */
+export function formatTime(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/**
+ * Format bytes to human readable format (e.g., "1.5 MB")
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}

@@ -231,9 +231,12 @@
   </div>
 
   {#if showCreateForm}
-    <div
+    <form
       class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 animate-slide-in"
-      onkeydown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && canCreateInvoice && handleCreateInvoice()}
+      onsubmit={(e) => {
+        e.preventDefault();
+        if (canCreateInvoice) handleCreateInvoice();
+      }}
     >
       <div class="flex items-center gap-3 mb-4">
         <Plus class="w-5 h-5 text-bright-purple" />
@@ -357,15 +360,15 @@
       </div>
 
       <div class="flex items-center justify-end gap-3">
-        <span class="text-xs text-fg-muted">⌘/Ctrl+Enter to create</span>
         <button
+          type="button"
           onclick={() => (showCreateForm = false)}
           class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
         >
           Cancel
         </button>
         <button
-          onclick={handleCreateInvoice}
+          type="submit"
           disabled={!canCreateInvoice}
           class="flex items-center gap-2 px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50"
         >
@@ -373,7 +376,7 @@
           {$createForm.processing ? "Creating..." : "Create Invoice"}
         </button>
       </div>
-    </div>
+    </form>
   {/if}
 
   {#if unbilledEntries.length > 0}

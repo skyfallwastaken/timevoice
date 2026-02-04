@@ -1,21 +1,18 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import Modal from "../../components/Modal.svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
+  import { routes } from "../../lib/routes";
   import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "lucide-svelte";
+  import type { Tag as TagType } from "../../types";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
-  type TagItem = {
-    id: number;
-    name: string;
-  };
-
-  let tags = $derived(($page.props.tags as TagItem[]) || []);
+  let tags = $derived(($page.props.tags as TagType[]) || []);
 
   let editingId: number | null = $state(null);
-  let tagToDelete: TagItem | null = $state(null);
+  let tagToDelete: TagType | null = $state(null);
 
   let createForm = useForm({
     name: "",
@@ -25,7 +22,7 @@
     name: "",
   });
 
-  function startEditing(tagItem: TagItem) {
+  function startEditing(tagItem: TagType) {
     editingId = tagItem.id;
     $editForm.name = tagItem.name;
   }
@@ -36,7 +33,8 @@
   }
 
   function handleCreate() {
-    $createForm.post(`/${workspaceId}/tags`, {
+    if (!workspaceId) return;
+    $createForm.post(routes.tags.create(workspaceId), {
       onSuccess: () => {
         $createForm.reset();
       },
@@ -44,7 +42,8 @@
   }
 
   function handleUpdate(tagId: number) {
-    $editForm.patch(`/${workspaceId}/tags/${tagId}`, {
+    if (!workspaceId) return;
+    $editForm.patch(routes.tags.update(workspaceId, tagId), {
       onSuccess: () => {
         editingId = null;
         $editForm.reset();
@@ -53,8 +52,8 @@
   }
 
   function confirmDelete() {
-    if (tagToDelete) {
-      $editForm.delete(`/${workspaceId}/tags/${tagToDelete.id}`);
+    if (tagToDelete && workspaceId) {
+      $editForm.delete(routes.tags.delete(workspaceId, tagToDelete.id));
     }
     tagToDelete = null;
   }
@@ -183,40 +182,12 @@
     {/if}
   </div>
 
-  <Modal
+  <ConfirmDeleteModal
     open={tagToDelete !== null}
     title="Delete Tag"
-    onclose={() => (tagToDelete = null)}
-  >
-    <div class="space-y-4">
-      <p class="text-fg-primary">
-        Are you sure you want to delete <span class="font-semibold"
-          >{tagToDelete?.name || "this tag"}</span
-        >?
-      </p>
-      <p class="text-sm text-fg-muted">
-        This action cannot be undone. This will remove the tag from all time
-        entries.
-      </p>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-          onclick={() => (tagToDelete = null)}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmDelete}
-        >
-          Delete Tag
-        </button>
-      </div>
-    {/snippet}
-  </Modal>
+    itemName={tagToDelete?.name || "this tag"}
+    warningMessage="This action cannot be undone. This will remove the tag from all time entries."
+    onConfirm={confirmDelete}
+    onClose={() => (tagToDelete = null)}
+  />
 </PageLayout>

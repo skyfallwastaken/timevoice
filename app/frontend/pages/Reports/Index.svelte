@@ -12,25 +12,8 @@
     ChevronDown,
     ChevronUp,
   } from "lucide-svelte";
-
-  type Entry = {
-    id: number;
-    description: string;
-    start_at: string;
-    end_at: string;
-    duration_seconds: number;
-    billable: boolean;
-    formattedDuration: string;
-    project: {
-      id: number;
-      name: string;
-      color: string;
-    } | null;
-    tags: Array<{
-      id: number;
-      name: string;
-    }>;
-  };
+  import { formatShortDate } from "../../lib/format";
+  import type { TimeEntry, Project } from "../../types";
 
   type ProjectBreakdown = {
     total: number;
@@ -56,7 +39,7 @@
     by_client: Record<string, ClientBreakdown>;
   };
 
-  let entries = $derived(($page.props.entries as Entry[]) || []);
+  let entries = $derived(($page.props.entries as TimeEntry[]) || []);
   let totals = $derived(
     ($page.props.totals as Totals) || {
       total: 0,
@@ -68,14 +51,7 @@
     },
   );
 
-  let projects = $derived(
-    ($page.props.projects as Array<{
-      id: number;
-      name: string;
-      color: string;
-      client?: { id: number; name: string };
-    }>) || [],
-  );
+  let projects = $derived(($page.props.projects as Project[]) || []);
 
   let showFilters = $state(false);
   let selectedProjectId = $state("");
@@ -121,12 +97,7 @@
     return `${hours}h ${minutes}m`;
   }
 
-  function formatDate(dateStr: string): string {
-    return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  }
+
 
   function formatDayOfWeek(dateStr: string): string {
     return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
@@ -285,7 +256,7 @@
                   >{new Date(date).getDate()}</span
                 >
               </div>
-              <span class="text-fg-muted">{formatDate(date)}</span>
+              <span class="text-fg-muted">{formatShortDate(date)}</span>
             </div>
             <div class="flex items-center gap-4">
               <div class="text-right">
@@ -392,7 +363,7 @@
               <div class="text-right ml-4">
                 <p class="font-semibold">{entry.formattedDuration}</p>
                 <p class="text-sm text-fg-muted">
-                  {formatDate(entry.start_at)}
+                  {formatShortDate(entry.start_at)}
                 </p>
               </div>
             </div>

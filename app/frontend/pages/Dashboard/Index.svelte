@@ -3,6 +3,7 @@
   import TimerInput from "../../components/TimerInput.svelte";
   import { page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
+  import { routes } from "../../lib/routes";
   import {
     Edit2,
     Trash2,
@@ -16,40 +17,20 @@
     Paperclip,
   } from "lucide-svelte";
   import Modal from "../../components/Modal.svelte";
-
-  type Project = {
-    id: number;
-    name: string;
-    color: string;
-    billable_default: boolean;
-  };
-  type Tag = { id: number; name: string };
-  type AttachedFile = {
-    id: number;
-    blob_id: number;
-    filename: string;
-    byte_size: number;
-    content_type: string;
-  };
-  type Entry = {
-    id: number;
-    description: string | null;
-    start_at: string;
-    end_at: string | null;
-    billable: boolean;
-    formattedDuration: string;
-    project: { id: number; name: string; color: string } | null;
-    tags: Tag[];
-    files?: AttachedFile[];
-  };
+  import {
+    formatShortDate,
+    formatTime,
+    formatFileSize,
+  } from "../../lib/format";
+  import type { Project, Tag, AttachedFile, TimeEntry } from "../../types";
 
   let projects = $derived(($page.props.projects as Project[]) || []);
   let tags = $derived(($page.props.tags as Tag[]) || []);
-  let recentEntries = $derived(($page.props.recentEntries as Entry[]) || []);
+  let recentEntries = $derived(($page.props.recentEntries as TimeEntry[]) || []);
 
-  let editingEntry = $state<Entry | null>(null);
+  let editingEntry = $state<TimeEntry | null>(null);
   let showDeleteModal = $state(false);
-  let entryToDelete = $state<Entry | null>(null);
+  let entryToDelete = $state<TimeEntry | null>(null);
   let editFileInput: HTMLInputElement | null = $state(null);
 
   let showFilters = $state(false);
@@ -110,7 +91,7 @@
     }
   }
 
-  function getFilteredEntries(allEntries: Entry[]) {
+  function getFilteredEntries(allEntries: TimeEntry[]) {
     const search = filters.search.trim().toLowerCase();
     const projectId = filters.projectId;
     const { start, end } = getDateRange(filters.dateRange);
@@ -145,20 +126,7 @@
     files: [] as File[],
   });
 
-  function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
-
-  function formatTime(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  function openDeleteModal(entry: Entry) {
+  function openDeleteModal(entry: TimeEntry) {
     entryToDelete = entry;
     showDeleteModal = true;
   }
@@ -171,14 +139,14 @@
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
   function confirmDeleteEntry() {
-    if (!entryToDelete) return;
-    router.delete(`/${workspaceId}/time_entries/${entryToDelete.id}`, {
+    if (!entryToDelete || !workspaceId) return;
+    router.delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
       preserveScroll: true,
     });
     closeDeleteModal();
   }
 
-  function openEdit(entry: Entry) {
+  function openEdit(entry: TimeEntry) {
     editingEntry = entry;
     $editForm.description = entry.description || "";
     $editForm.project_id = entry.project?.id?.toString() || "";
@@ -224,9 +192,9 @@
   }
 
   function deleteExistingFile(blobId: number) {
-    if (!editingEntry) return;
+    if (!editingEntry || !workspaceId) return;
     router.delete(
-      `/${workspaceId}/time_entries/${editingEntry.id}/remove_file?blob_id=${blobId}`,
+      `${routes.timeEntries.update(workspaceId, editingEntry.id)}/remove_file?blob_id=${blobId}`,
       {
         preserveScroll: true,
         onSuccess: () => {
@@ -240,16 +208,8 @@
     );
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  }
-
   function saveEdit() {
-    if (!editingEntry) return;
+    if (!editingEntry || !workspaceId) return;
 
     $editForm
       .transform((data) => {
@@ -265,7 +225,7 @@
         });
         return formData;
       })
-      .patch(`/${workspaceId}/time_entries/${editingEntry.id}`, {
+      .patch(routes.timeEntries.update(workspaceId, editingEntry.id), {
         preserveScroll: true,
         onSuccess: () => {
           closeEdit();
@@ -387,7 +347,7 @@
               </div>
               <div class="flex items-center justify-between text-sm">
                 <div class="text-fg-muted">
-                  <span>{formatDate(entry.start_at)}</span>
+                  <span>{formatShortDate(entry.start_at)}</span>
                   <span class="mx-1">·</span>
                   <span>{formatTime(entry.start_at)} - {entry.end_at ? formatTime(entry.end_at) : "now"}</span>
                 </div>
@@ -403,7 +363,7 @@
             <!-- Desktop layout -->
             <div class="hidden sm:flex items-center gap-4">
               <div class="w-24 text-sm text-fg-muted shrink-0">
-                <div>{formatDate(entry.start_at)}</div>
+                <div>{formatShortDate(entry.start_at)}</div>
                 <div>
                   {formatTime(entry.start_at)} - {entry.end_at
                     ? formatTime(entry.end_at)
