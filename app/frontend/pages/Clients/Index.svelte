@@ -87,7 +87,10 @@
         <h3 class="font-semibold">Create New Client</h3>
       </div>
     </div>
-    <div class="p-4 space-y-4">
+    <div
+      class="p-4 space-y-4"
+      onkeydown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && $createForm.name && handleCreate()}
+    >
       <div>
         <label
           for="client-name"
@@ -119,7 +122,7 @@ Country"
           class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue transition-colors duration-150 resize-none"
         ></textarea>
         <p class="text-xs text-fg-muted mt-1">
-          Line breaks will appear on invoices.
+          Line breaks will appear on invoices. Press ⌘/Ctrl+Enter to create.
         </p>
       </div>
 

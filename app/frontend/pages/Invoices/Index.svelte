@@ -233,6 +233,7 @@
   {#if showCreateForm}
     <div
       class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 animate-slide-in"
+      onkeydown={(e) => (e.metaKey || e.ctrlKey) && e.key === "Enter" && canCreateInvoice && handleCreateInvoice()}
     >
       <div class="flex items-center gap-3 mb-4">
         <Plus class="w-5 h-5 text-bright-purple" />
@@ -355,7 +356,8 @@
         </div>
       </div>
 
-      <div class="flex justify-end gap-3">
+      <div class="flex items-center justify-end gap-3">
+        <span class="text-xs text-fg-muted">⌘/Ctrl+Enter to create</span>
         <button
           onclick={() => (showCreateForm = false)}
           class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"

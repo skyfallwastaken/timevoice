@@ -86,6 +86,7 @@
           type="text"
           bind:value={$createForm.name}
           placeholder="Enter tag name..."
+          onkeydown={(e) => e.key === "Enter" && $createForm.name && handleCreate()}
           class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-yellow transition-colors duration-150"
         />
       </div>
