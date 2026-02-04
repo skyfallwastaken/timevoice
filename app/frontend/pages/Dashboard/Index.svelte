@@ -349,58 +349,109 @@
       <div class="divide-y divide-bg-tertiary">
         {#each filteredEntries as entry}
           <div
-            class="p-4 flex items-center gap-4 hover:bg-bg-tertiary/50 transition-colors duration-150"
+            class="p-4 hover:bg-bg-tertiary/50 transition-colors duration-150"
           >
-            <div class="w-24 text-sm text-fg-muted">
-              <div>{formatDate(entry.start_at)}</div>
-              <div>
-                {formatTime(entry.start_at)} - {entry.end_at
-                  ? formatTime(entry.end_at)
-                  : "now"}
+            <!-- Mobile layout -->
+            <div class="flex flex-col gap-2 sm:hidden">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium truncate">
+                    {entry.description || "No description"}
+                  </p>
+                  {#if entry.project}
+                    <div class="flex items-center gap-2 mt-1">
+                      <span
+                        class="w-3 h-3 rounded-full shrink-0"
+                        style="background-color: {entry.project.color || '#b16286'}"
+                      ></span>
+                      <span class="text-sm text-fg-muted">{entry.project.name}</span>
+                    </div>
+                  {/if}
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+                    aria-label="Edit entry"
+                    onclick={() => openEdit(entry)}
+                  >
+                    <Edit2 class="w-4 h-4" />
+                  </button>
+                  <button
+                    class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+                    aria-label="Delete entry"
+                    onclick={() => openDeleteModal(entry)}
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <div class="text-fg-muted">
+                  <span>{formatDate(entry.start_at)}</span>
+                  <span class="mx-1">·</span>
+                  <span>{formatTime(entry.start_at)} - {entry.end_at ? formatTime(entry.end_at) : "now"}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  {#if entry.billable}
+                    <DollarSign class="w-4 h-4 text-bright-green" />
+                  {/if}
+                  <span class="font-tabular font-medium">{entry.formattedDuration}</span>
+                </div>
               </div>
             </div>
 
-            <div class="flex-1 min-w-0">
-              <p class="font-medium truncate">
-                {entry.description || "No description"}
-              </p>
-              {#if entry.project}
-                <div class="flex items-center gap-2 mt-1">
-                  <span
-                    class="w-3 h-3 rounded-full"
-                    style="background-color: {entry.project.color || '#b16286'}"
-                  ></span>
-                  <span class="text-sm text-fg-muted">{entry.project.name}</span
-                  >
+            <!-- Desktop layout -->
+            <div class="hidden sm:flex items-center gap-4">
+              <div class="w-24 text-sm text-fg-muted shrink-0">
+                <div>{formatDate(entry.start_at)}</div>
+                <div>
+                  {formatTime(entry.start_at)} - {entry.end_at
+                    ? formatTime(entry.end_at)
+                    : "now"}
                 </div>
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">
+                  {entry.description || "No description"}
+                </p>
+                {#if entry.project}
+                  <div class="flex items-center gap-2 mt-1">
+                    <span
+                      class="w-3 h-3 rounded-full"
+                      style="background-color: {entry.project.color || '#b16286'}"
+                    ></span>
+                    <span class="text-sm text-fg-muted">{entry.project.name}</span>
+                  </div>
+                {/if}
+              </div>
+
+              {#if entry.billable}
+                <DollarSign class="w-4 h-4 text-bright-green" />
               {/if}
-            </div>
 
-            {#if entry.billable}
-              <DollarSign class="w-4 h-4 text-bright-green" />
-            {/if}
+              <div class="text-right min-w-20">
+                <span class="font-tabular font-medium"
+                  >{entry.formattedDuration}</span
+                >
+              </div>
 
-            <div class="text-right min-w-20">
-              <span class="font-tabular font-medium"
-                >{entry.formattedDuration}</span
-              >
-            </div>
-
-            <div class="flex items-center gap-2">
-              <button
-                class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                aria-label="Edit entry"
-                onclick={() => openEdit(entry)}
-              >
-                <Edit2 class="w-4 h-4" />
-              </button>
-              <button
-                class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
-                aria-label="Delete entry"
-                onclick={() => openDeleteModal(entry)}
-              >
-                <Trash2 class="w-4 h-4" />
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+                  aria-label="Edit entry"
+                  onclick={() => openEdit(entry)}
+                >
+                  <Edit2 class="w-4 h-4" />
+                </button>
+                <button
+                  class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+                  aria-label="Delete entry"
+                  onclick={() => openDeleteModal(entry)}
+                >
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         {/each}

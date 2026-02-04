@@ -77,7 +77,7 @@
         $page.url === item.href || $page.url.startsWith(item.href + "/"),
     ),
   );
-  const navIndicatorY = new Tween(0, { duration: 200, easing: cubicOut });
+  const navIndicatorY = new Tween(0, { duration: 140, easing: cubicOut });
   let indicatorInitialized = false;
 
   $effect(() => {
@@ -315,7 +315,9 @@
         {#if isAdmin}
           <div class="px-4 pb-4">
             <div class="admin-tools rounded-lg">
-              <p class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2">
+              <p
+                class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2"
+              >
                 Admin
               </p>
               <a
@@ -406,7 +408,9 @@
     {#if isAdmin}
       <div class="px-4 pb-4">
         <div class="admin-tools rounded-lg">
-          <p class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2">
+          <p
+            class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2"
+          >
             Admin
           </p>
           <a
