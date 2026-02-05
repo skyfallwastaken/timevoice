@@ -73,7 +73,33 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /workspaces/{workspace_id}/time_entries:
+  /workspaces/{id}:
+    get:
+      tags: [Workspaces]
+      summary: Get workspace
+      description: Returns a specific workspace
+      operationId: getWorkspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "k5nR8m"
+          description: Workspace ID (hashid)
+      responses:
+        "200":
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /{workspace_id}/time_entries:
     get:
       tags: [Time Entries]
       summary: List time entries
@@ -129,7 +155,41 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
-  /workspaces/{workspace_id}/time_entries/{id}:
+  /{workspace_id}/time_entries/start:
+    post:
+      tags: [Time Entries]
+      summary: Start timer
+      description: Starts a new running time entry
+      operationId: startTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                project_id:
+                  type: string
+                billable:
+                  type: boolean
+                tag_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Timer started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /{workspace_id}/time_entries/{id}:
     get:
       tags: [Time Entries]
       summary: Get time entry
@@ -187,7 +247,28 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /workspaces/{workspace_id}/projects:
+  /{workspace_id}/time_entries/{id}/stop:
+    patch:
+      tags: [Time Entries]
+      summary: Stop timer
+      description: Stops a running time entry
+      operationId: stopTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Timer stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /{workspace_id}/projects:
     get:
       tags: [Projects]
       summary: List projects
@@ -227,7 +308,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /workspaces/{workspace_id}/clients:
+  /{workspace_id}/clients:
     get:
       tags: [Clients]
       summary: List clients
@@ -267,7 +348,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /workspaces/{workspace_id}/tags:
+  /{workspace_id}/tags:
     get:
       tags: [Tags]
       summary: List tags
@@ -307,7 +388,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /workspaces/{workspace_id}/invoices:
+  /{workspace_id}/invoices:
     get:
       tags: [Invoices]
       summary: List invoices
@@ -371,14 +452,16 @@ components:
       required: true
       schema:
         type: string
-      description: Workspace ID (hashid)
+        example: "k5nR8m"
+      description: Workspace ID (hashid, not numeric)
     ResourceId:
       name: id
       in: path
       required: true
       schema:
         type: string
-      description: Resource ID (hashid)
+        example: "xYz123"
+      description: Resource ID (hashid, not numeric)
 
   responses:
     Unauthorized:
@@ -417,6 +500,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "abc123"
         name:
           type: string
         email:
@@ -431,6 +516,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "k5nR8m"
         name:
           type: string
         created_at:
@@ -442,6 +529,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "xYz123"
         description:
           type: string
           nullable: true
@@ -492,6 +581,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "pR0j3c"
         name:
           type: string
         color:
@@ -521,6 +612,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "cL13nt"
         name:
           type: string
         email:
@@ -542,6 +635,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "t4g123"
         name:
           type: string
         color:
@@ -562,6 +657,8 @@ components:
       properties:
         id:
           type: string
+          description: Hashid
+          example: "1nv01c"
         number:
           type: string
         status:
