@@ -1,0 +1,591 @@
+openapi: 3.1.0
+info:
+  title: Timevoice API
+  description: |
+    The Timevoice API allows you to manage time entries, projects, clients, tags, and invoices.
+    
+    ## Authentication
+    
+    All API requests require OAuth 2.0 authentication. Include the access token in the Authorization header:
+    
+    ```
+    Authorization: Bearer YOUR_ACCESS_TOKEN
+    ```
+  version: "1.0"
+  contact:
+    name: Timevoice Support
+    url: https://timevoice.mahadk.com
+servers:
+  - url: /api/v1
+    description: API v1
+
+security:
+  - oauth2: []
+
+tags:
+  - name: Me
+    description: Current user information
+  - name: Workspaces
+    description: Workspace management
+  - name: Time Entries
+    description: Track time spent on tasks
+  - name: Projects
+    description: Organize work into projects
+  - name: Clients
+    description: Manage clients
+  - name: Tags
+    description: Categorize time entries with tags
+  - name: Invoices
+    description: Create and manage invoices
+
+paths:
+  /me:
+    get:
+      tags: [Me]
+      summary: Get current user
+      description: Returns information about the authenticated user
+      operationId: getMe
+      responses:
+        "200":
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /workspaces:
+    get:
+      tags: [Workspaces]
+      summary: List workspaces
+      description: Returns all workspaces the user has access to
+      operationId: listWorkspaces
+      responses:
+        "200":
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workspace"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /workspaces/{workspace_id}/time_entries:
+    get:
+      tags: [Time Entries]
+      summary: List time entries
+      description: Returns time entries for a workspace
+      operationId: listTimeEntries
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter entries starting from this date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter entries up to this date
+      responses:
+        "200":
+          description: List of time entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Time Entries]
+      summary: Create time entry
+      description: Creates a new time entry
+      operationId: createTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimeEntryInput"
+      responses:
+        "201":
+          description: Time entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /workspaces/{workspace_id}/time_entries/{id}:
+    get:
+      tags: [Time Entries]
+      summary: Get time entry
+      operationId: getTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Time entry details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Time Entries]
+      summary: Update time entry
+      operationId: updateTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimeEntryInput"
+      responses:
+        "200":
+          description: Time entry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Time Entries]
+      summary: Delete time entry
+      operationId: deleteTimeEntry
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Time entry deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /workspaces/{workspace_id}/projects:
+    get:
+      tags: [Projects]
+      summary: List projects
+      operationId: listProjects
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Projects]
+      summary: Create project
+      operationId: createProject
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /workspaces/{workspace_id}/clients:
+    get:
+      tags: [Clients]
+      summary: List clients
+      operationId: listClients
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Clients]
+      summary: Create client
+      operationId: createClient
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /workspaces/{workspace_id}/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      operationId: listTags
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Tags]
+      summary: Create tag
+      operationId: createTag
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "201":
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /workspaces/{workspace_id}/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      operationId: listInvoices
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Invoices]
+      summary: Create invoice
+      operationId: createInvoice
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceInput"
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          scopes:
+            read: View account info
+            write: Modify account settings
+            time_entries: Manage time entries
+            projects: Manage projects
+            clients: Manage clients
+            tags: Manage tags
+            invoices: Manage invoices
+
+  parameters:
+    WorkspaceId:
+      name: workspace_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Workspace ID (hashid)
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Resource ID (hashid)
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: unauthorized
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: not_found
+    UnprocessableEntity:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: object
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatar_url:
+          type: string
+          nullable: true
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        duration_seconds:
+          type: integer
+          nullable: true
+        billable:
+          type: boolean
+        project:
+          $ref: "#/components/schemas/Project"
+          nullable: true
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+
+    TimeEntryInput:
+      type: object
+      properties:
+        description:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+        billable:
+          type: boolean
+        project_id:
+          type: string
+        tag_ids:
+          type: array
+          items:
+            type: string
+      required:
+        - started_at
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        billable_default:
+          type: boolean
+        client:
+          $ref: "#/components/schemas/Client"
+          nullable: true
+
+    ProjectInput:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+        billable_default:
+          type: boolean
+        client_id:
+          type: string
+      required:
+        - name
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+
+    ClientInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - name
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+
+    TagInput:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      required:
+        - name
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        total_cents:
+          type: integer
+        due_date:
+          type: string
+          format: date
+        client:
+          $ref: "#/components/schemas/Client"
+
+    InvoiceInput:
+      type: object
+      properties:
+        client_id:
+          type: string
+        due_date:
+          type: string
+          format: date
+        time_entry_ids:
+          type: array
+          items:
+            type: string
+      required:
+        - client_id

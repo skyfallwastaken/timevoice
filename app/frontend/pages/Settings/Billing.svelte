@@ -39,7 +39,7 @@
   {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
-    <div class="grid grid-cols-2">
+    <div class="grid grid-cols-3">
       <Link
         href="/{workspaceId}/settings/workspace"
         class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
@@ -48,10 +48,16 @@
       </Link>
       <Link
         href="/{workspaceId}/settings/billing"
-        class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary"
+        class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary border-r border-bg-tertiary"
         aria-current="page"
       >
         Billing
+      </Link>
+      <Link
+        href="/{workspaceId}/settings/developer"
+        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150"
+      >
+        Developer
       </Link>
     </div>
   </SectionCard>

@@ -4,6 +4,7 @@ class User < ApplicationRecord
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :nullify
   has_many :time_entries, dependent: :destroy
   has_many :sent_invites, class_name: "Invite", foreign_key: :inviter_id, dependent: :destroy
+
   belongs_to :last_used_workspace, class_name: "Workspace", optional: true
 
   def pending_invites

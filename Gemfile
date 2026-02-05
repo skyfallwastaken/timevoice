@@ -67,6 +67,9 @@ gem "turnstiled", "~> 0.1"
 # Hashids for friendly IDs
 gem "hashids", "~> 1.0"
 
+# OAuth2 provider
+gem "doorkeeper", "~> 5.8"
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
@@ -96,3 +99,5 @@ group :test do
 end
 
 gem "mission_control-jobs", "~> 1.1"
+
+gem "scalar_ruby", "~> 1.1"

@@ -1,12 +1,39 @@
 Rails.application.routes.draw do
+  use_doorkeeper do
+    controllers authorizations: "oauth/authorizations"
+  end
+
+  namespace :api do
+    namespace :v1 do
+      resource :me, only: [:show], controller: "me"
+      resources :workspaces, only: [:index, :show]
+
+      scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
+        resources :time_entries, only: [:index, :show, :create, :update, :destroy] do
+          collection do
+            post :start
+          end
+          member do
+            patch :stop
+          end
+        end
+        resources :clients, only: [:index, :show, :create, :update, :destroy]
+        resources :projects, only: [:index, :show, :create, :update, :destroy]
+        resources :tags, only: [:index, :show, :create, :update, :destroy]
+        resources :invoices, only: [:index, :show, :create, :update, :destroy]
+      end
+    end
+  end
+
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+  mount Scalar::UI, at: "/docs"
 
   namespace :admin do
     mount MissionControl::Jobs::Engine, at: "/jobs"
   end
 
   constraints(host: "127.0.0.1") do
-    get "(*path)", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
+    get "/*path", to: redirect { |params, req| "#{req.protocol}localhost:#{req.port}/#{params[:path]}" }
   end
 
   get "/home", to: "marketing#home", as: :marketing_home
@@ -31,6 +58,12 @@ Rails.application.routes.draw do
     delete "/settings/workspace", to: "settings#destroy_workspace"
     get "/settings/billing", to: "settings#billing"
     patch "/settings/billing", to: "settings#update_billing"
+    get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
+    resources :oauth_applications, only: [ :create, :update, :destroy ], path: "settings/developer/applications" do
+      member do
+        post :regenerate_secret
+      end
+    end
 
     resources :time_entries, only: [ :create, :update, :destroy ] do
       member do

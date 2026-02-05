@@ -17,6 +17,11 @@ class SessionsController < ApplicationController
     session[:user_id] = user.id
     session[:workspace_id] = user.current_workspace&.id
 
+    if (oauth_return_to = session.delete(:oauth_return_to))
+      redirect_to oauth_return_to
+      return
+    end
+
     if (token = session.delete(:pending_invite_token))
       invite = Invite.valid.find_by(token: token)
       if invite && invite.email.downcase == user.email.downcase

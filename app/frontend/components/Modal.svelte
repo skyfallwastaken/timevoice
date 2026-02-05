@@ -58,12 +58,12 @@
       aria-hidden="true"
     ></div>
     <div
-      class="relative w-full {maxWidth} bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
+      class="relative w-full {maxWidth} max-h-[90vh] flex flex-col bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
       transition:fly={{ y: 30, duration: 400, easing: springEasing }}
     >
       {#if title}
         <div
-          class="p-4 border-b border-bg-tertiary flex items-center justify-between"
+          class="p-4 border-b border-bg-tertiary flex items-center justify-between shrink-0"
         >
           <h3 class="font-semibold">{title}</h3>
           <IconButton
@@ -75,11 +75,11 @@
           </IconButton>
         </div>
       {/if}
-      <div class="p-4 space-y-4">
+      <div class="p-4 space-y-4 overflow-y-auto">
         {@render children?.()}
       </div>
       {#if footer}
-        <div class="p-4 border-t border-bg-tertiary">
+        <div class="p-4 border-t border-bg-tertiary shrink-0">
           {@render footer()}
         </div>
       {/if}

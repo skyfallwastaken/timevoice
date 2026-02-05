@@ -20,7 +20,9 @@ class ApplicationController < ActionController::Base
   inertia_share flash: -> {
     {
       notice: flash[:notice],
-      alert: flash[:alert]
+      alert: flash[:alert],
+      new_secret: flash[:new_secret],
+      secret_app_id: flash[:secret_app_id]
     }
   }
 

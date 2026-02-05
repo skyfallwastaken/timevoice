@@ -186,7 +186,7 @@ class InvoicesController < ApplicationController
       message: message
     )
 
-    redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: "Invoice email queued for delivery to #{recipients.count} recipient(s)."
+    redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: "Invoice email queued for delivery to #{recipients.count} #{"recipient".pluralize(recipients.count)}."
   end
 
   private

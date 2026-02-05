@@ -51,7 +51,16 @@ export const routes = {
 
   settings: {
     workspace: (workspaceId: string) => `/${workspaceId}/settings/workspace`,
-    billing: (workspaceId: string) => `/${workspaceId}/settings/billing`
+    billing: (workspaceId: string) => `/${workspaceId}/settings/billing`,
+    developer: (workspaceId: string) => `/${workspaceId}/settings/developer`
+  },
+
+  oauthApplications: {
+    index: (workspaceId: string) => `/${workspaceId}/settings/developer`,
+    create: (workspaceId: string) => `/${workspaceId}/settings/developer/applications`,
+    update: (workspaceId: string, id: number) => `/${workspaceId}/settings/developer/applications/${id}`,
+    delete: (workspaceId: string, id: number) => `/${workspaceId}/settings/developer/applications/${id}`,
+    regenerateSecret: (workspaceId: string, id: number) => `/${workspaceId}/settings/developer/applications/${id}/regenerate_secret`
   },
 
   memberships: {
