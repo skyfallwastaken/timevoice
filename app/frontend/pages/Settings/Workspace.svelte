@@ -387,7 +387,7 @@
     <FormField
       id="invite-role"
       label="Role"
-      description="If they haven't signed up yet, they'll receive an invitation email."
+      description="They'll receive an invitation link sent to their email."
     >
       {#snippet children({ describedBy })}
         <SelectInput

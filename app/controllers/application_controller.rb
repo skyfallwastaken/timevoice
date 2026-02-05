@@ -96,6 +96,7 @@ class ApplicationController < ActionController::Base
     if current_user.workspaces.any?
       first_workspace = current_user.workspaces.first
       session[:workspace_id] = first_workspace.id
+      redirect_to "/#{first_workspace.hashid}/timer"
     else
       redirect_to signin_path, alert: "No workspace found. Please contact support."
     end

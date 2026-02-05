@@ -17,25 +17,35 @@
   };
 
   let invite = $derived($page.props.invite as Invite);
-  let flash = $derived($page.props.flash as { notice?: string; alert?: string } | undefined);
+  let flash = $derived(
+    $page.props.flash as { notice?: string; alert?: string } | undefined,
+  );
   let processing = $state(false);
 
   function acceptInvite() {
     processing = true;
-    router.post(`/invite/${invite.token}/accept`, {}, {
-      onFinish: () => {
-        processing = false;
+    router.post(
+      `/invite/${invite.token}/accept`,
+      {},
+      {
+        onFinish: () => {
+          processing = false;
+        },
       },
-    });
+    );
   }
 
   function declineInvite() {
     processing = true;
-    router.post(`/invite/${invite.token}/decline`, {}, {
-      onFinish: () => {
-        processing = false;
+    router.post(
+      `/invite/${invite.token}/decline`,
+      {},
+      {
+        onFinish: () => {
+          processing = false;
+        },
       },
-    });
+    );
   }
 
   function formatExpiresAt(dateStr: string) {
@@ -57,20 +67,15 @@
   id="main-content"
   tabindex="-1"
 >
-  <div class="max-w-md w-full flex flex-col items-center" style="gap: 2.5rem">
-    <div class="flex flex-col items-center gap-4">
-      <div
-        class="p-24 w-12 h-12 rounded-[10px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center text-xl font-semibold"
-      >
-        T
-      </div>
+  <div class="max-w-md w-full flex flex-col items-center">
+    <div class="flex flex-col items-center gap-2 mb-7">
       <h1 class="text-2xl font-semibold text-center text-fg-primary">
-        Workspace Invitation
+        Join workspace
       </h1>
     </div>
 
     <div
-      class="w-full bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
+      class="w-full bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden mb-4"
     >
       {#if flash?.notice}
         <div
@@ -113,7 +118,7 @@
           </div>
         </div>
 
-        <div class="bg-bg-tertiary/50 rounded-[10px] p-4 space-y-3">
+        <div class="bg-bg-tertiary/50 rounded-[10px] p-4 space-y-2">
           <h2 class="text-lg font-semibold text-fg-primary">
             {invite.workspace_name}
           </h2>
@@ -157,7 +162,8 @@
     </div>
 
     <p class="text-sm text-fg-dim text-center">
-      By accepting, you'll join this workspace and can start collaborating with the team.
+      By accepting, you'll join this workspace and can start collaborating with
+      the team.
     </p>
   </div>
 </div>

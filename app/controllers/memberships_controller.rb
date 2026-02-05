@@ -34,28 +34,17 @@ class MembershipsController < ApplicationController
       "member"
     end
 
-    if user
-      membership.user = user
-      membership.role = role
+    invite = current_workspace.invites.build(
+      email: email,
+      role: role,
+      inviter: current_user
+    )
 
-      if membership.save
-        redirect_to settings_workspace_path, notice: "Added #{user.name} to the workspace."
-      else
-        redirect_to settings_workspace_path, alert: membership.errors.full_messages.join(", ")
-      end
+    if invite.save
+      SendInviteEmailJob.perform_later(invite_id: invite.id)
+      redirect_to settings_workspace_path, notice: "Invitation sent to #{email}."
     else
-      invite = current_workspace.invites.build(
-        email: email,
-        role: role,
-        inviter: current_user
-      )
-
-      if invite.save
-        SendInviteEmailJob.perform_later(invite_id: invite.id)
-        redirect_to settings_workspace_path, notice: "Invitation sent to #{email}."
-      else
-        redirect_to settings_workspace_path, alert: invite.errors.full_messages.join(", ")
-      end
+      redirect_to settings_workspace_path, alert: invite.errors.full_messages.join(", ")
     end
   end
 
