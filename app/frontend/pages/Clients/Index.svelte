@@ -1,6 +1,13 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import TextArea from "../../components/TextArea.svelte";
+  import IconButton from "../../components/IconButton.svelte";
+  import ListRow from "../../components/ListRow.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
@@ -78,73 +85,59 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <div class="flex items-center gap-2">
-        <Plus class="w-5 h-5 text-bright-blue" />
-        <h3 class="font-semibold">Create New Client</h3>
-      </div>
-    </div>
+  <SectionCard title="Create New Client" icon={Plus} iconColor="text-bright-blue" bodyClass="p-4">
     <form
-      class="p-4 space-y-4"
+      class="space-y-4"
       onsubmit={(e) => {
         e.preventDefault();
         if ($createForm.name) handleCreate();
       }}
     >
-      <div>
-        <label
-          for="client-name"
-          class="block text-sm font-medium text-fg-secondary mb-1"
-          >Client Name</label
-        >
-        <input
-          id="client-name"
-          type="text"
-          bind:value={$createForm.name}
-          placeholder="Enter client name..."
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue transition-colors duration-150"
-        />
-      </div>
+      <FormField id="client-name" label="Client Name">
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="client-name"
+            tone="blue"
+            bind:value={$createForm.name}
+            placeholder="Enter client name..."
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
 
-      <div>
-        <label
-          for="billing-address"
-          class="block text-sm font-medium text-fg-secondary mb-1"
-          >Billing Address</label
-        >
-        <textarea
-          id="billing-address"
-          bind:value={$createForm.billing_address}
-          rows="3"
-          placeholder="Street address
+      <FormField
+        id="billing-address"
+        label="Billing Address"
+        description="Line breaks will appear on invoices. Press Enter to create."
+      >
+        {#snippet children({ describedBy })}
+          <TextArea
+            id="billing-address"
+            tone="blue"
+            bind:value={$createForm.billing_address}
+            rows={3}
+            placeholder="Street address
 City, State ZIP
 Country"
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue transition-colors duration-150 resize-none"
-        ></textarea>
-        <p class="text-xs text-fg-muted mt-1">
-          Line breaks will appear on invoices. Press Enter to create.
-        </p>
-      </div>
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
 
       <div class="flex justify-end">
-        <button
+        <Button
           type="submit"
+          tone="blue"
           disabled={$createForm.processing || !$createForm.name}
-          class="flex items-center gap-2 px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus class="w-4 h-4" />
           Create Client
-        </button>
+        </Button>
       </div>
     </form>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">All Clients ({clients.length})</h3>
-    </div>
-
+  <SectionCard title={`All Clients (${clients.length})`}>
     {#if clients.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <Building2 class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -152,94 +145,87 @@ Country"
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary">
-        {#each clients as client}
-          <div class="p-4">
-            {#if editingId === client.id}
-              <div class="space-y-4">
-                <div>
-                  <label
-                    for="edit-name-{client.id}"
-                    class="block text-sm font-medium text-fg-secondary mb-1"
-                    >Client Name</label
-                  >
-                  <input
+        {#each clients as client, i}
+          {@const isLast = i === clients.length - 1}
+          {#if editingId === client.id}
+            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
+              <FormField id="edit-name-{client.id}" label="Client Name">
+                {#snippet children({ describedBy })}
+                  <TextInput
                     id="edit-name-{client.id}"
-                    type="text"
+                    tone="blue"
                     bind:value={$editForm.name}
-                    class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150"
+                    aria-describedby={describedBy}
                   />
-                </div>
+                {/snippet}
+              </FormField>
 
-                <div>
-                  <label
-                    for="edit-address-{client.id}"
-                    class="block text-sm font-medium text-fg-secondary mb-1"
-                    >Billing Address</label
-                  >
-                  <textarea
+              <FormField id="edit-address-{client.id}" label="Billing Address">
+                {#snippet children({ describedBy })}
+                  <TextArea
                     id="edit-address-{client.id}"
+                    tone="blue"
                     bind:value={$editForm.billing_address}
-                    rows="3"
-                    class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150 resize-none"
-                  ></textarea>
-                </div>
+                    rows={3}
+                    aria-describedby={describedBy}
+                  />
+                {/snippet}
+              </FormField>
 
-                <div class="flex justify-end">
-                  <div class="flex items-center gap-2">
-                    <button
-                      onclick={cancelEditing}
-                      class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                      aria-label="Cancel editing"
-                    >
-                      <X class="w-5 h-5" />
-                    </button>
-                    <button
-                      onclick={() => handleUpdate(client.id)}
-                      disabled={$editForm.processing}
-                      class="p-2 text-bright-blue hover:text-accent-blue transition-colors duration-150"
-                      aria-label="Save changes"
-                    >
-                      <Check class="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            {:else}
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="font-medium">{client.name}</p>
-                  {#if client.billing_address}
-                    <p class="text-sm text-fg-muted whitespace-pre-line">
-                      {client.billing_address}
-                    </p>
-                  {:else}
-                    <p class="text-sm text-fg-dim italic">No billing address</p>
-                  {/if}
-                </div>
-
+              <div class="flex justify-end">
                 <div class="flex items-center gap-2">
-                  <button
-                    onclick={() => startEditing(client)}
-                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                    aria-label="Edit client"
+                  <IconButton
+                    aria-label="Cancel editing"
+                    onclick={cancelEditing}
                   >
-                    <Edit2 class="w-4 h-4" />
-                  </button>
-                  <button
-                    onclick={() => (clientToDelete = client)}
-                    class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
-                    aria-label="Delete client"
+                    <X class="w-5 h-5" />
+                  </IconButton>
+                  <IconButton
+                    tone="primary"
+                    aria-label="Save changes"
+                    onclick={() => handleUpdate(client.id)}
+                    disabled={$editForm.processing}
                   >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
+                    <Check class="w-5 h-5" />
+                  </IconButton>
                 </div>
               </div>
-            {/if}
-          </div>
+            </div>
+          {:else}
+            <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
+              {#snippet primary()}
+                {client.name}
+              {/snippet}
+              {#snippet secondary()}
+                {#if client.billing_address}
+                  <span class="whitespace-pre-line">
+                    {client.billing_address}
+                  </span>
+                {:else}
+                  <span class="text-fg-dim italic">No billing address</span>
+                {/if}
+              {/snippet}
+              {#snippet actions()}
+                <IconButton
+                  aria-label="Edit client"
+                  onclick={() => startEditing(client)}
+                >
+                  <Edit2 class="w-4 h-4" />
+                </IconButton>
+                <IconButton
+                  tone="danger"
+                  aria-label="Delete client"
+                  onclick={() => (clientToDelete = client)}
+                >
+                  <Trash2 class="w-4 h-4" />
+                </IconButton>
+              {/snippet}
+            </ListRow>
+          {/if}
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 
   <ConfirmDeleteModal
     open={!!clientToDelete}

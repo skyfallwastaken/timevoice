@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Link } from "@inertiajs/svelte";
+  import Button from "./Button.svelte";
 
   let {
     icon: Icon,
@@ -34,18 +35,10 @@
   </p>
 
   {#if actionLabel && actionHref}
-    <Link
-      href={actionHref}
-      class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-    >
-      {actionLabel}
+    <Link href={actionHref}>
+      <Button tone="purple" size="md">{actionLabel}</Button>
     </Link>
   {:else if actionLabel && onAction}
-    <button
-      onclick={onAction}
-      class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-    >
-      {actionLabel}
-    </button>
+    <Button tone="purple" size="md" onclick={onAction}>{actionLabel}</Button>
   {/if}
 </div>

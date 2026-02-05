@@ -1,6 +1,10 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import Modal from "../../components/Modal.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import TextArea from "../../components/TextArea.svelte";
   import { Link, page } from "@inertiajs/svelte";
   import { router } from "@inertiajs/svelte";
   import {
@@ -102,28 +106,21 @@
           View Sent Email
         </a>
       {/if}
-      <button
-        type="button"
-        onclick={openEmailModal}
-        class="inline-flex items-center gap-2 px-4 py-2 bg-bright-purple text-white rounded-[10px] hover:bg-bright-purple/90 transition-colors duration-150"
-      >
+      <Button tone="purple" type="button" onclick={openEmailModal}>
         <Mail class="w-4 h-4" />
         Email Invoice
-      </button>
-      <a
-        href="/{workspaceId}/invoices/{invoice.hashid}/pdf"
-        target="_blank"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
-      >
-        <Download class="w-4 h-4" />
-        Download PDF
+      </Button>
+      <a href="/{workspaceId}/invoices/{invoice.hashid}/pdf" target="_blank">
+        <Button variant="secondary">
+          <Download class="w-4 h-4" />
+          Download PDF
+        </Button>
       </a>
-      <Link
-        href="/{workspaceId}/invoices"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
-      >
-        <ArrowLeft class="w-4 h-4" />
-        Back
+      <Link href="/{workspaceId}/invoices">
+        <Button variant="secondary">
+          <ArrowLeft class="w-4 h-4" />
+          Back
+        </Button>
       </Link>
     </div>
   {/snippet}
@@ -231,35 +228,35 @@
     }}
     class="space-y-4"
   >
-    <div>
-      <label for="recipients" class="block text-sm font-medium mb-1"
-        >Recipients</label
-      >
-      <input
-        id="recipients"
-        type="text"
-        bind:value={emailRecipients}
-        placeholder="email@example.com, another@example.com"
-        class="w-full px-3 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] focus:outline-none focus:ring-2 focus:ring-bright-purple/50 focus:border-bright-purple"
-        required
-      />
-      <p class="mt-1 text-xs text-fg-muted">
-        Separate multiple emails with commas
-      </p>
-    </div>
+    <FormField
+      id="recipients"
+      label="Recipients"
+      description="Separate multiple emails with commas"
+    >
+      {#snippet children({ describedBy })}
+        <TextInput
+          id="recipients"
+          tone="purple"
+          bind:value={emailRecipients}
+          placeholder="email@example.com, another@example.com"
+          aria-describedby={describedBy}
+          required
+        />
+      {/snippet}
+    </FormField>
 
-    <div>
-      <label for="message" class="block text-sm font-medium mb-1"
-        >Message (optional)</label
-      >
-      <textarea
-        id="message"
-        bind:value={emailMessage}
-        rows={4}
-        placeholder="Add a personal message to include in the email..."
-        class="w-full px-3 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] focus:outline-none focus:ring-2 focus:ring-bright-purple/50 focus:border-bright-purple resize-none"
-      ></textarea>
-    </div>
+    <FormField id="message" label="Message (optional)">
+      {#snippet children({ describedBy })}
+        <TextArea
+          id="message"
+          tone="purple"
+          bind:value={emailMessage}
+          rows={4}
+          placeholder="Add a personal message to include in the email..."
+          aria-describedby={describedBy}
+        />
+      {/snippet}
+    </FormField>
 
     <div class="flex items-center gap-2">
       <input
@@ -272,20 +269,20 @@
     </div>
 
     <div class="flex justify-end gap-2 pt-2">
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onclick={() => (emailModalOpen = false)}
-        class="px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         type="submit"
+        tone="purple"
         disabled={sending || !emailRecipients.trim()}
-        class="px-4 py-2 bg-bright-purple text-white rounded-[10px] hover:bg-bright-purple/90 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {sending ? "Sending..." : "Send Invoice"}
-      </button>
+      </Button>
     </div>
   </form>
 </Modal>

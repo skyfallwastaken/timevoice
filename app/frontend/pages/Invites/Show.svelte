@@ -5,6 +5,7 @@
 <script lang="ts">
   import { page, router } from "@inertiajs/svelte";
   import { Shield, Users, Clock } from "lucide-svelte";
+  import Button from "../../components/Button.svelte";
 
   type Invite = {
     token: string;
@@ -133,22 +134,24 @@
         </div>
 
         <div class="flex gap-3">
-          <button
-            type="button"
-            class="flex-1 px-4 py-3 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
+          <Button
+            variant="primary"
+            tone="purple"
+            size="lg"
+            class="flex-1"
             onclick={acceptInvite}
             disabled={processing}
           >
             {processing ? "Processing..." : "Accept Invitation"}
-          </button>
-          <button
-            type="button"
-            class="px-4 py-3 text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary rounded-[10px] transition-colors duration-150"
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
             onclick={declineInvite}
             disabled={processing}
           >
             Decline
-          </button>
+          </Button>
         </div>
       </div>
     </div>

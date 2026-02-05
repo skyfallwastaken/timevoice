@@ -1,6 +1,12 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import IconButton from "../../components/IconButton.svelte";
+  import ListRow from "../../components/ListRow.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
@@ -66,48 +72,35 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <div class="flex items-center gap-2">
-        <Plus class="w-5 h-5 text-bright-yellow" />
-        <h3 class="font-semibold">Create New Tag</h3>
-      </div>
-    </div>
-    <div class="p-4 space-y-4">
-      <div>
-        <label
-          for="tag-name"
-          class="block text-sm font-medium text-fg-secondary mb-1"
-          >Tag Name</label
-        >
-        <input
-          id="tag-name"
-          type="text"
-          bind:value={$createForm.name}
-          placeholder="Enter tag name..."
-          onkeydown={(e) => e.key === "Enter" && $createForm.name && handleCreate()}
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-yellow transition-colors duration-150"
-        />
-      </div>
+  <SectionCard title="Create New Tag" icon={Plus} iconColor="text-bright-yellow" bodyClass="p-4">
+    <div class="space-y-4">
+      <FormField id="tag-name" label="Tag Name">
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="tag-name"
+            tone="yellow"
+            bind:value={$createForm.name}
+            placeholder="Enter tag name..."
+            onkeydown={(e) => e.key === "Enter" && $createForm.name && handleCreate()}
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
 
       <div class="flex justify-end">
-        <button
+        <Button
+          tone="yellow"
           onclick={handleCreate}
           disabled={$createForm.processing || !$createForm.name}
-          class="flex items-center gap-2 px-4 py-2 bg-bright-yellow hover:bg-accent-yellow text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus class="w-4 h-4" />
           Create Tag
-        </button>
+        </Button>
       </div>
     </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">All Tags ({tags.length})</h3>
-    </div>
-
+  <SectionCard title={`All Tags (${tags.length})`}>
     {#if tags.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <Hash class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -115,72 +108,70 @@
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary">
-        {#each tags as tagItem}
-          <div class="p-4">
-            {#if editingId === tagItem.id}
-              <div class="flex items-center gap-4">
-                <div class="flex-1">
-                  <label
-                    for="edit-tag-{tagItem.id}"
-                    class="block text-sm font-medium text-fg-secondary mb-1 sr-only"
-                    >Tag Name</label
-                  >
-                  <input
-                    id="edit-tag-{tagItem.id}"
-                    type="text"
-                    bind:value={$editForm.name}
-                    class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-yellow transition-colors duration-150"
-                  />
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <button
-                    onclick={cancelEditing}
-                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                    aria-label="Cancel editing"
-                  >
-                    <X class="w-5 h-5" />
-                  </button>
-                  <button
-                    onclick={() => handleUpdate(tagItem.id)}
-                    disabled={$editForm.processing}
-                    class="p-2 text-bright-yellow hover:text-accent-yellow transition-colors duration-150"
-                    aria-label="Save changes"
-                  >
-                    <Check class="w-5 h-5" />
-                  </button>
-                </div>
+        {#each tags as tagItem, i}
+          {@const isLast = i === tags.length - 1}
+          {#if editingId === tagItem.id}
+            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} flex items-center gap-4">
+              <div class="flex-1">
+                <FormField
+                  id="edit-tag-{tagItem.id}"
+                  label="Tag Name"
+                  srOnly
+                >
+                  {#snippet children({ describedBy })}
+                    <TextInput
+                      id="edit-tag-{tagItem.id}"
+                      tone="yellow"
+                      bind:value={$editForm.name}
+                      aria-describedby={describedBy}
+                    />
+                  {/snippet}
+                </FormField>
               </div>
-            {:else}
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <Hash class="w-4 h-4 text-fg-muted" />
-                  <span class="font-medium">{tagItem.name}</span>
-                </div>
 
-                <div class="flex items-center gap-2">
-                  <button
-                    onclick={() => startEditing(tagItem)}
-                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                    aria-label="Edit tag"
-                  >
-                    <Edit2 class="w-4 h-4" />
-                  </button>
-                  <button
-                    onclick={() => (tagToDelete = tagItem)}
-                    class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
-                    aria-label="Delete tag"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-                </div>
+              <div class="flex items-center gap-2">
+                <IconButton aria-label="Cancel editing" onclick={cancelEditing}>
+                  <X class="w-5 h-5" />
+                </IconButton>
+                <IconButton
+                  tone="success"
+                  aria-label="Save changes"
+                  onclick={() => handleUpdate(tagItem.id)}
+                  disabled={$editForm.processing}
+                >
+                  <Check class="w-5 h-5" />
+                </IconButton>
               </div>
-            {/if}
-          </div>
+            </div>
+          {:else}
+            <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
+              {#snippet leading()}
+                <Hash class="w-4 h-4 text-fg-muted" />
+              {/snippet}
+              {#snippet primary()}
+                {tagItem.name}
+              {/snippet}
+              {#snippet actions()}
+                <IconButton
+                  aria-label="Edit tag"
+                  onclick={() => startEditing(tagItem)}
+                >
+                  <Edit2 class="w-4 h-4" />
+                </IconButton>
+                <IconButton
+                  tone="danger"
+                  aria-label="Delete tag"
+                  onclick={() => (tagToDelete = tagItem)}
+                >
+                  <Trash2 class="w-4 h-4" />
+                </IconButton>
+              {/snippet}
+            </ListRow>
+          {/if}
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 
   <ConfirmDeleteModal
     open={tagToDelete !== null}

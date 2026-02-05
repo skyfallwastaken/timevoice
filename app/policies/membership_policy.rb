@@ -1,7 +1,7 @@
 class MembershipPolicy < ApplicationPolicy
   class Scope < Scope
     def resolve
-      scope.where(user: user).or(scope.where(workspace: user.workspaces))
+      scope.where(workspace: current_workspace)
     end
   end
 

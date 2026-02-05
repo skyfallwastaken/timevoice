@@ -3,6 +3,10 @@
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { DateInput } from "date-picker-svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import SelectInput from "../../components/SelectInput.svelte";
   import {
     BarChart3,
     Calendar,
@@ -97,8 +101,6 @@
     return `${hours}h ${minutes}m`;
   }
 
-
-
   function formatDayOfWeek(dateStr: string): string {
     return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
       weekday: "short",
@@ -127,9 +129,10 @@
   flash={$page.props.flash}
 >
   {#snippet headerActions()}
-    <button
+    <Button
+      variant="secondary"
+      class="bg-bg-secondary"
       onclick={() => (showFilters = !showFilters)}
-      class="flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
     >
       <Filter class="w-4 h-4" />
       Filters
@@ -138,75 +141,68 @@
       {:else}
         <ChevronDown class="w-4 h-4" />
       {/if}
-    </button>
+    </Button>
   {/snippet}
 
   {#if showFilters}
-    <div
-      class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-4 animate-slide-in"
-    >
+    <SectionCard class="animate-slide-in">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div>
-          <label
-            for="report-start"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Start Date</label
-          >
-          <div class="date-input-gruvbox">
-            <DateInput
-              id="report-start"
-              bind:value={startDate}
-              max={endDate || undefined}
-              placeholder="Select start date"
-              format="yyyy-MM-dd"
-              closeOnSelection={true}
-            />
-          </div>
-        </div>
-        <div>
-          <label
-            for="report-end"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >End Date</label
-          >
-          <div class="date-input-gruvbox">
-            <DateInput
-              id="report-end"
-              bind:value={endDate}
-              min={startDate || undefined}
-              placeholder="Select end date"
-              format="yyyy-MM-dd"
-              closeOnSelection={true}
-            />
-          </div>
-        </div>
-        <button
+        <FormField id="report-start" label="Start Date">
+          {#snippet children({ describedBy })}
+            <div class="date-input-gruvbox" aria-describedby={describedBy}>
+              <DateInput
+                id="report-start"
+                bind:value={startDate}
+                max={endDate || undefined}
+                placeholder="Select start date"
+                format="yyyy-MM-dd"
+                closeOnSelection={true}
+              />
+            </div>
+          {/snippet}
+        </FormField>
+        <FormField id="report-end" label="End Date">
+          {#snippet children({ describedBy })}
+            <div class="date-input-gruvbox" aria-describedby={describedBy}>
+              <DateInput
+                id="report-end"
+                bind:value={endDate}
+                min={startDate || undefined}
+                placeholder="Select end date"
+                format="yyyy-MM-dd"
+                closeOnSelection={true}
+              />
+            </div>
+          {/snippet}
+        </FormField>
+        <Button
+          tone="purple"
           onclick={updateDateRange}
           disabled={!canUpdateRange}
-          class="flex items-center justify-center gap-2 px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50"
         >
           <Calendar class="w-4 h-4" />
           Update Range
-        </button>
+        </Button>
       </div>
       <div class="mt-4 pt-4 border-t border-bg-tertiary">
-        <label
-          for="report-project"
-          class="block text-sm font-medium text-fg-secondary mb-1"
-          >Filter by Project</label
-        >
-        <select
-          id="report-project"
-          bind:value={selectedProjectId}
-          class="w-full md:w-1/2 bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
-        >
-          <option value="">All Projects</option>
-          {#each projects as project}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-        </select>
+        <FormField id="report-project" label="Filter by Project">
+          {#snippet children({ describedBy })}
+            <SelectInput
+              id="report-project"
+              tone="purple"
+              bind:value={selectedProjectId}
+              aria-describedby={describedBy}
+              class="md:w-1/2"
+            >
+              <option value="">All Projects</option>
+              {#each projects as project}
+                <option value={project.id}>{project.name}</option>
+              {/each}
+            </SelectInput>
+          {/snippet}
+        </FormField>
       </div>
-    </div>
+    </SectionCard>
   {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -240,10 +236,7 @@
   </div>
 
   {#if Object.keys(totals.daily).length > 0}
-    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-      <div class="p-4 border-b border-bg-tertiary">
-        <h3 class="font-semibold">Daily Breakdown</h3>
-      </div>
+    <SectionCard title="Daily Breakdown">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.daily) as [date, data]}
           <div class="p-4 flex items-center justify-between">
@@ -269,14 +262,11 @@
           </div>
         {/each}
       </div>
-    </div>
+    </SectionCard>
   {/if}
 
   {#if Object.keys(totals.by_project).length > 0}
-    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-      <div class="p-4 border-b border-bg-tertiary">
-        <h3 class="font-semibold">Breakdown by Project</h3>
-      </div>
+    <SectionCard title="Breakdown by Project">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_project) as [projectName, data]}
           <div class="p-4 flex items-center justify-between">
@@ -290,14 +280,11 @@
           </div>
         {/each}
       </div>
-    </div>
+    </SectionCard>
   {/if}
 
   {#if Object.keys(totals.by_client).length > 0}
-    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-      <div class="p-4 border-b border-bg-tertiary">
-        <h3 class="font-semibold">Breakdown by Client</h3>
-      </div>
+    <SectionCard title="Breakdown by Client">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_client) as [clientName, data]}
           <div class="p-4 flex items-center justify-between">
@@ -311,14 +298,10 @@
           </div>
         {/each}
       </div>
-    </div>
+    </SectionCard>
   {/if}
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">Time Entries ({filteredEntries.length})</h3>
-    </div>
-
+  <SectionCard title={`Time Entries (${filteredEntries.length})`}>
     {#if filteredEntries.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <Clock class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -371,5 +354,5 @@
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 </PageLayout>

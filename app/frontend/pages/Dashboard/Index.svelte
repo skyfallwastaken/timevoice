@@ -4,6 +4,14 @@
   import { page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import IconButton from "../../components/IconButton.svelte";
+  import ChipButton from "../../components/ChipButton.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import SelectInput from "../../components/SelectInput.svelte";
+  import ListRow from "../../components/ListRow.svelte";
   import {
     Edit2,
     Trash2,
@@ -17,6 +25,7 @@
     Paperclip,
   } from "lucide-svelte";
   import Modal from "../../components/Modal.svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
     formatShortDate,
     formatTime,
@@ -238,9 +247,10 @@
 
 <PageLayout title="Timer" variant="narrow" flash={$page.props.flash}>
   {#snippet headerActions()}
-    <button
+    <Button
+      variant="secondary"
+      class="bg-bg-secondary"
       onclick={() => (showFilters = !showFilters)}
-      class="flex items-center gap-2 px-4 py-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
     >
       <Filter class="w-4 h-4" />
       Filters
@@ -249,67 +259,76 @@
       {:else}
         <ChevronDown class="w-4 h-4" />
       {/if}
-    </button>
+    </Button>
   {/snippet}
 
   {#if showFilters}
-    <div
-      class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-4 animate-slide-in mb-4"
-    >
-      <div
-        class="flex flex-col md:flex-row items-stretch md:items-center gap-4"
-      >
-        <div class="flex-1 relative">
-          <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted"
-          />
-          <input
-            type="text"
-            placeholder="Search entries..."
-            bind:value={filters.search}
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] pl-10 pr-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue transition-colors duration-150"
-          />
+      <SectionCard class="animate-slide-in mb-4" bodyClass="p-4" headerless>
+        <div
+          class="flex flex-col md:flex-row items-stretch md:items-center gap-4"
+        >
+          <FormField id="entry-search" label="Search" srOnly>
+            {#snippet children({ describedBy })}
+              <div class="flex-1 relative">
+                <Search
+                  class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted"
+                />
+                <TextInput
+                  id="entry-search"
+                  tone="blue"
+                  bind:value={filters.search}
+                  placeholder="Search entries..."
+                  aria-describedby={describedBy}
+                  class="pl-10 pr-4"
+                />
+              </div>
+            {/snippet}
+          </FormField>
+          <FormField id="filter-project" label="Project" srOnly>
+            {#snippet children({ describedBy })}
+              <SelectInput
+                id="filter-project"
+                tone="blue"
+                bind:value={filters.projectId}
+                aria-describedby={describedBy}
+              >
+                <option value="">All Projects</option>
+                {#each projects as project}
+                  <option value={project.id}>{project.name}</option>
+                {/each}
+              </SelectInput>
+            {/snippet}
+          </FormField>
+          <FormField id="filter-date" label="Date Range" srOnly>
+            {#snippet children({ describedBy })}
+              <SelectInput
+                id="filter-date"
+                tone="blue"
+                bind:value={filters.dateRange}
+                aria-describedby={describedBy}
+              >
+                <option value="today">Today</option>
+                <option value="this_week">This Week</option>
+                <option value="last_week">Last Week</option>
+                <option value="this_month">This Month</option>
+              </SelectInput>
+            {/snippet}
+          </FormField>
         </div>
-        <select
-          bind:value={filters.projectId}
-          class="bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150"
-        >
-          <option value="">All Projects</option>
-          {#each projects as project}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-        </select>
-        <select
-          bind:value={filters.dateRange}
-          class="bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150"
-        >
-          <option value="today">Today</option>
-          <option value="this_week">This Week</option>
-          <option value="last_week">Last Week</option>
-          <option value="this_month">This Month</option>
-        </select>
-      </div>
-    </div>
+      </SectionCard>
   {/if}
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div
-      class="p-4 border-b border-bg-tertiary flex items-center justify-between"
-    >
-      <h3 class="font-semibold text-lg">
-        Time Entries ({filteredEntries.length})
-      </h3>
-    </div>
-
+  <SectionCard title={`Time Entries (${filteredEntries.length})`}>
     {#if filteredEntries.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <p>No time entries match your filters.</p>
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary">
-        {#each filteredEntries as entry}
+        {#each filteredEntries as entry, i}
+          {@const isLast = i === filteredEntries.length - 1}
           <div
-            class="p-4 hover:bg-bg-tertiary/50 transition-colors duration-150"
+            class="p-4 hover:bg-bg-tertiary/50 transition-colors duration-150 {isLast ? 'rounded-b-[10px]' : ''}"
           >
             <!-- Mobile layout -->
             <div class="flex flex-col gap-2 sm:hidden">
@@ -329,20 +348,19 @@
                   {/if}
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                  <button
-                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+                  <IconButton
                     aria-label="Edit entry"
                     onclick={() => openEdit(entry)}
                   >
                     <Edit2 class="w-4 h-4" />
-                  </button>
-                  <button
-                    class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+                  </IconButton>
+                  <IconButton
+                    tone="danger"
                     aria-label="Delete entry"
                     onclick={() => openDeleteModal(entry)}
                   >
                     <Trash2 class="w-4 h-4" />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
               <div class="flex items-center justify-between text-sm">
@@ -361,126 +379,97 @@
             </div>
 
             <!-- Desktop layout -->
-            <div class="hidden sm:flex items-center gap-4">
-              <div class="w-24 text-sm text-fg-muted shrink-0">
-                <div>{formatShortDate(entry.start_at)}</div>
-                <div>
-                  {formatTime(entry.start_at)} - {entry.end_at
-                    ? formatTime(entry.end_at)
-                    : "now"}
+            <ListRow class="hidden sm:flex" contentClass="gap-4">
+              {#snippet leading()}
+                <div class="w-24 text-sm text-fg-muted shrink-0">
+                  <div>{formatShortDate(entry.start_at)}</div>
+                  <div>
+                    {formatTime(entry.start_at)} - {entry.end_at
+                      ? formatTime(entry.end_at)
+                      : "now"}
+                  </div>
                 </div>
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <p class="font-medium truncate">
-                  {entry.description || "No description"}
-                </p>
+              {/snippet}
+              {#snippet primary()}
+                {entry.description || "No description"}
+              {/snippet}
+              {#snippet secondary()}
                 {#if entry.project}
-                  <div class="flex items-center gap-2 mt-1">
+                  <span class="flex items-center gap-2">
                     <span
                       class="w-3 h-3 rounded-full"
                       style="background-color: {entry.project.color || '#b16286'}"
                     ></span>
-                    <span class="text-sm text-fg-muted">{entry.project.name}</span>
-                  </div>
+                    {entry.project.name}
+                  </span>
                 {/if}
-              </div>
-
-              {#if entry.billable}
-                <DollarSign class="w-4 h-4 text-bright-green" />
-              {/if}
-
-              <div class="text-right min-w-20">
-                <span class="font-tabular font-medium"
-                  >{entry.formattedDuration}</span
-                >
-              </div>
-
-              <div class="flex items-center gap-2">
-                <button
-                  class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+              {/snippet}
+              {#snippet meta()}
+                <div class="flex items-center gap-2">
+                  {#if entry.billable}
+                    <DollarSign class="w-4 h-4 text-bright-green" />
+                  {/if}
+                  <span class="font-tabular font-medium"
+                    >{entry.formattedDuration}</span
+                  >
+                </div>
+              {/snippet}
+              {#snippet actions()}
+                <IconButton
                   aria-label="Edit entry"
                   onclick={() => openEdit(entry)}
                 >
                   <Edit2 class="w-4 h-4" />
-                </button>
-                <button
-                  class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+                </IconButton>
+                <IconButton
+                  tone="danger"
                   aria-label="Delete entry"
                   onclick={() => openDeleteModal(entry)}
                 >
                   <Trash2 class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                </IconButton>
+              {/snippet}
+            </ListRow>
           </div>
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 
-  {#if editingEntry}
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Edit time entry"
-    >
-      <div
-        class="absolute inset-0 bg-black/50"
-        onclick={closeEdit}
-        aria-hidden="true"
-      ></div>
-      <div
-        class="relative w-full max-w-lg bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-      >
-        <div
-          class="p-4 border-b border-bg-tertiary flex items-center justify-between"
-        >
-          <h3 class="font-semibold">Edit Entry</h3>
-          <button
-            type="button"
-            class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-            onclick={closeEdit}
-            aria-label="Close"
-          >
-            <X class="w-4 h-4" aria-hidden="true" />
-          </button>
-        </div>
-
-        <div class="p-4 space-y-4">
+  <Modal
+    open={editingEntry !== null}
+    title="Edit Entry"
+    onclose={closeEdit}
+    maxWidth="max-w-lg"
+  >
           <div>
-            <label
-              for="edit-description"
-              class="block text-sm font-medium text-fg-secondary mb-1"
-              >Description</label
-            >
-            <input
-              id="edit-description"
-              type="text"
-              bind:value={$editForm.description}
-              class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150"
-            />
+            <FormField id="edit-description" label="Description">
+              {#snippet children({ describedBy })}
+                <TextInput
+                  id="edit-description"
+                  bind:value={$editForm.description}
+                  aria-describedby={describedBy}
+                />
+              {/snippet}
+            </FormField>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                for="edit-project"
-                class="block text-sm font-medium text-fg-secondary mb-1"
-                >Project</label
-              >
-              <select
-                id="edit-project"
-                bind:value={$editForm.project_id}
-                class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-blue transition-colors duration-150"
-              >
-                <option value="">No project</option>
-                {#each projects as project}
-                  <option value={project.id.toString()}>{project.name}</option>
-                {/each}
-              </select>
-            </div>
+              <FormField id="edit-project" label="Project">
+                {#snippet children({ describedBy })}
+                  <SelectInput
+                    id="edit-project"
+                    tone="blue"
+                    bind:value={$editForm.project_id}
+                    aria-describedby={describedBy}
+                  >
+                  <option value="">No project</option>
+                  {#each projects as project}
+                    <option value={project.id.toString()}>{project.name}</option>
+                  {/each}
+                </SelectInput>
+              {/snippet}
+            </FormField>
 
             <div>
               <span class="block text-sm font-medium text-fg-secondary mb-1"
@@ -508,18 +497,17 @@
             {:else}
               <div class="flex flex-wrap gap-2">
                 {#each tags as tag}
-                  <button
+                  <ChipButton
                     type="button"
-                    class="px-3 py-1.5 rounded-[10px] border text-sm transition-colors duration-150 {$editForm.tag_ids.includes(
-                      tag.id,
-                    )
-                      ? 'border-bright-green text-bright-green'
-                      : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
+                    selected={$editForm.tag_ids.includes(tag.id)}
+                    class={$editForm.tag_ids.includes(tag.id)
+                      ? "border-bright-green text-bright-green"
+                      : "text-fg-muted hover:text-fg-primary"}
                     aria-pressed={$editForm.tag_ids.includes(tag.id)}
                     onclick={() => toggleTag(tag.id)}
                   >
                     {tag.name}
-                  </button>
+                  </ChipButton>
                 {/each}
               </div>
             {/if}
@@ -602,67 +590,44 @@
               {/if}
             </div>
           </div>
-        </div>
 
-        <div
-          class="p-4 border-t border-bg-tertiary flex items-center justify-end gap-2"
+    {#snippet footer()}
+      <div class="flex items-center justify-end gap-2">
+        <Button
+          variant="ghost"
+          type="button"
+          onclick={closeEdit}
+          disabled={$editForm.processing}
         >
-          <button
-            type="button"
-            class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-            onclick={closeEdit}
-            disabled={$editForm.processing}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="flex items-center gap-2 px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
-            onclick={saveEdit}
-            disabled={$editForm.processing}
-          >
-            <Check class="w-4 h-4" aria-hidden="true" />
-            {$editForm.processing ? "Saving..." : "Save"}
-          </button>
-        </div>
+          Cancel
+        </Button>
+        <Button
+          tone="blue"
+          type="button"
+          onclick={saveEdit}
+          disabled={$editForm.processing}
+        >
+          <Check class="w-4 h-4" aria-hidden="true" />
+          {$editForm.processing ? "Saving..." : "Save"}
+        </Button>
       </div>
-    </div>
-  {/if}
+    {/snippet}
+  </Modal>
 
-  <Modal
+  <ConfirmDeleteModal
     bind:open={showDeleteModal}
     title="Delete Time Entry"
-    onclose={closeDeleteModal}
+    itemName="this time entry"
+    warningMessage="This action cannot be undone."
+    onConfirm={confirmDeleteEntry}
+    onClose={closeDeleteModal}
   >
-    <div class="space-y-4">
-      <p class="text-fg-primary">
-        Are you sure you want to delete this time entry?
-      </p>
+    {#snippet details()}
       {#if entryToDelete?.description}
         <p class="text-sm text-fg-muted italic">
           "{entryToDelete.description}"
         </p>
       {/if}
-      <p class="text-sm text-fg-muted">This action cannot be undone.</p>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-          onclick={closeDeleteModal}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmDeleteEntry}
-        >
-          Delete Entry
-        </button>
-      </div>
     {/snippet}
-  </Modal>
+  </ConfirmDeleteModal>
 </PageLayout>

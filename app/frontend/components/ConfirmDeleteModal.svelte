@@ -1,5 +1,6 @@
 <script lang="ts">
   import Modal from "./Modal.svelte";
+  import Button from "./Button.svelte";
 
   interface Props {
     open: boolean;
@@ -8,6 +9,7 @@
     warningMessage: string;
     onConfirm: () => void;
     onClose: () => void;
+    details?: any;
   }
 
   let {
@@ -17,6 +19,7 @@
     warningMessage,
     onConfirm,
     onClose,
+    details,
   }: Props = $props();
 </script>
 
@@ -26,6 +29,9 @@
       Are you sure you want to delete <span class="font-semibold">{itemName}</span
       >?
     </p>
+    {#if details}
+      {@render details()}
+    {/if}
     <p class="text-sm text-fg-muted">
       {warningMessage}
     </p>
@@ -33,20 +39,12 @@
 
   {#snippet footer()}
     <div class="flex items-center justify-end gap-2">
-      <button
-        type="button"
-        class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-        onclick={onClose}
-      >
+      <Button variant="ghost" onclick={onClose}>
         Cancel
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-        onclick={onConfirm}
-      >
+      </Button>
+      <Button tone="red" onclick={onConfirm}>
         {title}
-      </button>
+      </Button>
     </div>
   {/snippet}
 </Modal>

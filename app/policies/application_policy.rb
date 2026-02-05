@@ -1,9 +1,15 @@
 class ApplicationPolicy
-  attr_reader :user, :record
+  attr_reader :user_context, :record
 
-  def initialize(user, record)
-    @user = user
+  delegate :user, :workspace, to: :user_context
+
+  def initialize(user_context, record)
+    @user_context = user_context
     @record = record
+  end
+
+  def current_workspace
+    workspace
   end
 
   def index?
@@ -35,8 +41,12 @@ class ApplicationPolicy
   end
 
   class Scope
-    def initialize(user, scope)
-      @user = user
+    attr_reader :user_context, :scope
+
+    delegate :user, :workspace, to: :user_context
+
+    def initialize(user_context, scope)
+      @user_context = user_context
       @scope = scope
     end
 
@@ -44,8 +54,8 @@ class ApplicationPolicy
       raise NoMethodError, "You must define #resolve in #{self.class}"
     end
 
-    private
-
-    attr_reader :user, :scope
+    def current_workspace
+      workspace
+    end
   end
 end

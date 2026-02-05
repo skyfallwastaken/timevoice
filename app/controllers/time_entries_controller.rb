@@ -66,8 +66,6 @@ class TimeEntriesController < ApplicationController
     end
 
     redirect_back(fallback_location: root_path, notice: "Timer stopped!")
-  rescue ActiveRecord::RecordNotFound
-    redirect_back(fallback_location: root_path, alert: "No running timer found.")
   end
 
   def remove_file
@@ -83,11 +81,14 @@ class TimeEntriesController < ApplicationController
   private
 
   def set_time_entry
-    @time_entry = current_user.time_entries.find(params[:id])
+    @time_entry = current_user.time_entries.where(workspace: current_workspace).find(params[:id])
   end
 
   def set_running_time_entry
-    @time_entry = current_user.time_entries.running.find(params[:id])
+    @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by(id: params[:id])
+    unless @time_entry
+      redirect_back(fallback_location: root_path, alert: "No running timer found in this workspace.") and return
+    end
   end
 
   def authorize_time_entry

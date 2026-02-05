@@ -3,6 +3,12 @@
   import { page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { DateInput } from "date-picker-svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import ChipButton from "../../components/ChipButton.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import SelectInput from "../../components/SelectInput.svelte";
   import {
     FileText,
     DollarSign,
@@ -168,25 +174,14 @@
   flash={$page.props.flash}
 >
   {#snippet headerActions()}
-    <button
-      onclick={() => (showCreateForm = !showCreateForm)}
-      class="flex items-center gap-2 px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] font-medium transition-colors duration-150"
-    >
+    <Button tone="purple" onclick={() => (showCreateForm = !showCreateForm)}>
       <Plus class="w-4 h-4" />
       Create Invoice
-    </button>
+    </Button>
   {/snippet}
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div
-      class="p-4 border-b border-bg-tertiary flex items-center justify-between"
-    >
-      <div class="flex items-center gap-2">
-        <Settings class="w-5 h-5 text-fg-muted" />
-        <h3 class="font-semibold">Invoice Settings</h3>
-      </div>
-    </div>
-    <div class="p-4">
+  <SectionCard title="Invoice Settings" icon={Settings} bodyClass="p-4">
+    <div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <span class="block text-sm font-medium text-fg-secondary mb-1"
@@ -220,163 +215,137 @@
         {/if}
       </div>
     </div>
-    <div class="px-4 pb-4 pt-4 border-t border-bg-tertiary">
+    {#snippet footer()}
       <a
         href="/{workspaceId}/settings/billing"
         class="text-sm text-bright-purple hover:text-accent-purple transition-colors duration-150"
       >
         Edit invoice settings in Billing Settings →
       </a>
-    </div>
-  </div>
+    {/snippet}
+  </SectionCard>
 
   {#if showCreateForm}
-    <form
-      class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 animate-slide-in"
-      onsubmit={(e) => {
-        e.preventDefault();
-        if (canCreateInvoice) handleCreateInvoice();
-      }}
+    <SectionCard
+      class="animate-slide-in"
+      headerless
+      bodyClass="p-0"
     >
-      <div class="flex items-center gap-3 mb-4">
-        <Plus class="w-5 h-5 text-bright-purple" />
-        <h3 class="font-semibold">Create New Invoice</h3>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <label
-            for="invoice-client"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Client</label
-          >
-          <select
-            id="invoice-client"
-            bind:value={$createForm.client_id}
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
-          >
-            <option value="">Select a client...</option>
-            {#each clients as client}
-              <option value={client.id}>{client.name}</option>
-            {/each}
-          </select>
-          {#if $createForm.errors.client_id}
-            <p class="mt-1 text-sm text-bright-red">
-              {$createForm.errors.client_id}
-            </p>
-          {/if}
+      <form
+        class="p-6"
+        onsubmit={(e) => {
+          e.preventDefault();
+          if (canCreateInvoice) handleCreateInvoice();
+        }}
+      >
+        <div class="flex items-center gap-3 mb-4">
+          <Plus class="w-5 h-5 text-bright-purple" />
+          <h3 class="font-semibold">Create New Invoice</h3>
         </div>
-        <div>
-          <label
-            for="invoice-rate"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Billable Rate ($/hour)</label
-          >
-          <input
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <FormField id="invoice-client" label="Client" error={$createForm.errors.client_id}>
+            {#snippet children({ describedBy })}
+              <SelectInput
+                id="invoice-client"
+                tone="purple"
+                bind:value={$createForm.client_id}
+                aria-describedby={describedBy}
+              >
+                <option value="">Select a client...</option>
+                {#each clients as client}
+                  <option value={client.id}>{client.name}</option>
+                {/each}
+              </SelectInput>
+            {/snippet}
+          </FormField>
+          <FormField
             id="invoice-rate"
-            type="number"
-            value={formatRate($createForm.rate_cents)}
-            oninput={(e) =>
-              ($createForm.rate_cents = parseRate(e.currentTarget.value))}
-            step="0.01"
-            min="0"
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
-          />
-          <p class="mt-1 text-xs text-fg-muted">
-            Defaults from invoice settings.
-          </p>
-        </div>
-        <div>
-          <label
-            for="invoice-start"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Period Start</label
+            label="Billable Rate ($/hour)"
+            description="Defaults from invoice settings."
           >
-          <div class="date-input-gruvbox">
-            <DateInput
-              bind:value={periodStartDate}
-              max={periodEndDate ?? undefined}
-              placeholder="Select start date"
-              format="yyyy-MM-dd"
-              closeOnSelection={true}
-            />
-          </div>
-          {#if $createForm.errors.period_start}
-            <p class="mt-1 text-sm text-bright-red">
-              {$createForm.errors.period_start}
-            </p>
-          {/if}
-        </div>
-        <div>
-          <label
-            for="invoice-end"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Period End</label
+            {#snippet children({ describedBy })}
+              <TextInput
+                id="invoice-rate"
+                type="number"
+                tone="purple"
+                value={formatRate($createForm.rate_cents)}
+                oninput={(e) =>
+                  ($createForm.rate_cents = parseRate(e.currentTarget.value))}
+                step="0.01"
+                min="0"
+                aria-describedby={describedBy}
+              />
+            {/snippet}
+          </FormField>
+          <FormField
+            id="invoice-start"
+            label="Period Start"
+            error={$createForm.errors.period_start}
           >
-          <div class="date-input-gruvbox">
-            <DateInput
-              bind:value={periodEndDate}
-              min={periodStartDate ?? undefined}
-              placeholder="Select end date"
-              format="yyyy-MM-dd"
-              closeOnSelection={true}
-            />
-          </div>
-          {#if $createForm.errors.period_end}
-            <p class="mt-1 text-sm text-bright-red">
-              {$createForm.errors.period_end}
-            </p>
-          {/if}
+            {#snippet children({ describedBy })}
+              <div class="date-input-gruvbox" aria-describedby={describedBy}>
+                <DateInput
+                  bind:value={periodStartDate}
+                  max={periodEndDate ?? undefined}
+                  placeholder="Select start date"
+                  format="yyyy-MM-dd"
+                  closeOnSelection={true}
+                />
+              </div>
+            {/snippet}
+          </FormField>
+          <FormField
+            id="invoice-end"
+            label="Period End"
+            error={$createForm.errors.period_end}
+          >
+            {#snippet children({ describedBy })}
+              <div class="date-input-gruvbox" aria-describedby={describedBy}>
+                <DateInput
+                  bind:value={periodEndDate}
+                  min={periodStartDate ?? undefined}
+                  placeholder="Select end date"
+                  format="yyyy-MM-dd"
+                  closeOnSelection={true}
+                />
+              </div>
+            {/snippet}
+          </FormField>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <span class="block text-sm font-medium text-fg-secondary mb-2"
-          >Quick Select</span
-        >
-        <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onclick={() => setDateRange(7)}
-            class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
+        <div class="mb-4">
+          <span class="block text-sm font-medium text-fg-secondary mb-2"
+            >Quick Select</span
           >
-            Last Week
-          </button>
-          <button
-            type="button"
-            onclick={() => setDateRange(14)}
-            class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
-          >
-            Last 2 Weeks
-          </button>
-          <button
-            type="button"
-            onclick={() => setDateRange("month")}
-            class="px-3 py-1.5 text-sm bg-bg-primary border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary hover:border-bright-purple transition-colors duration-150 text-fg-secondary"
-          >
-            Last Month
-          </button>
+          <div class="flex flex-wrap gap-2">
+            <ChipButton type="button" onclick={() => setDateRange(7)}>
+              Last Week
+            </ChipButton>
+            <ChipButton type="button" onclick={() => setDateRange(14)}>
+              Last 2 Weeks
+            </ChipButton>
+            <ChipButton type="button" onclick={() => setDateRange("month")}>
+              Last Month
+            </ChipButton>
+          </div>
         </div>
-      </div>
 
-      <div class="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onclick={() => (showCreateForm = false)}
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!canCreateInvoice}
-          class="flex items-center gap-2 px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50"
-        >
-          <Plus class="w-4 h-4" />
-          {$createForm.processing ? "Creating..." : "Create Invoice"}
-        </button>
-      </div>
-    </form>
+        <div class="flex items-center justify-end gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            onclick={() => (showCreateForm = false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" tone="purple" disabled={!canCreateInvoice}>
+            <Plus class="w-4 h-4" />
+            {$createForm.processing ? "Creating..." : "Create Invoice"}
+          </Button>
+        </div>
+      </form>
+    </SectionCard>
   {/if}
 
   {#if unbilledEntries.length > 0}
@@ -424,11 +393,7 @@
     </div>
   {/if}
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">All Invoices ({invoices.length})</h3>
-    </div>
-
+  <SectionCard title={`All Invoices (${invoices.length})`} bodyClass="p-4">
     {#if invoices.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <FileText class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -537,5 +502,5 @@
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 </PageLayout>

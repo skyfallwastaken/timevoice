@@ -19,6 +19,10 @@
   import { router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
+  import FormField from "./FormField.svelte";
+  import TextInput from "./TextInput.svelte";
+  import Button from "./Button.svelte";
+  import IconButton from "./IconButton.svelte";
   import { fly, fade } from "svelte/transition";
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
@@ -30,40 +34,26 @@
   const isAdmin = $derived($page.props.auth?.is_admin);
   const isDevMode = $derived($page.props.rails_env === "development");
 
-  const navItems = $derived([
-    { href: `/${workspace?.hashid || ""}/timer`, icon: Clock, label: "Timer" },
-    {
-      href: `/${workspace?.hashid || ""}/calendar`,
-      icon: Calendar,
-      label: "Calendar",
-    },
-    {
-      href: `/${workspace?.hashid || ""}/clients`,
-      icon: Building2,
-      label: "Clients",
-    },
-    {
-      href: `/${workspace?.hashid || ""}/projects`,
-      icon: FolderKanban,
-      label: "Projects",
-    },
-    { href: `/${workspace?.hashid || ""}/tags`, icon: Tag, label: "Tags" },
-    {
-      href: `/${workspace?.hashid || ""}/reports`,
-      icon: BarChart3,
-      label: "Reports",
-    },
-    {
-      href: `/${workspace?.hashid || ""}/invoices`,
-      icon: FileText,
-      label: "Invoices",
-    },
-    {
-      href: `/${workspace?.hashid || ""}/settings`,
-      icon: Settings,
-      label: "Settings",
-    },
-  ]);
+  // Use $state to ensure proper Svelte 5 reactivity with Inertia's page store
+  let currentWorkspaceHashid = $state($page.props.auth?.workspace?.hashid || "");
+  
+  $effect(() => {
+    const newHashid = $page.props.auth?.workspace?.hashid || "";
+    if (newHashid !== currentWorkspaceHashid) {
+      currentWorkspaceHashid = newHashid;
+    }
+  });
+
+  const navItems = [
+    { path: "timer", icon: Clock, label: "Timer" },
+    { path: "calendar", icon: Calendar, label: "Calendar" },
+    { path: "clients", icon: Building2, label: "Clients" },
+    { path: "projects", icon: FolderKanban, label: "Projects" },
+    { path: "tags", icon: Tag, label: "Tags" },
+    { path: "reports", icon: BarChart3, label: "Reports" },
+    { path: "invoices", icon: FileText, label: "Invoices" },
+    { path: "settings", icon: Settings, label: "Settings" },
+  ];
   const workspaces = $derived($page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);
@@ -72,10 +62,10 @@
   let showCreateModal = $state(false);
 
   const activeIndex = $derived(
-    navItems.findIndex(
-      (item) =>
-        $page.url === item.href || $page.url.startsWith(item.href + "/"),
-    ),
+    navItems.findIndex((item) => {
+      const href = `/${currentWorkspaceHashid}/${item.path}`;
+      return $page.url === href || $page.url.startsWith(href + "/");
+    }),
   );
   const navIndicatorY = new Tween(0, { duration: 140, easing: cubicOut });
   let indicatorInitialized = false;
@@ -130,7 +120,6 @@
       "/workspaces/switch",
       { workspace_id: workspaceHashid },
       {
-        preserveScroll: true,
         onSuccess: () => {
           desktopWorkspaceOpen = false;
           mobileWorkspaceOpen = false;
@@ -155,11 +144,15 @@
     {/if}
     {#each navItems as item, index}
       {@const isActive =
-        $page.url === item.href || $page.url.startsWith(item.href + "/")}
-      <Link
-        href={item.href}
-        {onclick}
-        class="relative flex items-center gap-2 px-3 py-2 rounded-[10px] transition-colors duration-150 {isActive
+        $page.url === `/${currentWorkspaceHashid}/${item.path}` ||
+        $page.url.startsWith(`/${currentWorkspaceHashid}/${item.path}/`)}
+      <button
+        type="button"
+        onclick={() => {
+          router.visit(`/${currentWorkspaceHashid}/${item.path}`);
+          onclick?.();
+        }}
+        class="w-full relative flex items-center gap-2 px-3 py-2 rounded-[10px] transition-colors duration-150 {isActive
           ? 'text-bright-purple'
           : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
         aria-current={isActive ? "page" : undefined}
@@ -170,7 +163,7 @@
         {/if}
         <item.icon class="relative w-4 h-4" aria-hidden="true" />
         <span class="relative text-sm font-medium">{item.label}</span>
-      </Link>
+      </button>
     {/each}
   </div>
 {/snippet}
@@ -211,14 +204,12 @@
     class="md:hidden fixed top-0 left-0 right-0 z-30 bg-bg-secondary border-b border-bg-tertiary"
   >
     <div class="h-14 px-4 flex items-center justify-between">
-      <button
-        type="button"
-        class="p-2 rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
+      <IconButton
         onclick={() => (mobileNavOpen = true)}
         aria-label="Open navigation"
       >
         <Menu class="w-5 h-5" aria-hidden="true" />
-      </button>
+      </IconButton>
 
       <div class="min-w-0 text-center">
         <p class="text-sm font-semibold truncate">
@@ -227,14 +218,13 @@
         <p class="text-xs text-fg-muted truncate">{user?.name || ""}</p>
       </div>
 
-      <button
-        type="button"
-        class="p-2 rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
+      <IconButton
+        tone="danger"
         onclick={signOut}
         aria-label="Sign out"
       >
         <LogOut class="w-5 h-5" aria-hidden="true" />
-      </button>
+      </IconButton>
     </div>
   </header>
 
@@ -255,14 +245,9 @@
           class="p-4 border-b border-bg-tertiary flex items-center justify-between"
         >
           <h1 class="text-lg font-bold text-bright-purple">Timevoice</h1>
-          <button
-            type="button"
-            class="p-2 rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
-            onclick={closeMobileNav}
-            aria-label="Close navigation"
-          >
+          <IconButton onclick={closeMobileNav} aria-label="Close navigation">
             <X class="w-5 h-5" aria-hidden="true" />
-          </button>
+          </IconButton>
         </div>
 
         <div class="p-4 border-b border-bg-tertiary">
@@ -451,42 +436,38 @@
     title="Create Workspace"
     onclose={closeCreateModal}
   >
-    <div>
-      <label
-        for="workspace-name"
-        class="block text-sm font-medium text-fg-secondary mb-1"
-        >Workspace Name</label
-      >
-      <input
-        id="workspace-name"
-        type="text"
-        bind:value={$createForm.name}
-        placeholder="My Team"
-        class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
-      />
-      {#if $createForm.errors?.name}
-        <p class="text-sm text-bright-red mt-1">{$createForm.errors.name}</p>
-      {/if}
-    </div>
+    <FormField
+      id="workspace-name"
+      label="Workspace Name"
+      error={$createForm.errors?.name}
+    >
+      {#snippet children({ describedBy })}
+        <TextInput
+          id="workspace-name"
+          tone="purple"
+          bind:value={$createForm.name}
+          placeholder="My Team"
+          aria-describedby={describedBy}
+        />
+      {/snippet}
+    </FormField>
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+        <Button
+          variant="ghost"
           onclick={closeCreateModal}
           disabled={$createForm.processing}
         >
           Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
+        </Button>
+        <Button
+          tone="purple"
           onclick={submitCreateWorkspace}
           disabled={$createForm.processing || !$createForm.name}
         >
           {$createForm.processing ? "Creating..." : "Create Workspace"}
-        </button>
+        </Button>
       </div>
     {/snippet}
   </Modal>

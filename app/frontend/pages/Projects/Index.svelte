@@ -1,8 +1,14 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import Modal from "../../components/Modal.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import ColorPicker from "../../components/ColorPicker.svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import SelectInput from "../../components/SelectInput.svelte";
+  import IconButton from "../../components/IconButton.svelte";
+  import ListRow from "../../components/ListRow.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
@@ -89,47 +95,37 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <div class="flex items-center gap-2">
-        <Plus class="w-5 h-5 text-bright-green" />
-        <h3 class="font-semibold">Create New Project</h3>
-      </div>
-    </div>
-    <div class="p-4 space-y-4">
+  <SectionCard title="Create New Project" icon={Plus} iconColor="text-bright-green" bodyClass="p-4">
+    <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label
-            for="project-name"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Project Name</label
-          >
-          <input
-            id="project-name"
-            type="text"
-            bind:value={$createForm.name}
-            placeholder="Enter project name..."
-            onkeydown={(e) => e.key === "Enter" && $createForm.name && handleCreate()}
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-green transition-colors duration-150"
-          />
-        </div>
-        <div>
-          <label
-            for="project-client"
-            class="block text-sm font-medium text-fg-secondary mb-1"
-            >Client</label
-          >
-          <select
-            id="project-client"
-            bind:value={$createForm.client_id}
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-green transition-colors duration-150"
-          >
-            <option value="">No Client</option>
-            {#each clients as client}
-              <option value={client.id}>{client.name}</option>
-            {/each}
-          </select>
-        </div>
+        <FormField id="project-name" label="Project Name">
+          {#snippet children({ describedBy })}
+            <TextInput
+              id="project-name"
+              tone="green"
+              bind:value={$createForm.name}
+              placeholder="Enter project name..."
+              onkeydown={(e) =>
+                e.key === "Enter" && $createForm.name && handleCreate()}
+              aria-describedby={describedBy}
+            />
+          {/snippet}
+        </FormField>
+        <FormField id="project-client" label="Client">
+          {#snippet children({ describedBy })}
+            <SelectInput
+              id="project-client"
+              tone="green"
+              bind:value={$createForm.client_id}
+              aria-describedby={describedBy}
+            >
+              <option value="">No Client</option>
+              {#each clients as client}
+                <option value={client.id}>{client.name}</option>
+              {/each}
+            </SelectInput>
+          {/snippet}
+        </FormField>
       </div>
 
       <ColorPicker {colors} bind:value={$createForm.color} />
@@ -144,23 +140,19 @@
           <span class="text-sm text-fg-secondary">Billable by default</span>
         </label>
 
-        <button
+        <Button
+          tone="green"
           onclick={handleCreate}
           disabled={$createForm.processing || !$createForm.name}
-          class="flex items-center gap-2 px-4 py-2 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus class="w-4 h-4" />
           Create Project
-        </button>
+        </Button>
       </div>
     </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">All Projects ({projects.length})</h3>
-    </div>
-
+  <SectionCard title={`All Projects (${projects.length})`}>
     {#if projects.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <Briefcase class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -168,122 +160,123 @@
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary">
-        {#each projects as project}
-          <div class="p-4">
-            {#if editingId === project.id}
-              <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      for="edit-project-name-{project.id}"
-                      class="block text-sm font-medium text-fg-secondary mb-1"
-                      >Project Name</label
-                    >
-                    <input
+        {#each projects as project, i}
+          {@const isLast = i === projects.length - 1}
+          {#if editingId === project.id}
+            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  id="edit-project-name-{project.id}"
+                  label="Project Name"
+                >
+                  {#snippet children({ describedBy })}
+                    <TextInput
                       id="edit-project-name-{project.id}"
-                      type="text"
+                      tone="green"
                       bind:value={$editForm.name}
-                      class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-green transition-colors duration-150"
+                      aria-describedby={describedBy}
                     />
-                  </div>
-                  <div>
-                    <label
-                      for="edit-project-client-{project.id}"
-                      class="block text-sm font-medium text-fg-secondary mb-1"
-                      >Client</label
-                    >
-                    <select
+                  {/snippet}
+                </FormField>
+                <FormField
+                  id="edit-project-client-{project.id}"
+                  label="Client"
+                >
+                  {#snippet children({ describedBy })}
+                    <SelectInput
                       id="edit-project-client-{project.id}"
+                      tone="green"
                       bind:value={$editForm.client_id}
-                      class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-green transition-colors duration-150"
+                      aria-describedby={describedBy}
                     >
                       <option value="">No Client</option>
                       {#each clients as client}
                         <option value={client.id}>{client.name}</option>
                       {/each}
-                    </select>
-                  </div>
-                </div>
+                    </SelectInput>
+                  {/snippet}
+                </FormField>
+              </div>
 
-                <ColorPicker {colors} bind:value={$editForm.color} />
+              <ColorPicker {colors} bind:value={$editForm.color} />
 
-                <div class="flex items-center justify-between">
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      bind:checked={$editForm.billable_default}
-                      class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
-                    />
-                    <span class="text-sm text-fg-secondary"
-                      >Billable by default</span
-                    >
-                  </label>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    bind:checked={$editForm.billable_default}
+                    class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
+                  />
+                  <span class="text-sm text-fg-secondary"
+                    >Billable by default</span
+                  >
+                </label>
 
-                  <div class="flex items-center gap-2">
-                    <button
-                      onclick={cancelEditing}
-                      class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                      aria-label="Cancel editing"
-                    >
-                      <X class="w-5 h-5" />
-                    </button>
-                    <button
-                      onclick={() => handleUpdate(project.id)}
-                      disabled={$editForm.processing}
-                      class="p-2 text-bright-green hover:text-accent-green transition-colors duration-150"
-                      aria-label="Save changes"
-                    >
-                      <Check class="w-5 h-5" />
-                    </button>
-                  </div>
+                <div class="flex items-center gap-2">
+                  <IconButton
+                    aria-label="Cancel editing"
+                    onclick={cancelEditing}
+                  >
+                    <X class="w-5 h-5" />
+                  </IconButton>
+                  <IconButton
+                    tone="success"
+                    aria-label="Save changes"
+                    onclick={() => handleUpdate(project.id)}
+                    disabled={$editForm.processing}
+                  >
+                    <Check class="w-5 h-5" />
+                  </IconButton>
                 </div>
               </div>
-            {:else}
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span
-                    class="w-4 h-4 rounded-full"
-                    style="background-color: {project.color}"
-                  ></span>
-                  <div>
-                    <p class="font-medium">{project.name}</p>
-                    {#if project.client}
-                      <p class="text-sm text-fg-muted">{project.client.name}</p>
-                    {:else}
-                      <p class="text-sm text-fg-dim italic">No client</p>
-                    {/if}
-                  </div>
+            </div>
+          {:else}
+            <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
+              {#snippet leading()}
+                <span
+                  class="w-4 h-4 rounded-full"
+                  style="background-color: {project.color}"
+                ></span>
+              {/snippet}
+              {#snippet primary()}
+                <span class="flex items-center gap-2">
+                  {project.name}
                   {#if project.billable_default}
                     <span
                       class="px-2 py-0.5 text-xs bg-bright-green/20 text-bright-green rounded-full"
                       >Billable</span
                     >
                   {/if}
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <button
-                    onclick={() => startEditing(project)}
-                    class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-                    aria-label="Edit project"
-                  >
-                    <Edit2 class="w-4 h-4" />
-                  </button>
-                  <button
-                    onclick={() => (projectToDelete = project)}
-                    class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
-                    aria-label="Delete project"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            {/if}
-          </div>
+                </span>
+              {/snippet}
+              {#snippet secondary()}
+                {#if project.client}
+                  {project.client.name}
+                {:else}
+                  <span class="text-fg-dim italic">No client</span>
+                {/if}
+              {/snippet}
+              {#snippet actions()}
+                <IconButton
+                  aria-label="Edit project"
+                  onclick={() => startEditing(project)}
+                >
+                  <Edit2 class="w-4 h-4" />
+                </IconButton>
+                <IconButton
+                  tone="danger"
+                  aria-label="Delete project"
+                  onclick={() => (projectToDelete = project)}
+                >
+                  <Trash2 class="w-4 h-4" />
+                </IconButton>
+              {/snippet}
+            </ListRow>
+          {/if}
         {/each}
       </div>
     {/if}
-  </div>
+  </SectionCard>
 
   <ConfirmDeleteModal
     open={projectToDelete !== null}

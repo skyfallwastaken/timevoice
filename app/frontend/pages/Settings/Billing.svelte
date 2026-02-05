@@ -3,6 +3,11 @@
   import { page, Link } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { DollarSign } from "lucide-svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import TextArea from "../../components/TextArea.svelte";
   import { formatRate, parseRate } from "../../lib/format";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
@@ -33,9 +38,7 @@
   variant="narrow"
   {flash}
 >
-  <div
-    class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-  >
+  <SectionCard class="overflow-hidden" bodyClass="p-0">
     <div class="grid grid-cols-2">
       <Link
         href="/{workspaceId}/settings/workspace"
@@ -51,63 +54,48 @@
         Billing
       </Link>
     </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">Invoice Settings</h3>
-      <p class="text-sm text-fg-muted mt-1">
-        Configure default settings for invoices generated from your time
-        entries.
-      </p>
-    </div>
+  <SectionCard
+    title="Invoice Settings"
+    description="Configure default settings for invoices generated from your time entries."
+    bodyClass="p-4"
+  >
+    <div class="space-y-6">
+      <FormField
+        id="sender-name"
+        label="Sender Name"
+        description="This name will appear as the sender on your invoices."
+        error={$form.errors.sender_name}
+      >
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="sender-name"
+            tone="purple"
+            bind:value={$form.sender_name}
+            placeholder="Your name or company name"
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
 
-    <div class="p-4 space-y-6">
-      <div>
-        <label
-          for="sender-name"
-          class="block text-sm font-medium text-fg-secondary mb-2"
-        >
-          Sender Name
-        </label>
-        <input
-          id="sender-name"
-          type="text"
-          bind:value={$form.sender_name}
-          placeholder="Your name or company name"
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
-        />
-        <p class="text-sm text-fg-muted mt-1">
-          This name will appear as the sender on your invoices.
-        </p>
-        {#if $form.errors.sender_name}
-          <p class="text-sm text-bright-red mt-1">{$form.errors.sender_name}</p>
-        {/if}
-      </div>
-
-      <div>
-        <label
-          for="sender-address"
-          class="block text-sm font-medium text-fg-secondary mb-2"
-        >
-          Sender Address
-        </label>
-        <textarea
-          id="sender-address"
-          bind:value={$form.sender_address}
-          placeholder="Your billing address"
-          rows="3"
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150 resize-none"
-        ></textarea>
-        <p class="text-sm text-fg-muted mt-1">
-          This address will appear on invoices as the sender's address.
-        </p>
-        {#if $form.errors.sender_address}
-          <p class="text-sm text-bright-red mt-1">
-            {$form.errors.sender_address}
-          </p>
-        {/if}
-      </div>
+      <FormField
+        id="sender-address"
+        label="Sender Address"
+        description="This address will appear on invoices as the sender's address."
+        error={$form.errors.sender_address}
+      >
+        {#snippet children({ describedBy })}
+          <TextArea
+            id="sender-address"
+            tone="purple"
+            bind:value={$form.sender_address}
+            placeholder="Your billing address"
+            rows={3}
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
 
       <div>
         <label
@@ -120,16 +108,17 @@
           <DollarSign
             class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-muted"
           />
-          <input
+          <TextInput
             id="billable-rate"
             type="number"
+            tone="purple"
             step="0.01"
             min="0"
             bind:value={rateInputValue}
             onchange={(e) =>
               ($form.billable_rate_cents = parseRate(e.currentTarget.value))}
             placeholder="0.00"
-            class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] pl-8 pr-4 py-2 text-fg-primary placeholder:text-fg-dim focus:border-bright-purple transition-colors duration-150"
+            class="pl-8 pr-4"
           />
         </div>
         <p class="text-sm text-fg-muted mt-1">
@@ -138,19 +127,18 @@
       </div>
 
       <div class="flex justify-end pt-4">
-        <button
+        <Button
+          tone="purple"
           onclick={saveSettings}
           disabled={$form.processing}
-          class="px-6 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
         >
           {$form.processing ? "Saving..." : "Save Settings"}
-        </button>
+        </Button>
       </div>
     </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-4">
-    <h3 class="font-semibold mb-3">About Invoice Settings</h3>
+  <SectionCard title="About Invoice Settings" bodyClass="p-4">
     <div class="space-y-2 text-sm text-fg-muted">
       <p>
         <strong class="text-fg-primary">Sender Information:</strong>
@@ -170,5 +158,5 @@
         > section.
       </p>
     </div>
-  </div>
+  </SectionCard>
 </PageLayout>

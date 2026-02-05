@@ -1,6 +1,10 @@
 <script lang="ts">
   import { Play, Square, DollarSign, Check, X, Paperclip } from "lucide-svelte";
   import { router, useForm, page, Link } from "@inertiajs/svelte";
+  import TextInput from "./TextInput.svelte";
+  import IconButton from "./IconButton.svelte";
+  import Button from "./Button.svelte";
+  import ChipButton from "./ChipButton.svelte";
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
@@ -191,15 +195,14 @@
       <label for="timer-description" class="sr-only"
         >What are you working on?</label
       >
-      <input
+      <TextInput
         id="timer-description"
-        type="text"
-        placeholder="What are you working on?"
         bind:value={$form.description}
-        bind:this={descriptionInput}
+        bind:inputRef={descriptionInput}
+        placeholder="What are you working on?"
         disabled={isRunning}
         onkeydown={handleDescriptionKeydown}
-        class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-3 md:px-4 py-2.5 md:py-3 text-fg-primary placeholder:text-fg-dim focus:border-bright-blue transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
+        class="px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base"
         aria-label="Task description"
         autocomplete="off"
       />
@@ -209,44 +212,47 @@
       <div class="relative">
         {#if selectedProject}
           <div class="flex items-center gap-1">
-            <button
-              disabled={isRunning}
-              onclick={() =>
-                !isRunning && (showProjectDropdown = !showProjectDropdown)}
-              class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] hover:border-bright-blue transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
-              aria-haspopup="listbox"
-              aria-expanded={showProjectDropdown}
-              aria-label="Selected project: {selectedProject.name}"
-            >
-              <span
-                class="w-3 h-3 rounded-full"
-                style="background-color: {selectedProject.color}"
-                aria-hidden="true"
-              ></span>
-              <span class="text-fg-primary">{selectedProject.name}</span>
-            </button>
+          <Button
+            variant="secondary"
+            class="bg-bg-primary border-bg-tertiary hover:border-bright-blue px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
+            disabled={isRunning}
+            onclick={() =>
+              !isRunning && (showProjectDropdown = !showProjectDropdown)}
+            aria-haspopup="listbox"
+            aria-expanded={showProjectDropdown}
+            aria-label="Selected project: {selectedProject.name}"
+          >
+            <span
+              class="w-3 h-3 rounded-full"
+              style="background-color: {selectedProject.color}"
+              aria-hidden="true"
+            ></span>
+            <span class="text-fg-primary">{selectedProject.name}</span>
+          </Button>
             {#if !isRunning}
-              <button
+              <IconButton
                 type="button"
+                tone="danger"
                 onclick={clearProject}
-                class="p-2 text-fg-muted hover:text-bright-red rounded-[10px] hover:bg-bg-secondary transition-colors duration-150"
+                class="hover:bg-bg-secondary"
                 aria-label="Clear project selection"
               >
                 <X class="w-4 h-4" aria-hidden="true" />
-              </button>
+              </IconButton>
             {/if}
           </div>
         {:else}
-          <button
+          <Button
+            variant="secondary"
+            class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
             disabled={isRunning}
             onclick={() => (showProjectDropdown = !showProjectDropdown)}
-            class="px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
             aria-haspopup="listbox"
             aria-expanded={showProjectDropdown}
             aria-label="Select project"
           >
             Project
-          </button>
+          </Button>
         {/if}
 
         {#if showProjectDropdown && !isRunning}
@@ -299,10 +305,11 @@
       </div>
 
       <div class="relative">
-        <button
+        <Button
+          variant="secondary"
+          class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
           disabled={isRunning}
           onclick={() => (showTagDropdown = !showTagDropdown)}
-          class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-muted hover:text-fg-primary transition-colors duration-150 disabled:opacity-50 text-sm md:text-base"
           aria-haspopup="listbox"
           aria-expanded={showTagDropdown}
           aria-label={selectedTags.length > 0
@@ -318,7 +325,7 @@
           {:else}
             Tags
           {/if}
-        </button>
+        </Button>
 
         {#if showTagDropdown && !isRunning}
           <div
@@ -358,18 +365,19 @@
         {/if}
       </div>
 
-      <button
+      <ChipButton
         type="button"
-        onclick={() => ($form.billable = !$form.billable)}
+        selected={$form.billable}
         disabled={isRunning}
-        class="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-3 bg-bg-primary border rounded-[10px] transition-colors duration-150 disabled:opacity-50 text-sm md:text-base {$form.billable
-          ? 'border-bright-green text-bright-green'
-          : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
+        class={$form.billable
+          ? "border-bright-green text-bright-green"
+          : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
         aria-pressed={$form.billable}
+        onclick={() => ($form.billable = !$form.billable)}
       >
         <DollarSign class="w-4 h-4" aria-hidden="true" />
         <span>Billable</span>
-      </button>
+      </ChipButton>
 
       {#if runningEntry}
         <input

@@ -5,6 +5,7 @@
     Calendar as CalendarIcon,
   } from "lucide-svelte";
   import { router, useForm, page } from "@inertiajs/svelte";
+  import IconButton from "./IconButton.svelte";
 
   let { entries = [], projects = [], currentWeek } = $props();
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
@@ -253,27 +254,25 @@
       <h2 class="text-2xl font-semibold">Week Calendar</h2>
     </div>
     <div class="flex items-center gap-2">
-      <button
+      <IconButton
         type="button"
-        class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
         aria-label="Previous week"
         onclick={() => goToWeek(-1)}
       >
         <ChevronLeft class="w-5 h-5" />
-      </button>
+      </IconButton>
       <span
         class="px-4 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] font-medium min-w-50 text-center"
       >
         {currentWeek.start} - {currentWeek.end}
       </span>
-      <button
+      <IconButton
         type="button"
-        class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
         aria-label="Next week"
         onclick={() => goToWeek(1)}
       >
         <ChevronRight class="w-5 h-5" />
-      </button>
+      </IconButton>
     </div>
   </div>
 

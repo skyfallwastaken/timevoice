@@ -1,6 +1,7 @@
 <script lang="ts">
   import { X } from "lucide-svelte";
   import { fade, fly } from "svelte/transition";
+  import IconButton from "./IconButton.svelte";
 
   interface Props {
     open: boolean;
@@ -65,14 +66,13 @@
           class="p-4 border-b border-bg-tertiary flex items-center justify-between"
         >
           <h3 class="font-semibold">{title}</h3>
-          <button
+          <IconButton
             type="button"
-            class="p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-            onclick={close}
             aria-label="Close"
+            onclick={close}
           >
             <X class="w-4 h-4" aria-hidden="true" />
-          </button>
+          </IconButton>
         </div>
       {/if}
       <div class="p-4 space-y-4">

@@ -64,7 +64,7 @@ class ApplicationController < ActionController::Base
   helper_method :current_workspace
 
   def pundit_user
-    current_user
+    UserContext.new(current_user, current_workspace)
   end
 
   def set_current_workspace

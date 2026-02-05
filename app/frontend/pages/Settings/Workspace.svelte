@@ -5,6 +5,13 @@
   import { Settings, Users, Shield, Trash2, Plus, Crown } from "lucide-svelte";
   import EmptyState from "../../components/EmptyState.svelte";
   import Modal from "../../components/Modal.svelte";
+  import SectionCard from "../../components/SectionCard.svelte";
+  import Button from "../../components/Button.svelte";
+  import FormField from "../../components/FormField.svelte";
+  import IconButton from "../../components/IconButton.svelte";
+  import ListRow from "../../components/ListRow.svelte";
+  import TextInput from "../../components/TextInput.svelte";
+  import SelectInput from "../../components/SelectInput.svelte";
 
   type Membership = {
     id: number;
@@ -151,9 +158,7 @@
   variant="narrow"
   {flash}
 >
-  <div
-    class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-  >
+  <SectionCard class="overflow-hidden" bodyClass="p-0">
     <div class="grid grid-cols-2">
       <Link
         href="/{workspaceId}/settings/workspace"
@@ -169,61 +174,46 @@
         Billing
       </Link>
     </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div class="p-4 border-b border-bg-tertiary">
-      <h3 class="font-semibold">General Information</h3>
+  <SectionCard title="General Information" bodyClass="p-4">
+    <div class="space-y-4">
+      <FormField
+        id="workspace-name"
+        label="Workspace Name"
+        description={!canEditWorkspace
+          ? "Workspace name can only be changed by the owner."
+          : undefined}
+      >
+        {#snippet children({ describedBy })}
+          <div class="flex gap-2">
+            <input
+              id="workspace-name"
+              type="text"
+              bind:value={workspaceName}
+              readonly={!canEditWorkspace}
+              onkeydown={(e) => e.key === "Enter" && saveWorkspaceName()}
+              aria-describedby={describedBy}
+              class="flex-1 bg-bg-tertiary/50 border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary {canEditWorkspace
+                ? 'focus:outline-none focus:border-bright-purple'
+                : ''}"
+            />
+            {#if canEditWorkspace && workspaceName.trim() && workspaceName !== workspace.name}
+              <Button tone="purple" size="sm" type="button" onclick={saveWorkspaceName}>
+                Save
+              </Button>
+            {/if}
+          </div>
+        {/snippet}
+      </FormField>
     </div>
-    <div class="p-4 space-y-4">
-      <div>
-        <label
-          for="workspace-name"
-          class="block text-sm font-medium text-fg-secondary mb-1"
-        >
-          Workspace Name
-        </label>
-        <div class="flex gap-2">
-          <input
-            id="workspace-name"
-            type="text"
-            bind:value={workspaceName}
-            readonly={!canEditWorkspace}
-            onkeydown={(e) => e.key === "Enter" && saveWorkspaceName()}
-            class="flex-1 bg-bg-tertiary/50 border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary {canEditWorkspace
-              ? 'focus:outline-none focus:border-bright-purple'
-              : ''}"
-            aria-describedby="workspace-name-help"
-          />
-          {#if canEditWorkspace && workspaceName.trim() && workspaceName !== workspace.name}
-            <button
-              type="button"
-              class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] text-sm transition-colors duration-150 font-medium"
-              onclick={saveWorkspaceName}
-            >
-              Save
-            </button>
-          {/if}
-        </div>
-        {#if !canEditWorkspace}
-          <p id="workspace-name-help" class="text-sm text-fg-muted mt-1">
-            Workspace name can only be changed by the owner.
-          </p>
-        {/if}
-      </div>
-    </div>
-  </div>
+  </SectionCard>
 
-  <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-    <div
-      class="p-4 border-b border-bg-tertiary flex items-center justify-between"
-    >
-      <div class="flex items-center gap-2">
-        <Users class="w-5 h-5 text-fg-muted" aria-hidden="true" />
-        <h3 class="font-semibold">Members ({members.length})</h3>
-      </div>
-      <button
-        class="flex items-center gap-2 px-3 py-1.5 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] text-sm transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-bright-purple"
+  <SectionCard title={`Members (${members.length})`} icon={Users}>
+    {#snippet headerActions()}
+      <Button
+        tone="purple"
+        size="sm"
         aria-label="Invite new member"
         type="button"
         onclick={() => {
@@ -232,23 +222,22 @@
         }}
         disabled={!canInvite}
         title={canInvite ? "Invite a member" : "Only admins can invite members"}
+        class="disabled:hover:bg-bright-purple"
       >
         <Plus class="w-4 h-4" aria-hidden="true" />
         Invite
-      </button>
-    </div>
+      </Button>
+    {/snippet}
     <div
       class="divide-y divide-bg-tertiary"
       role="list"
       aria-label="Workspace members"
     >
-      {#each members as membership}
+      {#each members as membership, i}
         {@const RoleIcon = getRoleIcon(membership.role)}
-        <div
-          class="p-4 flex items-center justify-between hover:bg-bg-tertiary/50 transition-colors duration-150"
-          role="listitem"
-        >
-          <div class="flex items-center gap-3">
+        {@const isLast = i === members.length - 1}
+        <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
+          {#snippet leading()}
             {#if membership.user.avatar_url}
               <img
                 src={membership.user.avatar_url}
@@ -263,33 +252,33 @@
                 {membership.user.name?.[0]?.toUpperCase() || "?"}
               </div>
             {/if}
-            <div>
-              <p class="font-medium">{membership.user.name}</p>
-              <p class="text-sm text-fg-muted">{membership.user.email}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <span
-              class="flex items-center gap-1 text-sm {getRoleColor(
-                membership.role,
-              )}"
-            >
+          {/snippet}
+          {#snippet primary()}
+            {membership.user.name}
+          {/snippet}
+          {#snippet secondary()}
+            {membership.user.email}
+          {/snippet}
+          {#snippet meta()}
+            <span class="flex items-center gap-1 {getRoleColor(membership.role)}">
               <RoleIcon class="w-4 h-4" aria-hidden="true" />
               <span class="capitalize">{membership.role}</span>
             </span>
+          {/snippet}
+          {#snippet actions()}
             {#if membership.role !== "owner" && (canManageMembers || membership.user?.id === currentUserId)}
               {@const isSelf = membership.user?.id === currentUserId}
-              <button
-                class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+              <IconButton
+                tone="danger"
                 aria-label={isSelf ? "Leave workspace" : `Remove ${membership.user.name} from workspace`}
                 onclick={() =>
                   openRemoveMemberModal(membership.id, membership.user.name, isSelf)}
               >
                 <Trash2 class="w-4 h-4" aria-hidden="true" />
-              </button>
+              </IconButton>
             {/if}
-          </div>
-        </div>
+          {/snippet}
+        </ListRow>
       {:else}
         <EmptyState
           icon={Users}
@@ -300,46 +289,34 @@
         />
       {/each}
     </div>
-  </div>
+  </SectionCard>
 
   {#if pendingInvites.length > 0 && canManageMembers}
-    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-      <div
-        class="p-4 border-b border-bg-tertiary flex items-center justify-between"
-      >
-        <div class="flex items-center gap-2">
-          <Users class="w-5 h-5 text-fg-muted" aria-hidden="true" />
-          <h3 class="font-semibold">Pending Invites ({pendingInvites.length})</h3>
-        </div>
-      </div>
+    <SectionCard title={`Pending Invites (${pendingInvites.length})`} icon={Users}>
       <div
         class="divide-y divide-bg-tertiary"
         role="list"
         aria-label="Pending invitations"
       >
-        {#each pendingInvites as invite}
-          <div
-            class="p-4 flex items-center justify-between hover:bg-bg-tertiary/50 transition-colors duration-150"
-            role="listitem"
-          >
-            <div class="flex items-center gap-3">
+        {#each pendingInvites as invite, i}
+          {@const isLast = i === pendingInvites.length - 1}
+          <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
+            {#snippet leading()}
               <div
                 class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-lg font-semibold text-fg-muted"
                 aria-hidden="true"
               >
                 ?
               </div>
-              <div>
-                <p class="font-medium text-fg-primary">{invite.email}</p>
-                <p class="text-sm text-fg-muted">
-                  Invited by {invite.inviter_name} · {formatTimeAgo(invite.created_at)}
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <span
-                class="flex items-center gap-1 text-sm {getRoleColor(invite.role)}"
-              >
+            {/snippet}
+            {#snippet primary()}
+              {invite.email}
+            {/snippet}
+            {#snippet secondary()}
+              Invited by {invite.inviter_name} · {formatTimeAgo(invite.created_at)}
+            {/snippet}
+            {#snippet meta()}
+              <span class="flex items-center gap-1 {getRoleColor(invite.role)}">
                 {#if invite.role === "admin"}
                   <Shield class="w-4 h-4" aria-hidden="true" />
                 {:else}
@@ -347,18 +324,20 @@
                 {/if}
                 <span class="capitalize">{invite.role}</span>
               </span>
-              <button
-                class="p-2 text-fg-muted hover:text-bright-red transition-colors duration-150"
+            {/snippet}
+            {#snippet actions()}
+              <IconButton
+                tone="danger"
                 aria-label="Cancel invitation to {invite.email}"
                 onclick={() => openCancelInviteModal(invite.id, invite.email)}
               >
                 <Trash2 class="w-4 h-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+              </IconButton>
+            {/snippet}
+          </ListRow>
         {/each}
       </div>
-    </div>
+    </SectionCard>
   {/if}
 
   <div class="bg-bg-tertiary/50 border border-bright-red/30 rounded-[10px] p-4">
@@ -366,8 +345,11 @@
     <p class="text-sm text-fg-muted mb-4">
       These actions are irreversible. Please be certain before proceeding.
     </p>
-    <button
-      class="px-4 py-2 border border-bright-red text-bright-red hover:bg-bright-red hover:text-bg-primary rounded-[10px] transition-colors duration-150 text-sm"
+    <Button
+      variant="outline"
+      tone="red"
+      size="sm"
+      class="border-bright-red text-bright-red hover:bg-bright-red hover:text-bg-primary"
       aria-label="Delete workspace"
       onclick={() => (showDeleteModal = true)}
       disabled={!canDeleteWorkspace}
@@ -376,7 +358,7 @@
         : "Only the owner can delete the workspace"}
     >
       Delete Workspace
-    </button>
+    </Button>
   </div>
 
   <Modal
@@ -387,45 +369,44 @@
       $inviteForm.reset();
     }}
   >
-    <div>
-      <label
-        for="invite-email"
-        class="block text-sm font-medium text-fg-secondary mb-1">Email</label
-      >
-      <input
-        id="invite-email"
-        type="email"
-        bind:value={$inviteForm.email}
-        placeholder="name@company.com"
-        onkeydown={(e) => e.key === "Enter" && $inviteForm.email && submitInvite()}
-        class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-purple transition-colors duration-150"
-        autocomplete="email"
-      />
-    </div>
+    <FormField id="invite-email" label="Email">
+      {#snippet children({ describedBy })}
+        <TextInput
+          id="invite-email"
+          type="email"
+          tone="purple"
+          bind:value={$inviteForm.email}
+          placeholder="name@company.com"
+          onkeydown={(e) => e.key === "Enter" && $inviteForm.email && submitInvite()}
+          aria-describedby={describedBy}
+          autocomplete="email"
+        />
+      {/snippet}
+    </FormField>
 
-    <div>
-      <label
-        for="invite-role"
-        class="block text-sm font-medium text-fg-secondary mb-1">Role</label
-      >
-      <select
-        id="invite-role"
-        bind:value={$inviteForm.role}
-        class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary focus:outline-none focus:border-bright-purple transition-colors duration-150"
-      >
-        <option value="member">Member</option>
-        <option value="admin">Admin</option>
-      </select>
-      <p class="text-xs text-fg-muted mt-1">
-        If they haven't signed up yet, they'll receive an invitation email.
-      </p>
-    </div>
+    <FormField
+      id="invite-role"
+      label="Role"
+      description="If they haven't signed up yet, they'll receive an invitation email."
+    >
+      {#snippet children({ describedBy })}
+        <SelectInput
+          id="invite-role"
+          tone="purple"
+          bind:value={$inviteForm.role}
+          aria-describedby={describedBy}
+        >
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </SelectInput>
+      {/snippet}
+    </FormField>
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
-        <button
+        <Button
           type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          variant="ghost"
           onclick={() => {
             showInviteModal = false;
             $inviteForm.reset();
@@ -433,15 +414,15 @@
           disabled={$inviteForm.processing}
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          class="px-4 py-2 bg-bright-purple hover:bg-accent-purple text-bg-primary rounded-[10px] transition-colors duration-150 font-medium disabled:opacity-50"
+          tone="purple"
           onclick={submitInvite}
           disabled={$inviteForm.processing || !$inviteForm.email}
         >
           {$inviteForm.processing ? "Inviting..." : "Invite"}
-        </button>
+        </Button>
       </div>
     {/snippet}
   </Modal>
@@ -465,20 +446,12 @@
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
-          onclick={() => (showDeleteModal = false)}
-        >
+        <Button type="button" variant="ghost" onclick={() => (showDeleteModal = false)}>
           Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmDeleteWorkspace}
-        >
+        </Button>
+        <Button type="button" tone="red" onclick={confirmDeleteWorkspace}>
           Delete Workspace
-        </button>
+        </Button>
       </div>
     {/snippet}
   </Modal>
@@ -511,23 +484,19 @@
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
-        <button
+        <Button
           type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          variant="ghost"
           onclick={() => {
             showRemoveMemberModal = false;
             memberToRemove = null;
           }}
         >
           Cancel
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmRemoveMember}
-        >
+        </Button>
+        <Button type="button" tone="red" onclick={confirmRemoveMember}>
           {memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
-        </button>
+        </Button>
       </div>
     {/snippet}
   </Modal>
@@ -551,23 +520,19 @@
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
-        <button
+        <Button
           type="button"
-          class="px-4 py-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          variant="ghost"
           onclick={() => {
             showCancelInviteModal = false;
             inviteToCancel = null;
           }}
         >
           Keep Invitation
-        </button>
-        <button
-          type="button"
-          class="px-4 py-2 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150 font-medium"
-          onclick={confirmCancelInvite}
-        >
+        </Button>
+        <Button type="button" tone="red" onclick={confirmCancelInvite}>
           Cancel Invitation
-        </button>
+        </Button>
       </div>
     {/snippet}
   </Modal>
