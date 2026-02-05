@@ -16,6 +16,7 @@
     Mail,
   } from "lucide-svelte";
   import { formatDate, getStatusClasses } from "../../lib/format";
+  import Turnstile from "../../components/Turnstile.svelte";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
@@ -55,11 +56,13 @@
   let ccSelf = $state(false);
   let sending = $state(false);
   let showLetterOpenerHint = $state(false);
+  let turnstileToken = $state("");
 
   function openEmailModal() {
     emailRecipients = "";
     emailMessage = "";
     ccSelf = false;
+    turnstileToken = "";
     emailModalOpen = true;
   }
 
@@ -73,11 +76,13 @@
         recipients: emailRecipients,
         cc_self: ccSelf ? "true" : "false",
         message: emailMessage,
+        "cf-turnstile-response": turnstileToken,
       },
       {
         onFinish: () => {
           sending = false;
           emailModalOpen = false;
+          turnstileToken = "";
           if (isDevMode) {
             showLetterOpenerHint = true;
           }
@@ -267,6 +272,8 @@
       />
       <label for="cc_self" class="text-sm">CC myself ({userEmail})</label>
     </div>
+
+    <Turnstile onSuccess={(token) => (turnstileToken = token)} />
 
     <div class="flex justify-end gap-2 pt-2">
       <Button

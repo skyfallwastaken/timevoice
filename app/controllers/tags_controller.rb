@@ -1,4 +1,8 @@
 class TagsController < ApplicationController
+  rate_limit to: 30, within: 1.minute, only: :create, with: -> {
+    redirect_to tags_path, alert: "Too many tag creation attempts. Please wait a minute."
+  }
+
   before_action :set_tag, only: [ :update, :destroy ]
   before_action :authorize_tag, only: [ :create, :update, :destroy ]
 

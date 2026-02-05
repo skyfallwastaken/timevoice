@@ -1,6 +1,14 @@
 require Rails.root.join("app/services/invoice_pdf").to_s
 
 class InvoicesController < ApplicationController
+  rate_limit to: 10, within: 1.minute, only: :create, with: -> {
+    redirect_to invoices_path, alert: "Too many invoice creation attempts. Please wait a minute."
+  }
+  rate_limit to: 5, within: 1.minute, name: "send_email", only: :send_email, with: -> {
+    redirect_back fallback_location: invoices_path, alert: "Too many email attempts. Please wait a minute."
+  }
+  verify_turnstile_request only: [:send_email]
+
   before_action :set_invoice, only: [ :show, :update, :destroy, :pdf, :send_email ]
   before_action :authorize_invoice, only: [ :create, :update, :destroy, :send_email ]
   before_action :authorize_invoice_show, only: [ :show, :pdf ]

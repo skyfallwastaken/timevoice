@@ -1,4 +1,8 @@
 class ProjectsController < ApplicationController
+  rate_limit to: 20, within: 1.minute, only: :create, with: -> {
+    redirect_to projects_path, alert: "Too many project creation attempts. Please wait a minute."
+  }
+
   before_action :set_project, only: [ :update, :destroy ]
   before_action :authorize_project, only: [ :create, :update, :destroy ]
 

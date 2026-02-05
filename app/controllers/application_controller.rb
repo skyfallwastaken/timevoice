@@ -32,6 +32,10 @@ class ApplicationController < ActionController::Base
     form_authenticity_token
   }
 
+  inertia_share turnstile_site_key: -> {
+    Rails.app.creds.require(:cloudflare, :turnstile_site_key)
+  }
+
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   private

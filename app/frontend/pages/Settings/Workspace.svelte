@@ -3,6 +3,7 @@
   import { Link, page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { Settings, Users, Shield, Trash2, Plus, Crown } from "lucide-svelte";
+  import Turnstile from "../../components/Turnstile.svelte";
   import EmptyState from "../../components/EmptyState.svelte";
   import Modal from "../../components/Modal.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
@@ -63,7 +64,9 @@
   let inviteForm = useForm({
     email: "",
     role: "member",
+    "cf-turnstile-response": "",
   });
+  let turnstileToken = $state("");
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
@@ -71,11 +74,13 @@
     $inviteForm.transform((data) => ({
       membership: { email: data.email },
       role: data.role,
+      "cf-turnstile-response": turnstileToken,
     })).post(`/${workspaceId}/memberships`, {
       preserveScroll: true,
       onSuccess: () => {
         showInviteModal = false;
         $inviteForm.reset();
+        turnstileToken = "";
       },
     });
   }
@@ -401,6 +406,10 @@
         </SelectInput>
       {/snippet}
     </FormField>
+
+    <div class="mt-4">
+      <Turnstile onSuccess={(token) => (turnstileToken = token)} />
+    </div>
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">

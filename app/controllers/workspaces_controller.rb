@@ -1,4 +1,8 @@
 class WorkspacesController < ApplicationController
+  rate_limit to: 5, within: 1.minute, only: :create, with: -> {
+    redirect_back fallback_location: root_path, alert: "Too many workspace creation attempts. Please wait a minute."
+  }
+
   def create
     authorize Workspace, :create?
 

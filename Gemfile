@@ -61,6 +61,9 @@ gem "prawn-table", "~> 0.2"
 gem "omniauth-google-oauth2", "~> 1.1"
 gem "omniauth-rails_csrf_protection", "~> 2.0"
 
+# Cloudflare Turnstile for invisible captcha
+gem "turnstiled", "~> 0.1"
+
 # Hashids for friendly IDs
 gem "hashids", "~> 1.0"
 

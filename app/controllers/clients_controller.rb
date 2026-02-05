@@ -1,4 +1,8 @@
 class ClientsController < ApplicationController
+  rate_limit to: 20, within: 1.minute, only: :create, with: -> {
+    redirect_to clients_path, alert: "Too many client creation attempts. Please wait a minute."
+  }
+
   before_action :set_client, only: [ :update, :destroy ]
   before_action :authorize_client, only: [ :create, :update, :destroy ]
 

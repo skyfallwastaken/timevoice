@@ -1,4 +1,8 @@
 class TimeEntriesController < ApplicationController
+  rate_limit to: 30, within: 1.minute, only: [:create, :stop], with: -> {
+    redirect_back fallback_location: root_path, alert: "Too many time entry actions. Please wait a minute."
+  }
+
   before_action :set_time_entry, only: [ :update, :destroy, :remove_file ]
   before_action :set_running_time_entry, only: [ :stop ]
   before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop, :remove_file ]
