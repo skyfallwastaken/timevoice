@@ -3,6 +3,7 @@
 module Api
   module V1
     class ProjectsController < BaseController
+      before_action :require_workspace!
       before_action :set_project, only: [ :show, :update, :destroy ]
 
       def index

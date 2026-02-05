@@ -3,6 +3,7 @@
 module Api
   module V1
     class TimeEntriesController < BaseController
+      before_action :require_workspace!
       before_action :set_time_entry, only: [ :show, :update, :destroy ]
       before_action :set_running_time_entry, only: [ :stop ]
 

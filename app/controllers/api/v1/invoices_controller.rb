@@ -3,6 +3,7 @@
 module Api
   module V1
     class InvoicesController < BaseController
+      before_action :require_workspace!
       before_action :set_invoice, only: [:show, :update, :destroy]
       before_action -> { require_scope! :invoices }, only: [:create, :update, :destroy]
 

@@ -20,12 +20,15 @@ module Api
       def current_workspace
         @current_workspace ||= begin
           if params[:workspace_id].present?
-            workspace_id = Workspace.decode_id(params[:workspace_id])
-            current_user&.workspaces&.find_by(id: workspace_id)
+            current_user&.workspaces&.find_by_hashid(params[:workspace_id])
           else
             current_user&.workspaces&.first
           end
         end
+      end
+
+      def require_workspace!
+        not_found unless current_workspace
       end
 
       def pundit_user
