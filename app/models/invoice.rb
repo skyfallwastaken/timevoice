@@ -2,6 +2,11 @@ class Invoice < ApplicationRecord
   include Hashidable
   include CurrencyFormatter
 
+  STATUSES = %w[draft issued paid].freeze
+  STATUS_DRAFT = "draft".freeze
+  STATUS_ISSUED = "issued".freeze
+  STATUS_PAID = "paid".freeze
+
   belongs_to :workspace
   belongs_to :client
   has_many :invoice_lines, dependent: :destroy
@@ -10,11 +15,11 @@ class Invoice < ApplicationRecord
   validates :period_start, presence: true
   validates :period_end, presence: true
   validates :issued_on, presence: true
-  validates :status, inclusion: { in: %w[draft issued paid] }
+  validates :status, inclusion: { in: STATUSES }
 
-  scope :draft, -> { where(status: "draft") }
-  scope :issued, -> { where(status: "issued") }
-  scope :paid, -> { where(status: "paid") }
+  scope :draft, -> { where(status: STATUS_DRAFT) }
+  scope :issued, -> { where(status: STATUS_ISSUED) }
+  scope :paid, -> { where(status: STATUS_PAID) }
 
   def total_amount
     total_cents / 100.0
@@ -27,17 +32,11 @@ class Invoice < ApplicationRecord
   def self.generate_from_time_entries(workspace, client, period_start_date, period_end_date, rate_cents, user = nil)
     entries_query = TimeEntry
       .where(workspace: workspace)
-      .completed
-      .where(billable: true)
-      .left_outer_joins(:invoice_lines)
-      .where(invoice_lines: { id: nil })
-      .joins(:project)
-      .where(projects: { client_id: client.id })
-      .where(start_at: period_start_date.beginning_of_day..period_end_date.end_of_day)
-      .where(TimeEntry.arel_table[:duration_seconds].gt(0))
-      .where(TimeEntry.arel_table[:duration_seconds].gteq(36))
+      .unbilled
+      .for_client(client)
+      .in_date_range(period_start_date, period_end_date)
 
-      entries_query = entries_query.where(user: user) if user
+    entries_query = entries_query.where(user: user) if user
 
     entries = entries_query
 
@@ -49,14 +48,14 @@ class Invoice < ApplicationRecord
       period_start: period_start_date,
       period_end: period_end_date,
       issued_on: Date.current,
-      status: "draft",
+      status: STATUS_DRAFT,
       total_cents: 0
     )
 
     total = 0
 
     entries.each do |entry|
-      hours = (entry.duration_seconds || 0) / 3600.0
+      hours = entry.duration_hours
       amount = (hours * rate_cents).round
 
       InvoiceLine.create!(

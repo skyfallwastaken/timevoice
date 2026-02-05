@@ -1,4 +1,8 @@
 class TimeEntry < ApplicationRecord
+  SECONDS_PER_HOUR = 3600
+  SECONDS_PER_MINUTE = 60
+  MIN_BILLABLE_SECONDS = 36
+
   belongs_to :user
   belongs_to :workspace
   belongs_to :project, optional: true
@@ -22,6 +26,15 @@ class TimeEntry < ApplicationRecord
   scope :billable, -> { where(billable: true) }
   scope :today, -> { where(start_at: Time.current.beginning_of_day..Time.current.end_of_day) }
   scope :this_week, -> { where(start_at: Time.current.beginning_of_week..Time.current.end_of_week) }
+  scope :in_date_range, ->(start_date, end_date) { where(start_at: start_date.beginning_of_day..end_date.end_of_day) }
+  scope :unbilled, -> {
+    completed
+      .billable
+      .left_outer_joins(:invoice_lines)
+      .where(invoice_lines: { id: nil })
+      .where(arel_table[:duration_seconds].gteq(MIN_BILLABLE_SECONDS))
+  }
+  scope :for_client, ->(client) { joins(:project).where(projects: { client_id: client.id }) }
 
   def running?
     end_at.nil?
@@ -48,15 +61,19 @@ class TimeEntry < ApplicationRecord
   def formatted_duration
     return nil if duration.nil?
 
-    hours = duration / 3600
-    minutes = (duration % 3600) / 60
-    seconds = duration % 60
+    hours = duration / SECONDS_PER_HOUR
+    minutes = (duration % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+    seconds = duration % SECONDS_PER_MINUTE
 
     if hours > 0
       "#{hours}:#{minutes.to_s.rjust(2, '0')}:#{seconds.to_s.rjust(2, '0')}"
     else
       "#{minutes}:#{seconds.to_s.rjust(2, '0')}"
     end
+  end
+
+  def duration_hours
+    (duration_seconds || 0) / SECONDS_PER_HOUR.to_f
   end
 
   def tag_names

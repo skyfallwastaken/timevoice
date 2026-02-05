@@ -1,4 +1,6 @@
 class ReportsController < ApplicationController
+  include ReportCalculable
+
   def index
     start_date = parse_date(params[:start_date]) || Time.current.beginning_of_week.to_date
     end_date = parse_date(params[:end_date]) || Time.current.end_of_week.to_date
@@ -6,8 +8,8 @@ class ReportsController < ApplicationController
     @entries = current_user.time_entries
       .where(workspace: current_workspace)
       .completed
-      .where(start_at: start_date.beginning_of_day..end_date.end_of_day)
-      .includes(:project, :tags)
+      .in_date_range(start_date, end_date)
+      .includes(:tags, project: :client)
 
     @totals = calculate_totals(@entries)
 
@@ -36,47 +38,10 @@ class ReportsController < ApplicationController
 
   def parse_date(date_string)
     return nil if date_string.blank?
-
     return nil unless date_string.match?(/^\d{4}-\d{2}-\d{2}$/)
 
     Date.parse(date_string)
   rescue ArgumentError
     nil
-  end
-
-  def calculate_totals(entries)
-    total_seconds = entries.sum { |e| e.duration_seconds || 0 }
-    billable_seconds = entries.where(billable: true).sum { |e| e.duration_seconds || 0 }
-    non_billable_seconds = total_seconds - billable_seconds
-
-    daily = entries.group_by { |e| e.start_at.to_date }.transform_values do |day_entries|
-      {
-        total: day_entries.sum { |e| e.duration_seconds || 0 },
-        billable: day_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
-      }
-    end
-
-    by_project = entries.group_by { |e| e.project&.name || "No Project" }.transform_values do |project_entries|
-      {
-        total: project_entries.sum { |e| e.duration_seconds || 0 },
-        billable: project_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
-      }
-    end
-
-    by_client = entries.group_by { |e| e.project&.client&.name || "No Client" }.transform_values do |client_entries|
-      {
-        total: client_entries.sum { |e| e.duration_seconds || 0 },
-        billable: client_entries.select(&:billable).sum { |e| e.duration_seconds || 0 }
-      }
-    end
-
-    {
-      total: total_seconds,
-      billable: billable_seconds,
-      non_billable: non_billable_seconds,
-      daily: daily,
-      by_project: by_project,
-      by_client: by_client
-    }
   end
 end

@@ -1,9 +1,10 @@
 class DashboardController < ApplicationController
   def index
-    @running_entry = current_user.time_entries.running.first
+    @running_entry = current_user.time_entries.running.includes(:project, :tags).first
     @recent_entries = current_user.time_entries
       .where(workspace: current_workspace)
       .completed
+      .includes(:project, :tags, files_attachments: :blob)
       .order(start_at: :desc)
       .limit(10)
 
@@ -57,7 +58,8 @@ class DashboardController < ApplicationController
 
     @entries = current_user.time_entries
       .where(workspace: current_workspace)
-      .where(start_at: week_start_date.beginning_of_day..week_end_date.end_of_day)
+      .in_date_range(week_start_date, week_end_date)
+      .includes(:project, :tags)
       .order(start_at: :asc)
 
     @projects = current_workspace.projects.includes(:client).order(:name)

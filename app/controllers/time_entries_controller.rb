@@ -1,4 +1,6 @@
 class TimeEntriesController < ApplicationController
+  include TagAssignable
+
   rate_limit to: 30, within: 1.minute, only: [ :create, :stop ], with: -> {
     redirect_back fallback_location: root_path, alert: "Too many time entry actions. Please wait a minute."
   }
@@ -12,19 +14,7 @@ class TimeEntriesController < ApplicationController
     @time_entry.workspace = current_workspace
 
     if @time_entry.save
-
-      if params[:time_entry][:tag_ids].present?
-        tag_ids = Array(params[:time_entry][:tag_ids]).map(&:to_i)
-        valid_tags = current_workspace.tags.where(id: tag_ids)
-
-        if valid_tags.count != tag_ids.uniq.count
-          invalid_count = tag_ids.uniq.count - valid_tags.count
-          Rails.logger.warn("TimeEntriesController: #{invalid_count} invalid tag_ids provided by user #{current_user.id} in workspace #{current_workspace.id}")
-        end
-
-        @time_entry.tags = valid_tags
-      end
-
+      assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
       redirect_to root_path, notice: "Timer started!"
     else
       redirect_to root_path, alert: @time_entry.errors.full_messages.join(", ")
@@ -33,17 +23,8 @@ class TimeEntriesController < ApplicationController
 
   def update
     if @time_entry.update(time_entry_params)
-
       if params[:time_entry].key?(:tag_ids)
-        tag_ids = Array(params[:time_entry][:tag_ids]).map(&:to_i)
-        valid_tags = current_workspace.tags.where(id: tag_ids)
-
-        if valid_tags.count != tag_ids.uniq.count
-          invalid_count = tag_ids.uniq.count - valid_tags.count
-          Rails.logger.warn("TimeEntriesController: #{invalid_count} invalid tag_ids provided by user #{current_user.id} in workspace #{current_workspace.id}")
-        end
-
-        @time_entry.tags = valid_tags
+        assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
       end
 
       if params[:time_entry][:files].present?

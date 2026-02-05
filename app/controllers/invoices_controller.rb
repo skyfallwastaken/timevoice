@@ -23,11 +23,7 @@ class InvoicesController < ApplicationController
 
     @unbilled_entries = current_user.time_entries
       .where(workspace: current_workspace)
-      .completed
-      .where(billable: true)
-      .left_outer_joins(:invoice_lines)
-      .where(invoice_lines: { id: nil })
-      .where(TimeEntry.arel_table[:duration_seconds].gteq(36))
+      .unbilled
       .includes(:project, :tags)
       .order(start_at: :desc)
 
@@ -47,7 +43,7 @@ class InvoicesController < ApplicationController
           }
         ).merge(
           total_amount: invoice.formatted_total,
-          line_count: invoice.invoice_lines.count
+          line_count: invoice.invoice_lines.size
         )
       },
       clients: @clients.as_json(only: [ :id, :name, :billing_address ]),
@@ -60,7 +56,7 @@ class InvoicesController < ApplicationController
            }
          ).merge(
            formattedDuration: entry.formatted_duration,
-           hours: (entry.duration_seconds || 0) / 3600.0
+           hours: entry.duration_hours
          )
        },
       invoiceSettings: {
