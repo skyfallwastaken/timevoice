@@ -117,11 +117,13 @@ module Api
       private
 
       def set_time_entry
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).find(params[:id])
+        time_entry_id = TimeEntry.decode_id(params[:id])
+        @time_entry = current_user.time_entries.where(workspace: current_workspace).find_by!(id: time_entry_id)
       end
 
       def set_running_time_entry
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find(params[:id])
+        time_entry_id = TimeEntry.decode_id(params[:id])
+        @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by!(id: time_entry_id)
       end
 
       def time_entry_params

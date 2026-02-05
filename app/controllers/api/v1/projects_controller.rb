@@ -65,7 +65,8 @@ module Api
       private
 
       def set_project
-        @project = current_workspace.projects.find(params[:id])
+        project_id = Project.decode_id(params[:id])
+        @project = current_workspace.projects.find_by!(id: project_id)
       end
 
       def project_params

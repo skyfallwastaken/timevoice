@@ -51,7 +51,8 @@ module Api
       private
 
       def set_tag
-        @tag = current_workspace.tags.find(params[:id])
+        tag_id = Tag.decode_id(params[:id])
+        @tag = current_workspace.tags.find_by!(id: tag_id)
       end
 
       def tag_params

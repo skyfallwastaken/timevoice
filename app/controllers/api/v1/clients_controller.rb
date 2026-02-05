@@ -51,7 +51,8 @@ module Api
       private
 
       def set_client
-        @client = current_workspace.clients.find(params[:id])
+        client_id = Client.decode_id(params[:id])
+        @client = current_workspace.clients.find_by!(id: client_id)
       end
 
       def client_params
