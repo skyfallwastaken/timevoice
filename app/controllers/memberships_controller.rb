@@ -2,7 +2,7 @@ class MembershipsController < ApplicationController
   rate_limit to: 10, within: 1.minute, only: :create, with: -> {
     redirect_to settings_workspace_path, alert: "Too many invite attempts. Please wait a minute and try again."
   }
-  verify_turnstile_request only: [:create]
+  verify_turnstile_request only: [ :create ]
 
   def create
     membership = current_workspace.memberships.new
