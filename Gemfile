@@ -48,7 +48,7 @@ gem "active_storage_validations"
 # gem "rack-attack", "~> 6.7"
 
 # Inertia.js adapter for Rails
-gem "inertia_rails", "~> 3.0"
+gem "inertia_rails", "~> 3.17"
 
 # Authorization with Pundit
 gem "pundit", "~> 2.3"
