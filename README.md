@@ -72,3 +72,7 @@ We use Turnstile to protect API endpoints (especially ones that send out emails/
 The application is configured for deployment with Kamal. See the Dockerfile and `.kamal` directory for configuration. You can also use the Dockerfile directly.
 
 Remember to set `RAILS_ENV` to `production` and to set `SOLID_QUEUE_IN_PUMA` to `true` in your environment variables for production deployments!
+
+---
+
+<sub>disclosure: AI was used for scaffolding.</sub>
