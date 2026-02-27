@@ -58,7 +58,7 @@ gem "prawn", "~> 2.4"
 gem "prawn-table", "~> 0.2"
 
 # OmniAuth for Google OAuth
-gem "omniauth-google-oauth2", "~> 1.1"
+gem "omniauth-google-oauth2", "~> 1.2"
 gem "omniauth-rails_csrf_protection", "~> 2.0"
 
 # Cloudflare Turnstile for invisible captcha
