@@ -68,7 +68,7 @@ gem "turnstiled", "~> 0.1"
 gem "hashids", "~> 1.0"
 
 # OAuth2 provider
-gem "doorkeeper", "~> 5.8"
+gem "doorkeeper", "~> 5.9"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
