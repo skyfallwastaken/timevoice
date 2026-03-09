@@ -20,7 +20,7 @@ createInertiaApp({
     }
 
     if (page && page.layout === undefined) {
-      page.layout = defaultLayout;
+      return { ...page, layout: defaultLayout };
     }
 
     return page as ResolvedComponent;
