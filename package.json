@@ -4,22 +4,22 @@
   "devDependencies": {
     "date-picker-svelte": "^2.17.0",
     "prettier": "^3.8.1",
-    "prettier-plugin-svelte": "^3.4.1",
+    "prettier-plugin-svelte": "^3.5.1",
     "vite": "^7.3.1",
-    "vite-plugin-ruby": "^5.1.2"
+    "vite-plugin-ruby": "^5.1.3"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.2.5",
-    "@inertiajs/svelte": "^2.3.12",
+    "@fontsource/inter": "^5.2.8",
+    "@inertiajs/svelte": "^2.3.17",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.19",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tsconfig/svelte": "^5.0.6",
+    "@tailwindcss/vite": "^4.2.1",
+    "@tsconfig/svelte": "^5.0.8",
     "lucide-svelte": "^0.563.0",
-    "svelte": "^5.49.0",
-    "svelte-check": "^4.3.5",
-    "tailwindcss": "^4.1.18",
+    "svelte": "^5.53.7",
+    "svelte-check": "^4.4.5",
+    "tailwindcss": "^4.2.1",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
   },

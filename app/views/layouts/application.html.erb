@@ -14,9 +14,9 @@
     <link rel="apple-touch-icon" href="/icon.png" />
 
     <%= javascript_include_tag "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit", "data-turbo-track": "reload", defer: true %>
-
-    <%= vite_client_tag %> <%= vite_typescript_tag "inertia" %> <%=
-    inertia_ssr_head %>
+    <%= vite_client_tag %>
+    <%= vite_typescript_tag "inertia" %>
+    <%= inertia_ssr_head %>
   </head>
 
   <body class="bg-bg-primary text-fg-primary antialiased">

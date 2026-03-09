@@ -2,6 +2,8 @@ class ReportsController < ApplicationController
   include ReportCalculable
 
   def index
+    authorize current_workspace, :show?
+
     start_date = parse_date(params[:start_date]) || Time.current.beginning_of_week.to_date
     end_date = parse_date(params[:end_date]) || Time.current.end_of_week.to_date
 

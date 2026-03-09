@@ -9,7 +9,7 @@
 </script>
 
 <div>
-  <span class="block text-sm font-medium text-fg-secondary mb-2">Color</span>
+  <span class="block text-sm font-medium text-fg-secondary mb-1">Color</span>
   <div class="flex flex-wrap gap-2">
     {#each colors as color}
       <button

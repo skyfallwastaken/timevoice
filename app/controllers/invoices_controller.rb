@@ -35,7 +35,7 @@ class InvoicesController < ApplicationController
     render inertia: "Invoices/Index", props: {
       invoices: @invoices.map { |invoice|
         invoice.as_json(
-          only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+          only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
           methods: [ :hashid ],
           include: {
             client: { only: [ :id, :name ] },
@@ -70,7 +70,7 @@ class InvoicesController < ApplicationController
   def show
     render inertia: "Invoices/Show", props: {
       invoice: @invoice.as_json(
-        only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+        only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
         methods: [ :hashid ],
         include: {
           client: { only: [ :id, :name, :billing_address ] },
@@ -123,7 +123,7 @@ class InvoicesController < ApplicationController
       return
     end
 
-    redirect_to invoices_path, notice: "Invoice ##{invoice.id} created successfully with #{invoice.invoice_lines.count} line items."
+    redirect_to invoices_path, notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
   rescue ArgumentError
     redirect_to invoices_path, alert: "Invalid invoice period dates."
   rescue ActiveRecord::RecordNotFound
@@ -143,9 +143,10 @@ class InvoicesController < ApplicationController
   end
 
   def destroy
+    invoice_number = @invoice.invoice_number
     @invoice.destroy
 
-    redirect_to invoices_path, notice: "Invoice deleted successfully!"
+    redirect_to invoices_path, notice: "Invoice ##{invoice_number} deleted successfully!"
   end
 
   def pdf
@@ -210,7 +211,7 @@ class InvoicesController < ApplicationController
   end
 
   def invoice_params
-    params.require(:invoice).permit(:status)
+    params.require(:invoice).permit(:status, :invoice_number)
   end
 
   def email_params

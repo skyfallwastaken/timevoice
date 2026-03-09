@@ -1,7 +1,9 @@
 class OauthApplicationsController < ApplicationController
-  before_action :set_oauth_application, only: [ :update, :destroy ]
+  before_action :set_oauth_application, only: [ :update, :destroy, :regenerate_secret ]
 
   def index
+    authorize current_workspace, :show?
+
     @applications = current_workspace.oauth_applications.order(created_at: :desc)
 
     render inertia: "Settings/Developer", props: {
@@ -44,7 +46,6 @@ class OauthApplicationsController < ApplicationController
   end
 
   def regenerate_secret
-    @application = current_workspace.oauth_applications.find(params[:id])
     authorize @application, :update?
 
     @application.renew_secret

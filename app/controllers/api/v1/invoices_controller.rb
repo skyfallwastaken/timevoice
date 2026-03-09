@@ -4,8 +4,8 @@ module Api
   module V1
     class InvoicesController < BaseController
       before_action :require_workspace!
-      before_action :set_invoice, only: [:show, :update, :destroy]
-      before_action -> { require_scope! :invoices }, only: [:create, :update, :destroy]
+      before_action :set_invoice, only: [ :show, :update, :destroy ]
+      before_action -> { require_scope! :invoices }, only: [ :create, :update, :destroy ]
 
       def index
         invoices = current_workspace.invoices
@@ -33,7 +33,8 @@ module Api
           client,
           Date.parse(invoice_params[:period_start]),
           Date.parse(invoice_params[:period_end]),
-          invoice_params[:rate_cents].to_i
+          invoice_params[:rate_cents].to_i,
+          current_user
         )
 
         if invoice.nil?
@@ -82,10 +83,10 @@ module Api
 
       def invoice_json(invoice, include_lines: false)
         json = invoice.as_json(
-          only: [:id, :status, :total_cents, :period_start, :period_end, :issued_on],
-          methods: [:hashid],
+          only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+          methods: [ :hashid ],
           include: {
-            client: { only: [:id, :name, :billing_address] }
+            client: { only: [ :id, :name, :billing_address ] }
           }
         ).merge(
           total_amount: invoice.formatted_total,
@@ -94,7 +95,7 @@ module Api
 
         if include_lines
           json[:invoice_lines] = invoice.invoice_lines.map do |line|
-            line.as_json(only: [:id, :description, :qty_hours, :rate_cents, :amount_cents]).merge(
+            line.as_json(only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ]).merge(
               amount: line.formatted_amount,
               rate: line.formatted_rate
             )

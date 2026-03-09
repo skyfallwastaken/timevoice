@@ -95,7 +95,12 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <SectionCard title="Create New Project" icon={Plus} iconColor="text-bright-green" bodyClass="p-4">
+  <SectionCard
+    title="Create New Project"
+    icon={Plus}
+    iconColor="text-bright-green"
+    bodyClass="p-4"
+  >
     <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField id="project-name" label="Project Name">
@@ -178,10 +183,7 @@
                     />
                   {/snippet}
                 </FormField>
-                <FormField
-                  id="edit-project-client-{project.id}"
-                  label="Client"
-                >
+                <FormField id="edit-project-client-{project.id}" label="Client">
                   {#snippet children({ describedBy })}
                     <SelectInput
                       id="edit-project-client-{project.id}"

@@ -3,17 +3,19 @@
 one:
   workspace: one
   client: one
+  invoice_number: 1
   period_start: 2026-01-29
   period_end: 2026-01-29
   issued_on: 2026-01-29
-  status: MyString
+  status: draft
   total_cents: 1
 
 two:
   workspace: two
   client: two
+  invoice_number: 2
   period_start: 2026-01-29
   period_end: 2026-01-29
   issued_on: 2026-01-29
-  status: MyString
+  status: draft
   total_cents: 1

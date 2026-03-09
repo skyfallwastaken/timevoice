@@ -6,9 +6,11 @@
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
+  import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import TextArea from "../../components/TextArea.svelte";
   import { formatRate, parseRate } from "../../lib/format";
+  import { routes } from "../../lib/routes";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
   let flash = $derived($page.props.flash || {});
@@ -25,7 +27,7 @@
   );
 
   function saveSettings() {
-    $form.patch(`/${workspaceId}/settings/billing`, {
+    $form.patch(routes.settings.updateBilling(workspaceId), {
       preserveScroll: true,
     });
   }
@@ -39,27 +41,7 @@
   {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
-    <div class="grid grid-cols-3">
-      <Link
-        href="/{workspaceId}/settings/workspace"
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
-      >
-        Workspace
-      </Link>
-      <Link
-        href="/{workspaceId}/settings/billing"
-        class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary border-r border-bg-tertiary"
-        aria-current="page"
-      >
-        Billing
-      </Link>
-      <Link
-        href="/{workspaceId}/settings/developer"
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150"
-      >
-        Developer
-      </Link>
-    </div>
+    <SettingsTabs {workspaceId} active="billing" />
   </SectionCard>
 
   <SectionCard
@@ -103,34 +85,31 @@
         {/snippet}
       </FormField>
 
-      <div>
-        <label
-          for="billable-rate"
-          class="block text-sm font-medium text-fg-secondary mb-2"
-        >
-          Default Billable Rate ($/hour)
-        </label>
-        <div class="relative">
-          <DollarSign
-            class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-muted"
-          />
-          <TextInput
-            id="billable-rate"
-            type="number"
-            tone="purple"
-            step="0.01"
-            min="0"
-            bind:value={rateInputValue}
-            onchange={(e) =>
-              ($form.billable_rate_cents = parseRate(e.currentTarget.value))}
-            placeholder="0.00"
-            class="pl-8 pr-4"
-          />
-        </div>
-        <p class="text-sm text-fg-muted mt-1">
-          This rate will be used as the default when creating invoices.
-        </p>
-      </div>
+      <FormField
+        id="billable-rate"
+        label="Default Billable Rate ($/hour)"
+        description="This rate will be used as the default when creating invoices."
+      >
+        {#snippet children()}
+          <div class="relative">
+            <DollarSign
+              class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-muted"
+            />
+            <TextInput
+              id="billable-rate"
+              type="number"
+              tone="purple"
+              step="0.01"
+              min="0"
+              bind:value={rateInputValue}
+              onchange={(e) =>
+                ($form.billable_rate_cents = parseRate(e.currentTarget.value))}
+              placeholder="0.00"
+              class="pl-8 pr-4"
+            />
+          </div>
+        {/snippet}
+      </FormField>
 
       <div class="flex justify-end pt-4">
         <Button
@@ -158,7 +137,7 @@
       <p>
         <strong class="text-fg-primary">Client Addresses:</strong>
         Client billing addresses are managed in the <Link
-          href="/{workspaceId}/clients"
+          href={routes.clients.index(workspaceId)}
           class="text-bright-purple hover:text-accent-purple transition-colors duration-150"
           >Clients</Link
         > section.

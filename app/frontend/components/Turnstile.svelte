@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
-  import { onMount, onDestroy } from "svelte";
 
   interface Props {
     onSuccess?: (token: string) => void;
@@ -25,44 +24,61 @@
     ($page.props.turnstile_site_key as string) || "1x00000000000000000000BB",
   );
 
-  onMount(() => {
-    const renderWidget = () => {
-      if (window.turnstile && container && !widgetId) {
-        widgetId = window.turnstile.render(container, {
-          sitekey: siteKey,
-          theme,
-          size,
-          callback: (token: string) => {
-            onSuccess?.(token);
-          },
-          "error-callback": () => {
-            onError?.();
-          },
-          "expired-callback": () => {
-            onExpire?.();
-          },
-        });
+  $effect(() => {
+    if (!container) return;
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const clearTimers = () => {
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+
+    const destroyWidget = () => {
+      if (widgetId && window.turnstile) {
+        window.turnstile.remove(widgetId);
+        widgetId = null;
       }
     };
 
-    if (window.turnstile) {
-      renderWidget();
-    } else {
-      const interval = setInterval(() => {
+    const renderWidget = () => {
+      if (!window.turnstile || !container || widgetId) return;
+
+      widgetId = window.turnstile.render(container, {
+        sitekey: siteKey,
+        theme,
+        size,
+        callback: (token: string) => {
+          onSuccess?.(token);
+        },
+        "error-callback": () => {
+          onError?.();
+        },
+        "expired-callback": () => {
+          onExpire?.();
+        },
+      });
+    };
+
+    destroyWidget();
+    renderWidget();
+
+    if (!widgetId) {
+      intervalId = setInterval(() => {
         if (window.turnstile) {
-          clearInterval(interval);
+          clearTimers();
           renderWidget();
         }
       }, 100);
 
-      setTimeout(() => clearInterval(interval), 10000);
+      timeoutId = setTimeout(clearTimers, 10000);
     }
-  });
 
-  onDestroy(() => {
-    if (widgetId && window.turnstile) {
-      window.turnstile.remove(widgetId);
-    }
+    return () => {
+      clearTimers();
+      destroyWidget();
+    };
   });
 </script>
 

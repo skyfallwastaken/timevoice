@@ -1,5 +1,7 @@
 class DashboardController < ApplicationController
   def index
+    authorize current_workspace, :show?
+
     @running_entry = current_user.time_entries.running.includes(:project, :tags).first
     @recent_entries = current_user.time_entries
       .where(workspace: current_workspace)
@@ -48,6 +50,8 @@ class DashboardController < ApplicationController
   end
 
   def calendar
+    authorize current_workspace, :show?
+
     week_start_date = begin
       params[:week_start].present? ? Date.parse(params[:week_start]) : Date.current.beginning_of_week
     rescue ArgumentError

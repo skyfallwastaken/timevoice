@@ -40,9 +40,12 @@
     primary: toneClasses,
     secondary: {
       blue: "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
-      green: "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
-      purple: "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
-      yellow: "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
+      green:
+        "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
+      purple:
+        "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
+      yellow:
+        "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
       red: "bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary",
     },
     ghost: {
@@ -54,9 +57,12 @@
     },
     outline: {
       blue: "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
-      green: "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
-      purple: "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
-      yellow: "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
+      green:
+        "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
+      purple:
+        "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
+      yellow:
+        "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
       red: "border border-bg-tertiary text-fg-muted hover:text-fg-primary hover:border-bright-blue",
     },
   };

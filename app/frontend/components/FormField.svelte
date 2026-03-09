@@ -24,17 +24,15 @@
   let labelClass = $derived(
     srOnly
       ? "block text-sm font-medium text-fg-secondary mb-1 sr-only"
-      : "block text-sm font-medium text-fg-secondary mb-1"
+      : "block text-sm font-medium text-fg-secondary mb-1",
   );
 
-  let errorText = $derived(
-    Array.isArray(error) ? error[0] : error
-  );
+  let errorText = $derived(Array.isArray(error) ? error[0] : error);
 
   let helpId = $derived(description ? `${id}-help` : undefined);
   let errorId = $derived(errorText ? `${id}-error` : undefined);
   let describedBy = $derived(
-    [helpId, errorId].filter(Boolean).join(" ") || undefined
+    [helpId, errorId].filter(Boolean).join(" ") || undefined,
   );
 </script>
 

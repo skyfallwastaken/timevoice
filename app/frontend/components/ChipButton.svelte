@@ -21,7 +21,7 @@
   let selectedClass = $derived(
     selected
       ? "border-bright-purple text-bright-purple"
-      : "bg-bg-primary border-bg-tertiary text-fg-secondary hover:bg-bg-tertiary hover:border-bright-purple"
+      : "bg-bg-primary border-bg-tertiary text-fg-secondary hover:bg-bg-tertiary hover:border-bright-purple",
   );
 </script>
 

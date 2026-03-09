@@ -72,7 +72,12 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <SectionCard title="Create New Tag" icon={Plus} iconColor="text-bright-yellow" bodyClass="p-4">
+  <SectionCard
+    title="Create New Tag"
+    icon={Plus}
+    iconColor="text-bright-yellow"
+    bodyClass="p-4"
+  >
     <div class="space-y-4">
       <FormField id="tag-name" label="Tag Name">
         {#snippet children({ describedBy })}
@@ -81,7 +86,8 @@
             tone="yellow"
             bind:value={$createForm.name}
             placeholder="Enter tag name..."
-            onkeydown={(e) => e.key === "Enter" && $createForm.name && handleCreate()}
+            onkeydown={(e) =>
+              e.key === "Enter" && $createForm.name && handleCreate()}
             aria-describedby={describedBy}
           />
         {/snippet}
@@ -111,13 +117,13 @@
         {#each tags as tagItem, i}
           {@const isLast = i === tags.length - 1}
           {#if editingId === tagItem.id}
-            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} flex items-center gap-4">
+            <div
+              class="p-4 {isLast
+                ? 'rounded-b-[10px]'
+                : ''} flex items-center gap-4"
+            >
               <div class="flex-1">
-                <FormField
-                  id="edit-tag-{tagItem.id}"
-                  label="Tag Name"
-                  srOnly
-                >
+                <FormField id="edit-tag-{tagItem.id}" label="Tag Name" srOnly>
                   {#snippet children({ describedBy })}
                     <TextInput
                       id="edit-tag-{tagItem.id}"

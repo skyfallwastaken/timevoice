@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_02_05_013255) do
+ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -92,6 +92,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_05_013255) do
   create_table "invoices", force: :cascade do |t|
     t.integer "client_id", null: false
     t.datetime "created_at", null: false
+    t.integer "invoice_number", null: false
     t.date "issued_on", null: false
     t.date "period_end", null: false
     t.date "period_start", null: false
@@ -102,6 +103,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_05_013255) do
     t.index ["client_id"], name: "index_invoices_on_client_id"
     t.index ["status"], name: "index_invoices_on_status"
     t.index ["workspace_id", "client_id"], name: "index_invoices_on_workspace_id_and_client_id"
+    t.index ["workspace_id", "invoice_number"], name: "index_invoices_on_workspace_id_and_invoice_number", unique: true
     t.index ["workspace_id"], name: "index_invoices_on_workspace_id"
   end
 

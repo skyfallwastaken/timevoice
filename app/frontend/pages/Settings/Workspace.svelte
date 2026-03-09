@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import { Link, page, router } from "@inertiajs/svelte";
+  import { page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { Settings, Users, Shield, Trash2, Plus, Crown } from "lucide-svelte";
   import Turnstile from "../../components/Turnstile.svelte";
@@ -8,11 +8,14 @@
   import Modal from "../../components/Modal.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import FormField from "../../components/FormField.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
+  import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import SelectInput from "../../components/SelectInput.svelte";
+  import { routes } from "../../lib/routes";
 
   type Membership = {
     id: number;
@@ -50,16 +53,25 @@
   const canDeleteWorkspace = $derived(myRole === "owner");
   const canEditWorkspace = $derived(myRole === "owner");
 
-  let workspaceName = $state("");
-  $effect(() => {
-    workspaceName = workspace.name || "";
-  });
+  let workspaceNameDraft = $state("");
+  let hasWorkspaceNameDraft = $state(false);
+  let workspaceNameInput = $derived(
+    hasWorkspaceNameDraft ? workspaceNameDraft : workspace.name || "",
+  );
+  let hasWorkspaceNameChanges = $derived(
+    workspaceNameInput.trim().length > 0 &&
+      workspaceNameInput !== (workspace.name || ""),
+  );
 
   let showInviteModal = $state(false);
   let showDeleteModal = $state(false);
   let showRemoveMemberModal = $state(false);
   let showCancelInviteModal = $state(false);
-  let memberToRemove = $state<{ id: number; name: string; isSelf: boolean } | null>(null);
+  let memberToRemove = $state<{
+    id: number;
+    name: string;
+    isSelf: boolean;
+  } | null>(null);
   let inviteToCancel = $state<{ id: number; email: string } | null>(null);
   let inviteForm = useForm({
     email: "",
@@ -71,45 +83,57 @@
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
   function submitInvite() {
-    $inviteForm.transform((data) => ({
-      membership: { email: data.email },
-      role: data.role,
-      "cf-turnstile-response": turnstileToken,
-    })).post(`/${workspaceId}/memberships`, {
-      preserveScroll: true,
-      onSuccess: () => {
-        showInviteModal = false;
-        $inviteForm.reset();
-        turnstileToken = "";
-      },
-    });
+    $inviteForm
+      .transform((data) => ({
+        membership: { email: data.email },
+        role: data.role,
+        "cf-turnstile-response": turnstileToken,
+      }))
+      .post(routes.memberships.create(workspaceId), {
+        preserveScroll: true,
+        onSuccess: () => {
+          showInviteModal = false;
+          $inviteForm.reset();
+          turnstileToken = "";
+        },
+      });
   }
 
   function confirmDeleteWorkspace() {
-    router.delete(`/${workspaceId}/settings/workspace`);
+    router.delete(routes.settings.deleteWorkspace(workspaceId));
     showDeleteModal = false;
   }
 
   function saveWorkspaceName() {
-    if (workspaceName.trim() && workspaceName !== workspace.name) {
+    if (hasWorkspaceNameChanges) {
       router.patch(
-        `/${workspaceId}/settings/workspace`,
+        routes.settings.updateWorkspace(workspaceId),
         {
-          workspace: { name: workspaceName.trim() },
+          workspace: { name: workspaceNameInput.trim() },
         },
-        { preserveScroll: true },
+        {
+          preserveScroll: true,
+          onSuccess: () => {
+            hasWorkspaceNameDraft = false;
+            workspaceNameDraft = "";
+          },
+        },
       );
     }
   }
 
-  function openRemoveMemberModal(membershipId: number, memberName: string, isSelf: boolean) {
+  function openRemoveMemberModal(
+    membershipId: number,
+    memberName: string,
+    isSelf: boolean,
+  ) {
     memberToRemove = { id: membershipId, name: memberName, isSelf };
     showRemoveMemberModal = true;
   }
 
   function confirmRemoveMember() {
     if (!memberToRemove) return;
-    router.delete(`/${workspaceId}/memberships/${memberToRemove.id}`, {
+    router.delete(routes.memberships.delete(workspaceId, memberToRemove.id), {
       preserveScroll: !memberToRemove.isSelf,
     });
     showRemoveMemberModal = false;
@@ -135,9 +159,12 @@
 
   function confirmCancelInvite() {
     if (!inviteToCancel) return;
-    router.delete(`/${workspaceId}/invites/${inviteToCancel.id}`, {
-      preserveScroll: true,
-    });
+    router.delete(
+      routes.workspaceInvites.delete(workspaceId, inviteToCancel.id),
+      {
+        preserveScroll: true,
+      },
+    );
     showCancelInviteModal = false;
     inviteToCancel = null;
   }
@@ -164,27 +191,7 @@
   {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
-    <div class="grid grid-cols-3">
-      <Link
-        href="/{workspaceId}/settings/workspace"
-        class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary border-r border-bg-tertiary"
-        aria-current="page"
-      >
-        Workspace
-      </Link>
-      <Link
-        href="/{workspaceId}/settings/billing"
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
-      >
-        Billing
-      </Link>
-      <Link
-        href="/{workspaceId}/settings/developer"
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150"
-      >
-        Developer
-      </Link>
-    </div>
+    <SettingsTabs {workspaceId} active="workspace" />
   </SectionCard>
 
   <SectionCard title="General Information" bodyClass="p-4">
@@ -198,19 +205,27 @@
       >
         {#snippet children({ describedBy })}
           <div class="flex gap-2">
-            <input
+            <TextInput
               id="workspace-name"
               type="text"
-              bind:value={workspaceName}
+              value={workspaceNameInput}
               readonly={!canEditWorkspace}
+              oninput={(e) => {
+                workspaceNameDraft = e.currentTarget.value;
+                hasWorkspaceNameDraft = true;
+              }}
               onkeydown={(e) => e.key === "Enter" && saveWorkspaceName()}
               aria-describedby={describedBy}
-              class="flex-1 bg-bg-tertiary/50 border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary {canEditWorkspace
-                ? 'focus:outline-none focus:border-bright-purple'
-                : ''}"
+              class="flex-1 {canEditWorkspace ? '' : 'opacity-75'}"
+              tone="purple"
             />
-            {#if canEditWorkspace && workspaceName.trim() && workspaceName !== workspace.name}
-              <Button tone="purple" size="sm" type="button" onclick={saveWorkspaceName}>
+            {#if canEditWorkspace && hasWorkspaceNameChanges}
+              <Button
+                tone="purple"
+                size="sm"
+                type="button"
+                onclick={saveWorkspaceName}
+              >
                 Save
               </Button>
             {/if}
@@ -271,7 +286,9 @@
             {membership.user.email}
           {/snippet}
           {#snippet meta()}
-            <span class="flex items-center gap-1 {getRoleColor(membership.role)}">
+            <span
+              class="flex items-center gap-1 {getRoleColor(membership.role)}"
+            >
               <RoleIcon class="w-4 h-4" aria-hidden="true" />
               <span class="capitalize">{membership.role}</span>
             </span>
@@ -281,9 +298,15 @@
               {@const isSelf = membership.user?.id === currentUserId}
               <IconButton
                 tone="danger"
-                aria-label={isSelf ? "Leave workspace" : `Remove ${membership.user.name} from workspace`}
+                aria-label={isSelf
+                  ? "Leave workspace"
+                  : `Remove ${membership.user.name} from workspace`}
                 onclick={() =>
-                  openRemoveMemberModal(membership.id, membership.user.name, isSelf)}
+                  openRemoveMemberModal(
+                    membership.id,
+                    membership.user.name,
+                    isSelf,
+                  )}
               >
                 <Trash2 class="w-4 h-4" aria-hidden="true" />
               </IconButton>
@@ -296,14 +319,17 @@
           title="No members yet"
           description="Invite team members to collaborate on time tracking."
           actionLabel="Invite Member"
-          actionHref="/{workspaceId}/settings/workspace"
+          actionHref={routes.settings.workspace(workspaceId)}
         />
       {/each}
     </div>
   </SectionCard>
 
   {#if pendingInvites.length > 0 && canManageMembers}
-    <SectionCard title={`Pending Invites (${pendingInvites.length})`} icon={Users}>
+    <SectionCard
+      title={`Pending Invites (${pendingInvites.length})`}
+      icon={Users}
+    >
       <div
         class="divide-y divide-bg-tertiary"
         role="list"
@@ -324,7 +350,9 @@
               {invite.email}
             {/snippet}
             {#snippet secondary()}
-              Invited by {invite.inviter_name} · {formatTimeAgo(invite.created_at)}
+              Invited by {invite.inviter_name} · {formatTimeAgo(
+                invite.created_at,
+              )}
             {/snippet}
             {#snippet meta()}
               <span class="flex items-center gap-1 {getRoleColor(invite.role)}">
@@ -388,7 +416,8 @@
           tone="purple"
           bind:value={$inviteForm.email}
           placeholder="name@company.com"
-          onkeydown={(e) => e.key === "Enter" && $inviteForm.email && submitInvite()}
+          onkeydown={(e) =>
+            e.key === "Enter" && $inviteForm.email && submitInvite()}
           aria-describedby={describedBy}
           autocomplete="email"
         />
@@ -442,113 +471,44 @@
     {/snippet}
   </Modal>
 
-  <Modal
+  <ConfirmDeleteModal
     bind:open={showDeleteModal}
     title="Delete Workspace"
-    onclose={() => (showDeleteModal = false)}
-  >
-    <div class="space-y-4">
-      <p class="text-fg-primary">
-        Are you sure you want to delete <span class="font-semibold"
-          >{workspace?.name || "this workspace"}</span
-        >?
-      </p>
-      <p class="text-sm text-fg-muted">
-        This action cannot be undone. All data including time entries, projects,
-        clients, and invoices will be permanently deleted.
-      </p>
-    </div>
+    itemName={workspace?.name || "this workspace"}
+    warningMessage="This action cannot be undone. All data including time entries, projects, clients, and invoices will be permanently deleted."
+    onConfirm={confirmDeleteWorkspace}
+    onClose={() => (showDeleteModal = false)}
+  />
 
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <Button type="button" variant="ghost" onclick={() => (showDeleteModal = false)}>
-          Cancel
-        </Button>
-        <Button type="button" tone="red" onclick={confirmDeleteWorkspace}>
-          Delete Workspace
-        </Button>
-      </div>
-    {/snippet}
-  </Modal>
-
-  <Modal
+  <ConfirmDeleteModal
     bind:open={showRemoveMemberModal}
     title={memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
-    onclose={() => {
+    itemName={memberToRemove?.isSelf
+      ? "this workspace"
+      : memberToRemove?.name || "this member"}
+    actionVerb={memberToRemove?.isSelf ? "leave" : "remove"}
+    warningMessage={memberToRemove?.isSelf
+      ? "You will no longer have access to this workspace's time entries, projects, or invoices."
+      : "They will no longer have access to this workspace."}
+    confirmLabel={memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
+    onConfirm={confirmRemoveMember}
+    onClose={() => {
       showRemoveMemberModal = false;
       memberToRemove = null;
     }}
-  >
-    <div class="space-y-4">
-      {#if memberToRemove?.isSelf}
-        <p class="text-fg-primary">
-          Are you sure you want to leave this workspace?
-        </p>
-        <p class="text-sm text-fg-muted">
-          You will no longer have access to this workspace's time entries, projects, or invoices.
-        </p>
-      {:else}
-        <p class="text-fg-primary">
-          Are you sure you want to remove <span class="font-semibold">{memberToRemove?.name}</span> from this workspace?
-        </p>
-        <p class="text-sm text-fg-muted">
-          They will no longer have access to this workspace.
-        </p>
-      {/if}
-    </div>
+  />
 
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          onclick={() => {
-            showRemoveMemberModal = false;
-            memberToRemove = null;
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="button" tone="red" onclick={confirmRemoveMember}>
-          {memberToRemove?.isSelf ? "Leave Workspace" : "Remove Member"}
-        </Button>
-      </div>
-    {/snippet}
-  </Modal>
-
-  <Modal
+  <ConfirmDeleteModal
     bind:open={showCancelInviteModal}
     title="Cancel Invitation"
-    onclose={() => {
+    itemName={inviteToCancel?.email || "this invitation"}
+    actionVerb="cancel"
+    warningMessage="They will no longer be able to join this workspace using this invitation."
+    confirmLabel="Cancel Invitation"
+    onConfirm={confirmCancelInvite}
+    onClose={() => {
       showCancelInviteModal = false;
       inviteToCancel = null;
     }}
-  >
-    <div class="space-y-4">
-      <p class="text-fg-primary">
-        Are you sure you want to cancel the invitation to <span class="font-semibold">{inviteToCancel?.email}</span>?
-      </p>
-      <p class="text-sm text-fg-muted">
-        They will no longer be able to join this workspace using this invitation.
-      </p>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          onclick={() => {
-            showCancelInviteModal = false;
-            inviteToCancel = null;
-          }}
-        >
-          Keep Invitation
-        </Button>
-        <Button type="button" tone="red" onclick={confirmCancelInvite}>
-          Cancel Invitation
-        </Button>
-      </div>
-    {/snippet}
-  </Modal>
+  />
 </PageLayout>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import { page, router } from "@inertiajs/svelte";
+  import { Link, page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { DateInput } from "date-picker-svelte";
   import SectionCard from "../../components/SectionCard.svelte";
@@ -18,7 +18,9 @@
     Check,
     ChevronDown,
     ChevronUp,
+    Trash2,
   } from "lucide-svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
     formatRate,
     parseRate,
@@ -29,6 +31,7 @@
     getRelativeDateRange,
     getLastMonthRange,
   } from "../../lib/format";
+  import { routes } from "../../lib/routes";
 
   type Client = {
     id: number;
@@ -39,6 +42,7 @@
   type Invoice = {
     id: number;
     hashid: string;
+    invoice_number: number;
     status: string;
     total_cents: number;
     period_start: string;
@@ -93,6 +97,8 @@
 
   let showCreateForm = $state(false);
   let expandedInvoiceId: number | null = $state(null);
+  let showDeleteModal = $state(false);
+  let invoiceToDelete = $state<Invoice | null>(null);
 
   let periodStartDate = $state<Date | null>(null);
   let periodEndDate = $state<Date | null>(null);
@@ -127,13 +133,6 @@
       0,
   });
 
-  $effect(() => {
-    $createForm.period_start = periodStartDate
-      ? toDateString(periodStartDate)
-      : "";
-    $createForm.period_end = periodEndDate ? toDateString(periodEndDate) : "";
-  });
-
   let canCreateInvoice = $derived(
     !!$createForm.client_id &&
       !!periodStartDate &&
@@ -143,26 +142,50 @@
   );
 
   function handleCreateInvoice() {
-    $createForm.post(`/${workspaceId}/invoices`, {
-      onSuccess: () => {
-        $createForm.reset();
-        periodStartDate = null;
-        periodEndDate = null;
-        showCreateForm = false;
-      },
-    });
+    $createForm
+      .transform((data) => ({
+        ...data,
+        period_start: periodStartDate ? toDateString(periodStartDate) : "",
+        period_end: periodEndDate ? toDateString(periodEndDate) : "",
+      }))
+      .post(routes.invoices.create(workspaceId), {
+        onSuccess: () => {
+          $createForm.reset();
+          periodStartDate = null;
+          periodEndDate = null;
+          showCreateForm = false;
+        },
+      });
   }
 
   function toggleInvoice(invoiceId: number) {
     expandedInvoiceId = expandedInvoiceId === invoiceId ? null : invoiceId;
   }
 
-  function updateInvoiceStatus(invoiceId: number, status: string) {
+  function updateInvoiceStatus(invoiceHashid: string, status: string) {
     router.patch(
-      `/${workspaceId}/invoices/${invoiceId}`,
+      routes.invoices.update(workspaceId, invoiceHashid),
       { invoice: { status } },
       { preserveScroll: true },
     );
+  }
+
+  function openDeleteModal(invoice: Invoice) {
+    invoiceToDelete = invoice;
+    showDeleteModal = true;
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    invoiceToDelete = null;
+  }
+
+  function confirmDeleteInvoice() {
+    if (!invoiceToDelete || !workspaceId) return;
+    router.delete(routes.invoices.delete(workspaceId, invoiceToDelete.hashid), {
+      preserveScroll: true,
+    });
+    closeDeleteModal();
   }
 </script>
 
@@ -216,21 +239,17 @@
       </div>
     </div>
     {#snippet footer()}
-      <a
-        href="/{workspaceId}/settings/billing"
+      <Link
+        href={routes.settings.billing(workspaceId)}
         class="text-sm text-bright-purple hover:text-accent-purple transition-colors duration-150"
       >
         Edit invoice settings in Billing Settings →
-      </a>
+      </Link>
     {/snippet}
   </SectionCard>
 
   {#if showCreateForm}
-    <SectionCard
-      class="animate-slide-in"
-      headerless
-      bodyClass="p-0"
-    >
+    <SectionCard class="animate-slide-in" headerless bodyClass="p-0">
       <form
         class="p-6"
         onsubmit={(e) => {
@@ -244,7 +263,11 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <FormField id="invoice-client" label="Client" error={$createForm.errors.client_id}>
+          <FormField
+            id="invoice-client"
+            label="Client"
+            error={$createForm.errors.client_id}
+          >
             {#snippet children({ describedBy })}
               <SelectInput
                 id="invoice-client"
@@ -393,7 +416,7 @@
     </div>
   {/if}
 
-  <SectionCard title={`All Invoices (${invoices.length})`} bodyClass="p-4">
+  <SectionCard title={`All Invoices (${invoices.length})`} bodyClass="p-0">
     {#if invoices.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <FileText class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -420,7 +443,7 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <p class="font-medium">Invoice #{invoice.id}</p>
+                    <p class="font-medium">Invoice #{invoice.invoice_number}</p>
                     <span
                       class="px-2 py-0.5 text-xs rounded-full {getStatusBg(
                         invoice.status,
@@ -468,18 +491,19 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-2">
-                  <a
-                    href={`/${workspaceId}/invoices/${invoice.hashid}`}
+                  <Link
+                    href={routes.invoices.show(workspaceId, invoice.hashid)}
                     class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bg-quaternary rounded-[10px] text-fg-primary transition-colors duration-150"
                   >
                     <FileText class="w-4 h-4" />
                     View Details
-                  </a>
+                  </Link>
                   {#if invoice.status === "draft"}
                     <button
                       type="button"
                       class="flex items-center justify-center gap-2 px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] transition-colors duration-150"
-                      onclick={() => updateInvoiceStatus(invoice.id, "issued")}
+                      onclick={() =>
+                        updateInvoiceStatus(invoice.hashid, "issued")}
                     >
                       <Check class="w-4 h-4" />
                       Issue Invoice
@@ -489,12 +513,24 @@
                     <button
                       type="button"
                       class="flex items-center justify-center gap-2 px-4 py-2 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] transition-colors duration-150"
-                      onclick={() => updateInvoiceStatus(invoice.id, "paid")}
+                      onclick={() =>
+                        updateInvoiceStatus(invoice.hashid, "paid")}
                     >
                       <Check class="w-4 h-4" />
                       Mark Paid
                     </button>
                   {/if}
+                  <button
+                    type="button"
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bright-red/20 hover:text-bright-red text-fg-primary rounded-[10px] transition-colors duration-150"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      openDeleteModal(invoice);
+                    }}
+                  >
+                    <Trash2 class="w-4 h-4" />
+                    Delete
+                  </button>
                 </div>
               </div>
             {/if}
@@ -503,4 +539,27 @@
       </div>
     {/if}
   </SectionCard>
+
+  <ConfirmDeleteModal
+    bind:open={showDeleteModal}
+    title="Delete Invoice"
+    itemName={`Invoice #${invoiceToDelete?.invoice_number || ""}`}
+    warningMessage="This action cannot be undone. This will permanently delete the invoice and unbill all associated time entries."
+    onConfirm={confirmDeleteInvoice}
+    onClose={closeDeleteModal}
+  >
+    {#snippet details()}
+      {#if invoiceToDelete}
+        <div class="text-sm text-fg-muted space-y-1">
+          <p>Client: {invoiceToDelete.client.name}</p>
+          <p>Amount: {invoiceToDelete.total_amount}</p>
+          <p>
+            Period: {formatDate(invoiceToDelete.period_start)} - {formatDate(
+              invoiceToDelete.period_end,
+            )}
+          </p>
+        </div>
+      {/if}
+    {/snippet}
+  </ConfirmDeleteModal>
 </PageLayout>

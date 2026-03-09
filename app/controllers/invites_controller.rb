@@ -1,9 +1,9 @@
 class InvitesController < ApplicationController
   skip_before_action :require_workspace, only: [ :show, :accept, :decline ]
+  before_action :set_invite, only: [ :show, :accept, :decline ]
+  before_action :authorize_invite, only: [ :show, :accept, :decline ]
 
   def show
-    @invite = Invite.find_by!(token: params[:token])
-
     if @invite.expired?
       redirect_to root_path, alert: "This invitation has expired."
       return
@@ -38,8 +38,6 @@ class InvitesController < ApplicationController
   end
 
   def accept
-    @invite = Invite.find_by!(token: params[:token])
-
     if @invite.expired?
       redirect_to root_path, alert: "This invitation has expired."
       return
@@ -71,8 +69,6 @@ class InvitesController < ApplicationController
   end
 
   def decline
-    @invite = Invite.find_by!(token: params[:token])
-
     unless @invite.pending?
       redirect_to root_path, alert: "This invitation is no longer valid."
       return
@@ -87,25 +83,15 @@ class InvitesController < ApplicationController
     @invite.decline!
     redirect_to root_path, notice: "Invitation declined."
   end
+  private
 
-  def index
-    invites = current_user.pending_invites.includes(:workspace, :inviter).valid
-
-    render inertia: "Invites/Index", props: {
-      invites: invites.map { |invite|
-        {
-          token: invite.token,
-          workspace_name: invite.workspace.name,
-          inviter_name: invite.inviter.name,
-          inviter_avatar: invite.inviter.avatar_url,
-          role: invite.role,
-          expires_at: invite.expires_at.iso8601
-        }
-      }
-    }
+  def set_invite
+    @invite = Invite.find_by!(token: params[:token])
   end
 
-  private
+  def authorize_invite
+    authorize @invite, :show?
+  end
 
   def workspace_root_path(workspace)
     "/#{workspace.hashid}"

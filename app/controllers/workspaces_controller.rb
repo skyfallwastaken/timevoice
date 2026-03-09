@@ -1,4 +1,6 @@
 class WorkspacesController < ApplicationController
+  skip_before_action :require_workspace, only: :create
+
   rate_limit to: 5, within: 1.minute, only: :create, with: -> {
     redirect_back fallback_location: root_path, alert: "Too many workspace creation attempts. Please wait a minute."
   }
@@ -6,11 +8,10 @@ class WorkspacesController < ApplicationController
   def create
     authorize Workspace, :create?
 
-    workspace = current_user.workspaces.new(workspace_params)
+    workspace = Workspace.new(workspace_params)
     workspace.owner = current_user
 
     if workspace.save
-
       workspace.memberships.create!(user: current_user, role: :owner)
 
       session[:workspace_id] = workspace.id

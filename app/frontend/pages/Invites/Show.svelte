@@ -6,6 +6,8 @@
   import { page, router } from "@inertiajs/svelte";
   import { Shield, Users, Clock } from "lucide-svelte";
   import Button from "../../components/Button.svelte";
+  import Flash from "../../components/Flash.svelte";
+  import { routes } from "../../lib/routes";
 
   type Invite = {
     token: string;
@@ -25,7 +27,7 @@
   function acceptInvite() {
     processing = true;
     router.post(
-      `/invite/${invite.token}/accept`,
+      routes.invites.accept(invite.token),
       {},
       {
         onFinish: () => {
@@ -38,7 +40,7 @@
   function declineInvite() {
     processing = true;
     router.post(
-      `/invite/${invite.token}/decline`,
+      routes.invites.decline(invite.token),
       {},
       {
         onFinish: () => {
@@ -77,25 +79,9 @@
     <div
       class="w-full bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden mb-4"
     >
-      {#if flash?.notice}
-        <div
-          class="bg-bright-green/10 border-b border-bright-green text-bright-green px-4 py-3 text-sm"
-          role="status"
-          aria-live="polite"
-        >
-          {flash.notice}
-        </div>
-      {/if}
-
-      {#if flash?.alert}
-        <div
-          class="bg-bright-red/10 border-b border-bright-red text-bright-red px-4 py-3 text-sm"
-          role="alert"
-          aria-live="polite"
-        >
-          {flash.alert}
-        </div>
-      {/if}
+      <div class="p-4 pb-0">
+        <Flash {flash} />
+      </div>
 
       <div class="p-6 space-y-6">
         <div class="flex items-center gap-4">
