@@ -5,6 +5,12 @@
   import IconButton from "./IconButton.svelte";
   import Button from "./Button.svelte";
   import ChipButton from "./ChipButton.svelte";
+  import { formatFileSize } from "../lib/format";
+  import { routes } from "../lib/routes";
+  import {
+    applySelectedProject,
+    toggleSelectedTag,
+  } from "../lib/time-entry-form";
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
@@ -87,7 +93,7 @@
     if (!$form.description.trim()) return;
 
     $form.start_at = new Date().toISOString();
-    $form.post(`/${workspaceId}/time_entries`, {
+    $form.post(routes.timeEntries.create(workspaceId), {
       preserveScroll: true,
       onSuccess: () => {
         showProjectDropdown = false;
@@ -105,7 +111,7 @@
     });
 
     router.patch(
-      `/${workspaceId}/time_entries/${runningEntry.id}/stop`,
+      routes.timeEntries.stop(workspaceId, runningEntry.id),
       formData,
       {
         preserveScroll: true,
@@ -139,29 +145,13 @@
     selectedFiles = selectedFiles.filter((_, i) => i !== index);
   }
 
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  }
-
   function selectProject(project: { id: number; billable_default: boolean }) {
-    $form.project_id = project.id;
-    if (project.billable_default) {
-      $form.billable = true;
-    }
+    applySelectedProject($form, project);
     showProjectDropdown = false;
   }
 
   function toggleTag(tagId: number) {
-    const index = $form.tag_ids.indexOf(tagId);
-    if (index === -1) {
-      $form.tag_ids = [...$form.tag_ids, tagId];
-    } else {
-      $form.tag_ids = $form.tag_ids.filter((id: number) => id !== tagId);
-    }
+    $form.tag_ids = toggleSelectedTag($form.tag_ids, tagId);
   }
 
   function clearProject() {
@@ -212,23 +202,23 @@
       <div class="relative">
         {#if selectedProject}
           <div class="flex items-center gap-1">
-          <Button
-            variant="secondary"
-            class="bg-bg-primary border-bg-tertiary hover:border-bright-blue px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
-            disabled={isRunning}
-            onclick={() =>
-              !isRunning && (showProjectDropdown = !showProjectDropdown)}
-            aria-haspopup="listbox"
-            aria-expanded={showProjectDropdown}
-            aria-label="Selected project: {selectedProject.name}"
-          >
-            <span
-              class="w-3 h-3 rounded-full"
-              style="background-color: {selectedProject.color}"
-              aria-hidden="true"
-            ></span>
-            <span class="text-fg-primary">{selectedProject.name}</span>
-          </Button>
+            <Button
+              variant="secondary"
+              class="bg-bg-primary border-bg-tertiary hover:border-bright-blue px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
+              disabled={isRunning}
+              onclick={() =>
+                !isRunning && (showProjectDropdown = !showProjectDropdown)}
+              aria-haspopup="listbox"
+              aria-expanded={showProjectDropdown}
+              aria-label="Selected project: {selectedProject.name}"
+            >
+              <span
+                class="w-3 h-3 rounded-full"
+                style="background-color: {selectedProject.color}"
+                aria-hidden="true"
+              ></span>
+              <span class="text-fg-primary">{selectedProject.name}</span>
+            </Button>
             {#if !isRunning}
               <IconButton
                 type="button"
@@ -265,7 +255,7 @@
               {#if projects.length === 0}
                 <p class="p-3 text-fg-muted text-sm">
                   No projects yet. <Link
-                    href="/{workspaceId}/projects"
+                    href={routes.projects.index(workspaceId)}
                     class="text-bright-blue hover:underline">Create one</Link
                   >.
                 </p>
@@ -338,7 +328,7 @@
               {#if tags.length === 0}
                 <p class="p-3 text-fg-muted text-sm">
                   No tags yet. <Link
-                    href="/{workspaceId}/tags"
+                    href={routes.tags.index(workspaceId)}
                     class="text-bright-blue hover:underline">Create one</Link
                   >.
                 </p>

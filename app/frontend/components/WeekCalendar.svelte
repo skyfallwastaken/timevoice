@@ -6,13 +6,39 @@
   } from "lucide-svelte";
   import { router, useForm, page } from "@inertiajs/svelte";
   import IconButton from "./IconButton.svelte";
+  import Modal from "./Modal.svelte";
+  import Button from "./Button.svelte";
+  import ChipButton from "./ChipButton.svelte";
+  import TextInput from "./TextInput.svelte";
+  import type { TimeEntry, Project, Tag } from "../types";
+  import { toDateString } from "../lib/format";
+  import { routes } from "../lib/routes";
+  import {
+    applySelectedProject,
+    toggleSelectedTag,
+  } from "../lib/time-entry-form";
 
-  let { entries = [], projects = [], currentWeek } = $props();
+  interface Props {
+    entries?: TimeEntry[];
+    projects?: Project[];
+    tags?: Tag[];
+    currentWeek: { start: string; end: string };
+    onEntryClick?: (entry: TimeEntry) => void;
+  }
+
+  let {
+    entries = [],
+    projects = [],
+    tags = [],
+    currentWeek,
+    onEntryClick,
+  }: Props = $props();
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
   let form = useForm({
     description: "",
     project_id: null as number | null,
+    tag_ids: [] as number[],
     billable: false,
     start_at: null as string | null,
     end_at: null as string | null,
@@ -38,20 +64,13 @@
     return weekDays;
   }
 
-  function formatISODate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
   function goToWeek(offsetWeeks: number) {
     const start = new Date(`${currentWeek.start}T00:00:00`);
     start.setDate(start.getDate() + offsetWeeks * 7);
 
     router.get(
-      "/calendar",
-      { week_start: formatISODate(start) },
+      routes.dashboard.calendar(workspaceId),
+      { week_start: toDateString(start) },
       { preserveScroll: true, preserveState: true },
     );
   }
@@ -78,19 +97,13 @@
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    return entries.filter(
-      (entry: { start_at: string; end_at: string | null }) => {
-        const entryStart = new Date(entry.start_at);
-        return entryStart >= startOfDay && entryStart <= endOfDay;
-      },
-    );
+    return entries.filter((entry) => {
+      const entryStart = new Date(entry.start_at);
+      return entryStart >= startOfDay && entryStart <= endOfDay;
+    });
   }
 
-  function getEntryStyle(entry: {
-    start_at: string;
-    end_at: string | null;
-    duration_seconds: number | null;
-  }) {
+  function getEntryStyle(entry: TimeEntry) {
     const start = new Date(entry.start_at);
     const startMinutes = start.getHours() * 60 + start.getMinutes();
     const minutesFromStart = startMinutes - startHour * 60;
@@ -109,21 +122,15 @@
   function getDayTotal(date: Date) {
     const dayEntries = getEntriesForDay(date);
     let totalSeconds = 0;
-    dayEntries.forEach(
-      (entry: {
-        duration_seconds: number | null;
-        end_at: string | null;
-        start_at: string;
-      }) => {
-        if (entry.duration_seconds) {
-          totalSeconds += entry.duration_seconds;
-        } else if (entry.end_at) {
-          const start = new Date(entry.start_at);
-          const end = new Date(entry.end_at);
-          totalSeconds += (end.getTime() - start.getTime()) / 1000;
-        }
-      },
-    );
+    dayEntries.forEach((entry) => {
+      if (entry.duration_seconds) {
+        totalSeconds += entry.duration_seconds;
+      } else if (entry.end_at) {
+        const start = new Date(entry.start_at);
+        const end = new Date(entry.end_at);
+        totalSeconds += (end.getTime() - start.getTime()) / 1000;
+      }
+    });
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
@@ -203,13 +210,24 @@
   function saveQuickEntry() {
     if (!$form.description.trim()) return;
 
-    $form.post(`/${workspaceId}/time_entries`, {
-      preserveScroll: true,
-      onSuccess: () => {
-        showQuickEdit = false;
-        $form.reset();
-      },
-    });
+    $form
+      .transform((data) => ({
+        time_entry: {
+          description: data.description,
+          project_id: data.project_id,
+          tag_ids: data.tag_ids,
+          billable: data.billable,
+          start_at: data.start_at,
+          end_at: data.end_at,
+        },
+      }))
+      .post(routes.timeEntries.create(workspaceId), {
+        preserveScroll: true,
+        onSuccess: () => {
+          showQuickEdit = false;
+          $form.reset();
+        },
+      });
   }
 
   function getDragStyle() {
@@ -236,10 +254,11 @@
   }
 
   function selectProject(project: { id: number; billable_default: boolean }) {
-    $form.project_id = project.id;
-    if (project.billable_default) {
-      $form.billable = true;
-    }
+    applySelectedProject($form, project);
+  }
+
+  function toggleTag(tagId: number) {
+    $form.tag_ids = toggleSelectedTag($form.tag_ids, tagId);
   }
 </script>
 
@@ -320,13 +339,19 @@
             {/each}
 
             {#each getEntriesForDay(day) as entry}
-              <div
-                class="absolute left-1 right-1 rounded-md px-2 py-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 transition-all duration-200"
+              <button
+                type="button"
+                class="absolute left-1 right-1 rounded-md px-2 py-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 transition-all duration-200 text-left"
                 style="{getEntryStyle(entry)} background-color: {entry.project
                   ?.color || '#b16286'}40; border-left: 3px solid {entry.project
                   ?.color || '#b16286'};"
                 title="{entry.description ||
                   'No description'} ({entry.formattedDuration})"
+                onmousedown={(e) => e.stopPropagation()}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  onEntryClick?.(entry);
+                }}
               >
                 <div class="font-medium truncate text-fg-primary">
                   {entry.description || "No description"}
@@ -334,7 +359,7 @@
                 <div class="text-fg-secondary truncate">
                   {entry.formattedDuration}
                 </div>
-              </div>
+              </button>
             {/each}
 
             {#if isDragging && dragDay?.toDateString() === day.toDateString()}
@@ -350,92 +375,97 @@
   </div>
 </div>
 
-{#if showQuickEdit}
-  <div
-    class="fixed inset-0 bg-bg-primary/80 z-50 flex items-center justify-center p-4"
-    role="presentation"
-  >
-    <button
-      type="button"
-      class="absolute inset-0 w-full h-full"
-      onclick={() => (showQuickEdit = false)}
-      aria-label="Close modal"
-    ></button>
-    <div
-      class="bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 w-full max-w-md space-y-4 relative z-10"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="quick-edit-title"
+<Modal
+  open={showQuickEdit}
+  title="New Time Entry"
+  onclose={() => (showQuickEdit = false)}
+  maxWidth="max-w-md"
+>
+  <p class="text-fg-muted text-sm">{formatTimeRange()}</p>
+
+  <div>
+    <label for="entry-description" class="block text-sm font-medium mb-2"
+      >Description</label
     >
-      <h3 id="quick-edit-title" class="text-xl font-semibold">
-        New Time Entry
-      </h3>
-      <p class="text-fg-muted text-sm">{formatTimeRange()}</p>
+    <TextInput
+      id="entry-description"
+      type="text"
+      placeholder="What did you work on?"
+      bind:value={$form.description}
+      tone="blue"
+    />
+  </div>
 
-      <div>
-        <label for="entry-description" class="block text-sm font-medium mb-2"
-          >Description</label
-        >
-        <input
-          id="entry-description"
-          type="text"
-          placeholder="What did you work on?"
-          bind:value={$form.description}
-          class="w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-3 text-fg-primary placeholder:text-fg-dim focus:outline-none focus:border-bright-blue"
-        />
-      </div>
-
-      <div>
-        <span class="block text-sm font-medium mb-2">Project</span>
-        <div class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-          {#each projects as project}
-            <button
-              type="button"
-              onclick={() => selectProject(project)}
-              class="p-2 rounded-lg border text-xs text-left transition-colors duration-150 {$form.project_id ===
-              project.id
-                ? 'border-bright-blue bg-bright-blue/20'
-                : 'border-bg-tertiary hover:border-fg-muted'}"
-            >
-              <span
-                class="block w-3 h-3 rounded-full mb-1"
-                style="background-color: {project.color}"
-              ></span>
-              <span class="truncate block">{project.name}</span>
-            </button>
-          {/each}
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between">
+  <div>
+    <span class="block text-sm font-medium mb-2">Project</span>
+    <div class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+      {#each projects as project}
         <button
           type="button"
-          onclick={() => ($form.billable = !$form.billable)}
-          class="flex items-center gap-2 px-4 py-2 rounded-[10px] border transition-colors duration-150 {$form.billable
-            ? 'bg-bright-green/20 border-bright-green text-bright-green'
-            : 'border-bg-tertiary text-fg-muted'}"
+          onclick={() => selectProject(project)}
+          class="p-2 rounded-lg border text-xs text-left transition-colors duration-150 {$form.project_id ===
+          project.id
+            ? 'border-bright-blue bg-bright-blue/20'
+            : 'border-bg-tertiary hover:border-fg-muted'}"
         >
-          <span>Billable</span>
+          <span
+            class="block w-3 h-3 rounded-full mb-1"
+            style="background-color: {project.color}"
+          ></span>
+          <span class="truncate block">{project.name}</span>
         </button>
-
-        <div class="flex gap-2">
-          <button
-            type="button"
-            onclick={() => (showQuickEdit = false)}
-            class="px-4 py-2 border border-bg-tertiary rounded-[10px] hover:bg-bg-tertiary transition-colors duration-150"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onclick={saveQuickEntry}
-            disabled={!$form.description.trim()}
-            class="px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Save Entry
-          </button>
-        </div>
-      </div>
+      {/each}
     </div>
   </div>
-{/if}
+
+  {#if tags.length > 0}
+    <div>
+      <span class="block text-sm font-medium mb-2">Tags</span>
+      <div class="flex flex-wrap gap-2">
+        {#each tags as tag}
+          <ChipButton
+            type="button"
+            selected={$form.tag_ids.includes(tag.id)}
+            class={$form.tag_ids.includes(tag.id)
+              ? "border-bright-green text-bright-green"
+              : "text-fg-muted hover:text-fg-primary"}
+            onclick={() => toggleTag(tag.id)}
+          >
+            {tag.name}
+          </ChipButton>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <div class="flex items-center justify-between">
+    <ChipButton
+      type="button"
+      selected={$form.billable}
+      class={$form.billable
+        ? "border-bright-green text-bright-green"
+        : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
+      onclick={() => ($form.billable = !$form.billable)}
+    >
+      <span>Billable</span>
+    </ChipButton>
+
+    <div class="flex gap-2">
+      <Button
+        type="button"
+        variant="secondary"
+        onclick={() => (showQuickEdit = false)}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        tone="blue"
+        onclick={saveQuickEntry}
+        disabled={!$form.description.trim()}
+      >
+        Save Entry
+      </Button>
+    </div>
+  </div>
+</Modal>

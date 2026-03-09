@@ -15,7 +15,10 @@
   </div>
   <div class="detail-row">
     <span class="detail-label">Invoice period</span>
-    <span class="detail-value"><%= @invoice.period_start.strftime('%b %d') %> – <%= @invoice.period_end.strftime('%b %d, %Y') %></span>
+    <span class="detail-value"
+      ><%= @invoice.period_start.strftime('%b %d') %> – <%=
+      @invoice.period_end.strftime('%b %d, %Y') %></span
+    >
   </div>
 </div>
 

@@ -1,4 +1,6 @@
 class SettingsController < ApplicationController
+  before_action :authorize_workspace_view, only: [ :workspace, :billing ]
+
   def workspace
     @workspace = current_workspace
     @members = current_workspace.memberships
@@ -88,6 +90,10 @@ class SettingsController < ApplicationController
   end
 
   private
+
+  def authorize_workspace_view
+    authorize current_workspace, :show?
+  end
 
   def billing_params
     optional_params(:setting, :sender_name, :sender_address, :billable_rate_cents)

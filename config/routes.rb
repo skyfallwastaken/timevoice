@@ -42,7 +42,6 @@ Rails.application.routes.draw do
   get "/auth/google_oauth2/callback", to: "sessions#create"
   get "/auth/failure", to: "sessions#failure"
 
-  get "/invites", to: "invites#index", as: :invites
   get "/invite/:token", to: "invites#show", as: :invite
   post "/invite/:token/accept", to: "invites#accept", as: :accept_invite
   post "/invite/:token/decline", to: "invites#decline", as: :decline_invite

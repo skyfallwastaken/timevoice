@@ -16,7 +16,8 @@
     ChevronDown,
     ChevronUp,
   } from "lucide-svelte";
-  import { formatShortDate } from "../../lib/format";
+  import { formatShortDate, toDateString } from "../../lib/format";
+  import { routes } from "../../lib/routes";
   import type { TimeEntry, Project } from "../../types";
 
   type ProjectBreakdown = {
@@ -79,19 +80,12 @@
     initialDateRange.end ? new Date(initialDateRange.end + "T00:00:00") : null,
   );
 
-  function formatISODate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
   function updateDateRange() {
     if (startDate && endDate && startDate <= endDate) {
-      $dateFilterForm.start_date = formatISODate(startDate);
-      $dateFilterForm.end_date = formatISODate(endDate);
+      $dateFilterForm.start_date = toDateString(startDate);
+      $dateFilterForm.end_date = toDateString(endDate);
       const auth = $page.props.auth as { workspace: { hashid: string } };
-      $dateFilterForm.get(`/${auth.workspace.hashid}/reports`);
+      $dateFilterForm.get(routes.reports.index(auth.workspace.hashid));
     }
   }
 

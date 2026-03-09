@@ -21,6 +21,8 @@ class Invoice < ApplicationRecord
   scope :issued, -> { where(status: STATUS_ISSUED) }
   scope :paid, -> { where(status: STATUS_PAID) }
 
+  before_create :set_invoice_number
+
   def total_amount
     total_cents / 100.0
   end
@@ -72,5 +74,11 @@ class Invoice < ApplicationRecord
 
     invoice.update!(total_cents: total)
     invoice
+  end
+
+  private
+
+  def set_invoice_number
+    self.invoice_number = (workspace.invoices.maximum(:invoice_number) || 0) + 1
   end
 end

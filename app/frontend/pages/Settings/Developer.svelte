@@ -21,6 +21,7 @@
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import { routes } from "../../lib/routes";
 
@@ -212,27 +213,7 @@
   {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
-    <div class="grid grid-cols-3">
-      <Link
-        href={routes.settings.workspace(workspaceId)}
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
-      >
-        Workspace
-      </Link>
-      <Link
-        href={routes.settings.billing(workspaceId)}
-        class="px-4 py-2 text-sm font-medium text-fg-secondary hover:bg-bg-tertiary transition-colors duration-150 border-r border-bg-tertiary"
-      >
-        Billing
-      </Link>
-      <Link
-        href={routes.settings.developer(workspaceId)}
-        class="px-4 py-2 text-sm font-medium bg-bg-tertiary text-fg-primary"
-        aria-current="page"
-      >
-        Developer
-      </Link>
-    </div>
+    <SettingsTabs {workspaceId} active="developer" />
   </SectionCard>
 
   <SectionCard title={`OAuth Applications (${applications.length})`} icon={Key}>
@@ -419,7 +400,8 @@
   <SectionCard title="API Documentation" icon={ExternalLink}>
     <div class="p-4 space-y-3 text-sm text-fg-secondary">
       <p>
-        View the full API documentation with interactive examples and code snippets.
+        View the full API documentation with interactive examples and code
+        snippets.
       </p>
       <a
         href="/docs"

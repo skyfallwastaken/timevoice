@@ -9,6 +9,8 @@
     warningMessage: string;
     onConfirm: () => void;
     onClose: () => void;
+    actionVerb?: string;
+    confirmLabel?: string;
     details?: any;
   }
 
@@ -19,6 +21,8 @@
     warningMessage,
     onConfirm,
     onClose,
+    actionVerb = "delete",
+    confirmLabel = title,
     details,
   }: Props = $props();
 </script>
@@ -26,8 +30,8 @@
 <Modal {open} {title} onclose={onClose}>
   <div class="space-y-4">
     <p class="text-fg-primary">
-      Are you sure you want to delete <span class="font-semibold">{itemName}</span
-      >?
+      Are you sure you want to {actionVerb}
+      <span class="font-semibold">{itemName}</span>?
     </p>
     {#if details}
       {@render details()}
@@ -39,11 +43,9 @@
 
   {#snippet footer()}
     <div class="flex items-center justify-end gap-2">
-      <Button variant="ghost" onclick={onClose}>
-        Cancel
-      </Button>
+      <Button variant="ghost" onclick={onClose}>Cancel</Button>
       <Button tone="red" onclick={onConfirm}>
-        {title}
+        {confirmLabel}
       </Button>
     </div>
   {/snippet}

@@ -2,36 +2,27 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import TimerInput from "../../components/TimerInput.svelte";
   import { page, router } from "@inertiajs/svelte";
-  import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
   import IconButton from "../../components/IconButton.svelte";
-  import ChipButton from "../../components/ChipButton.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import SelectInput from "../../components/SelectInput.svelte";
   import ListRow from "../../components/ListRow.svelte";
+  import TimeEntryEditModal from "../../components/TimeEntryEditModal.svelte";
   import {
     Edit2,
     Trash2,
     DollarSign,
-    Check,
-    X,
     Search,
     Filter,
     ChevronDown,
     ChevronUp,
-    Paperclip,
   } from "lucide-svelte";
-  import Modal from "../../components/Modal.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
-  import {
-    formatShortDate,
-    formatTime,
-    formatFileSize,
-  } from "../../lib/format";
-  import type { Project, Tag, AttachedFile, TimeEntry } from "../../types";
+  import { formatShortDate, formatTime } from "../../lib/format";
+  import type { Project, Tag, TimeEntry } from "../../types";
 
   let projects = $derived(($page.props.projects as Project[]) || []);
   let tags = $derived(($page.props.tags as Tag[]) || []);
@@ -42,7 +33,6 @@
   let editingEntry = $state<TimeEntry | null>(null);
   let showDeleteModal = $state(false);
   let entryToDelete = $state<TimeEntry | null>(null);
-  let editFileInput: HTMLInputElement | null = $state(null);
 
   let showFilters = $state(false);
   let filters = $state({
@@ -129,14 +119,6 @@
 
   let filteredEntries = $derived(getFilteredEntries(recentEntries));
 
-  let editForm = useForm({
-    description: "",
-    project_id: "" as string,
-    tag_ids: [] as number[],
-    billable: false,
-    files: [] as File[],
-  });
-
   function openDeleteModal(entry: TimeEntry) {
     entryToDelete = entry;
     showDeleteModal = true;
@@ -159,89 +141,10 @@
 
   function openEdit(entry: TimeEntry) {
     editingEntry = entry;
-    $editForm.description = entry.description || "";
-    $editForm.project_id = entry.project?.id?.toString() || "";
-    $editForm.tag_ids = (entry.tags || []).map((t) => t.id);
-    $editForm.billable = !!entry.billable;
-    $editForm.files = [];
   }
 
   function closeEdit() {
     editingEntry = null;
-    $editForm.reset();
-  }
-
-  function toggleTag(tagId: number) {
-    if ($editForm.tag_ids.includes(tagId)) {
-      $editForm.tag_ids = $editForm.tag_ids.filter((id) => id !== tagId);
-    } else {
-      $editForm.tag_ids = [...$editForm.tag_ids, tagId];
-    }
-  }
-
-  function handleEditFileSelect(event: Event) {
-    const target = event.target as HTMLInputElement;
-    if (target.files) {
-      const files = Array.from(target.files);
-      const existingCount =
-        (editingEntry?.files?.length || 0) + $editForm.files.length;
-      if (existingCount + files.length > 3) {
-        alert("You can only attach up to 3 files");
-        target.value = "";
-        return;
-      }
-      $editForm.files = [...$editForm.files, ...files].slice(
-        0,
-        3 - (editingEntry?.files?.length || 0),
-      );
-      target.value = "";
-    }
-  }
-
-  function removeEditFile(index: number) {
-    $editForm.files = $editForm.files.filter((_, i) => i !== index);
-  }
-
-  function deleteExistingFile(blobId: number) {
-    if (!editingEntry || !workspaceId) return;
-    router.delete(
-      `${routes.timeEntries.update(workspaceId, editingEntry.id)}/remove_file?blob_id=${blobId}`,
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          // Update local state to remove the file from UI
-          if (editingEntry) {
-            editingEntry.files =
-              editingEntry.files?.filter((f) => f.blob_id !== blobId) || [];
-          }
-        },
-      },
-    );
-  }
-
-  function saveEdit() {
-    if (!editingEntry || !workspaceId) return;
-
-    $editForm
-      .transform((data) => {
-        const formData = new FormData();
-        formData.append("time_entry[description]", data.description);
-        formData.append("time_entry[project_id]", data.project_id);
-        formData.append("time_entry[billable]", data.billable.toString());
-        data.tag_ids.forEach((id) => {
-          formData.append("time_entry[tag_ids][]", id.toString());
-        });
-        data.files.forEach((file) => {
-          formData.append("time_entry[files][]", file);
-        });
-        return formData;
-      })
-      .patch(routes.timeEntries.update(workspaceId, editingEntry.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-          closeEdit();
-        },
-      });
   }
 </script>
 
@@ -335,7 +238,7 @@
               : ''}"
           >
             <!-- Mobile layout -->
-            <div class="flex flex-col gap-2 sm:hidden">
+            <div class="flex flex-col gap-2 p-4 sm:hidden">
               <div class="flex items-start justify-between gap-2">
                 <div class="flex-1 min-w-0">
                   <p class="font-medium truncate">
@@ -450,181 +353,14 @@
     {/if}
   </SectionCard>
 
-  <Modal
+  <TimeEntryEditModal
+    entry={editingEntry}
+    {projects}
+    {tags}
     open={editingEntry !== null}
-    title="Edit Entry"
-    onclose={closeEdit}
-    maxWidth="max-w-lg"
-  >
-    <div>
-      <FormField id="edit-description" label="Description">
-        {#snippet children({ describedBy })}
-          <TextInput
-            id="edit-description"
-            bind:value={$editForm.description}
-            aria-describedby={describedBy}
-          />
-        {/snippet}
-      </FormField>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField id="edit-project" label="Project">
-        {#snippet children({ describedBy })}
-          <SelectInput
-            id="edit-project"
-            tone="blue"
-            bind:value={$editForm.project_id}
-            aria-describedby={describedBy}
-          >
-            <option value="">No project</option>
-            {#each projects as project}
-              <option value={project.id.toString()}>{project.name}</option>
-            {/each}
-          </SelectInput>
-        {/snippet}
-      </FormField>
-
-      <div>
-        <span class="block text-sm font-medium text-fg-secondary mb-1"
-          >Billable</span
-        >
-        <button
-          type="button"
-          class="w-full px-4 py-2 border rounded-[10px] transition-colors duration-150 {$editForm.billable
-            ? 'border-bright-green text-bright-green'
-            : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
-          aria-pressed={$editForm.billable}
-          onclick={() => ($editForm.billable = !$editForm.billable)}
-        >
-          {$editForm.billable ? "Billable" : "Non-billable"}
-        </button>
-      </div>
-    </div>
-
-    <div>
-      <span class="block text-sm font-medium text-fg-secondary mb-2">Tags</span>
-      {#if tags.length === 0}
-        <p class="text-sm text-fg-muted">No tags yet.</p>
-      {:else}
-        <div class="flex flex-wrap gap-2">
-          {#each tags as tag}
-            <ChipButton
-              type="button"
-              selected={$editForm.tag_ids.includes(tag.id)}
-              class={$editForm.tag_ids.includes(tag.id)
-                ? "border-bright-green text-bright-green"
-                : "text-fg-muted hover:text-fg-primary"}
-              aria-pressed={$editForm.tag_ids.includes(tag.id)}
-              onclick={() => toggleTag(tag.id)}
-            >
-              {tag.name}
-            </ChipButton>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
-    <div>
-      <span class="block text-sm font-medium text-fg-secondary mb-2"
-        >Attachments</span
-      >
-      <div class="space-y-2">
-        {#if editingEntry?.files && editingEntry.files.length > 0}
-          <div class="flex flex-wrap gap-2">
-            {#each editingEntry.files as file}
-              <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-bg-primary border border-bg-tertiary rounded-lg text-sm"
-              >
-                <Paperclip class="w-3 h-3 text-fg-muted" />
-                <span class="truncate max-w-37.5">{file.filename}</span>
-                <span class="text-fg-muted text-xs"
-                  >({formatFileSize(file.byte_size)})</span
-                >
-                <button
-                  type="button"
-                  onclick={() => deleteExistingFile(file.blob_id)}
-                  class="p-1 text-fg-muted hover:text-bright-red rounded transition-colors"
-                  aria-label="Delete file"
-                >
-                  <X class="w-3 h-3" />
-                </button>
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        {#if $editForm.files.length > 0}
-          <div class="flex flex-wrap gap-2">
-            {#each $editForm.files as file, index}
-              <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-bg-primary border border-bright-blue rounded-lg text-sm"
-              >
-                <span class="truncate max-w-37.5">{file.name}</span>
-                <span class="text-fg-muted text-xs"
-                  >({formatFileSize(file.size)})</span
-                >
-                <span class="text-xs text-bright-blue">(new)</span>
-                <button
-                  type="button"
-                  onclick={() => removeEditFile(index)}
-                  class="p-1 text-fg-muted hover:text-bright-red rounded transition-colors"
-                  aria-label="Remove file"
-                >
-                  <X class="w-3 h-3" />
-                </button>
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        {#if (editingEntry?.files?.length || 0) + $editForm.files.length < 3}
-          <div class="flex items-center gap-2">
-            <input
-              bind:this={editFileInput}
-              type="file"
-              multiple
-              accept="*/*"
-              class="hidden"
-              onchange={handleEditFileSelect}
-            />
-            <button
-              type="button"
-              onclick={() => editFileInput?.click()}
-              class="flex items-center gap-2 px-3 py-1.5 text-sm text-fg-muted hover:text-fg-primary border border-bg-tertiary rounded-lg hover:border-bright-blue transition-colors duration-150"
-            >
-              <Paperclip class="w-4 h-4" />
-              Add Files ({(editingEntry?.files?.length || 0) +
-                $editForm.files.length}/3)
-            </button>
-            <span class="text-xs text-fg-muted">Max 10MB each</span>
-          </div>
-        {/if}
-      </div>
-    </div>
-
-    {#snippet footer()}
-      <div class="flex items-center justify-end gap-2">
-        <Button
-          variant="ghost"
-          type="button"
-          onclick={closeEdit}
-          disabled={$editForm.processing}
-        >
-          Cancel
-        </Button>
-        <Button
-          tone="blue"
-          type="button"
-          onclick={saveEdit}
-          disabled={$editForm.processing}
-        >
-          <Check class="w-4 h-4" aria-hidden="true" />
-          {$editForm.processing ? "Saving..." : "Save"}
-        </Button>
-      </div>
-    {/snippet}
-  </Modal>
+    onClose={closeEdit}
+    onDelete={openDeleteModal}
+  />
 
   <ConfirmDeleteModal
     bind:open={showDeleteModal}

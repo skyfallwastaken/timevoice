@@ -4,8 +4,13 @@
 
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
+  import Flash from "../../components/Flash.svelte";
+  import { routes } from "../../lib/routes";
 
-  let flash = $derived($page.props.flash as { alert?: string } | undefined);
+  let flash = $derived(
+    ($page.props.flash as { notice?: string; alert?: string } | undefined) ||
+      {},
+  );
 </script>
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -16,7 +21,7 @@
   id="main-content"
   tabindex="-1"
 >
-  <div class="max-w-md flex flex-col items-center" style="gap: 2.5rem">
+  <div class="max-w-md flex flex-col items-center gap-10">
     <div class="flex flex-col items-center gap-4">
       <div
         class="p-4 w-12 h-12 rounded-[10px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center text-xl font-semibold"
@@ -29,20 +34,11 @@
     </div>
 
     <div
-      class="w-full max-w-110 mx-auto bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 space-y-4"
-      style="max-width: 440px"
+      class="w-full max-w-[440px] mx-auto bg-bg-secondary border border-bg-tertiary rounded-[10px] p-6 space-y-4"
     >
-      {#if flash?.alert}
-        <div
-          class="bg-bright-red/10 border border-bright-red text-bright-red px-4 py-3 rounded-[10px] text-sm"
-          role="alert"
-          aria-live="polite"
-        >
-          {flash.alert}
-        </div>
-      {/if}
+      <Flash {flash} />
 
-      <form action="/auth/google_oauth2" method="post">
+      <form action={routes.auth.google} method="post">
         <input
           type="hidden"
           name="authenticity_token"

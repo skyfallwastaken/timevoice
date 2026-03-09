@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page, Link } from "@inertiajs/svelte";
+  import { page, Link, router } from "@inertiajs/svelte";
   import {
     Clock,
     Calendar,
@@ -16,7 +16,6 @@
     Plus,
     Workflow,
   } from "lucide-svelte";
-  import { router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
   import FormField from "./FormField.svelte";
@@ -26,6 +25,7 @@
   import { fly, fade } from "svelte/transition";
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
+  import { routes } from "../lib/routes";
 
   let { children } = $props();
 
@@ -34,25 +34,19 @@
   const isAdmin = $derived($page.props.auth?.is_admin);
   const isDevMode = $derived($page.props.rails_env === "development");
 
-  // Use $state to ensure proper Svelte 5 reactivity with Inertia's page store
-  let currentWorkspaceHashid = $state($page.props.auth?.workspace?.hashid || "");
-  
-  $effect(() => {
-    const newHashid = $page.props.auth?.workspace?.hashid || "";
-    if (newHashid !== currentWorkspaceHashid) {
-      currentWorkspaceHashid = newHashid;
-    }
-  });
+  const currentWorkspaceHashid = $derived(
+    $page.props.auth?.workspace?.hashid || "",
+  );
 
   const navItems = [
-    { path: "timer", icon: Clock, label: "Timer" },
-    { path: "calendar", icon: Calendar, label: "Calendar" },
-    { path: "clients", icon: Building2, label: "Clients" },
-    { path: "projects", icon: FolderKanban, label: "Projects" },
-    { path: "tags", icon: Tag, label: "Tags" },
-    { path: "reports", icon: BarChart3, label: "Reports" },
-    { path: "invoices", icon: FileText, label: "Invoices" },
-    { path: "settings", icon: Settings, label: "Settings" },
+    { href: routes.dashboard.index, icon: Clock, label: "Timer" },
+    { href: routes.dashboard.calendar, icon: Calendar, label: "Calendar" },
+    { href: routes.clients.index, icon: Building2, label: "Clients" },
+    { href: routes.projects.index, icon: FolderKanban, label: "Projects" },
+    { href: routes.tags.index, icon: Tag, label: "Tags" },
+    { href: routes.reports.index, icon: BarChart3, label: "Reports" },
+    { href: routes.invoices.index, icon: FileText, label: "Invoices" },
+    { href: routes.settings.index, icon: Settings, label: "Settings" },
   ];
   const workspaces = $derived($page.props.auth?.workspaces || []);
 
@@ -63,7 +57,7 @@
 
   const activeIndex = $derived(
     navItems.findIndex((item) => {
-      const href = `/${currentWorkspaceHashid}/${item.path}`;
+      const href = item.href(currentWorkspaceHashid);
       return $page.url === href || $page.url.startsWith(href + "/");
     }),
   );
@@ -84,13 +78,13 @@
     name: "",
   });
 
-  function signOut() {
-    router.delete("/signout");
-  }
-
   function closeMobileNav() {
     mobileNavOpen = false;
     mobileWorkspaceOpen = false;
+  }
+
+  function signOut() {
+    router.delete(routes.auth.logout);
   }
 
   function openCreateModal() {
@@ -108,7 +102,7 @@
   function submitCreateWorkspace() {
     $createForm
       .transform((data) => ({ workspace: data }))
-      .post("/workspaces", {
+      .post(routes.workspaces.create, {
         onSuccess: () => {
           closeCreateModal();
         },
@@ -117,7 +111,7 @@
 
   function switchWorkspace(workspaceHashid: string) {
     router.patch(
-      "/workspaces/switch",
+      routes.workspaces.switch,
       { workspace_id: workspaceHashid },
       {
         onSuccess: () => {
@@ -142,16 +136,13 @@
         style="transform: translateY({navIndicatorY.current}px);"
       ></span>
     {/if}
-    {#each navItems as item, index}
-      {@const isActive =
-        $page.url === `/${currentWorkspaceHashid}/${item.path}` ||
-        $page.url.startsWith(`/${currentWorkspaceHashid}/${item.path}/`)}
-      <button
-        type="button"
-        onclick={() => {
-          router.visit(`/${currentWorkspaceHashid}/${item.path}`);
-          onclick?.();
-        }}
+    {#each navItems as item}
+      {@const href = item.href(currentWorkspaceHashid)}
+      {@const isActive = $page.url === href || $page.url.startsWith(href + "/")}
+      <Link
+        {href}
+        prefetch
+        {onclick}
         class="w-full relative flex items-center gap-2 px-3 py-2 rounded-[10px] transition-colors duration-150 {isActive
           ? 'text-bright-purple'
           : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
@@ -163,7 +154,7 @@
         {/if}
         <item.icon class="relative w-4 h-4" aria-hidden="true" />
         <span class="relative text-sm font-medium">{item.label}</span>
-      </button>
+      </Link>
     {/each}
   </div>
 {/snippet}
@@ -218,11 +209,7 @@
         <p class="text-xs text-fg-muted truncate">{user?.name || ""}</p>
       </div>
 
-      <IconButton
-        tone="danger"
-        onclick={signOut}
-        aria-label="Sign out"
-      >
+      <IconButton tone="danger" onclick={signOut} aria-label="Sign out">
         <LogOut class="w-5 h-5" aria-hidden="true" />
       </IconButton>
     </div>
@@ -306,7 +293,7 @@
                 Admin
               </p>
               <a
-                href="/admin/jobs"
+                href={routes.admin.jobs}
                 onclick={closeMobileNav}
                 class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
               >
@@ -399,7 +386,7 @@
             Admin
           </p>
           <a
-            href="/admin/jobs"
+            href={routes.admin.jobs}
             class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
           >
             <Workflow class="w-4 h-4" aria-hidden="true" />
@@ -412,6 +399,7 @@
     <div class="p-4 border-t border-bg-tertiary">
       {@render userProfile()}
       <button
+        type="button"
         onclick={signOut}
         class="w-full flex items-center gap-3 px-4 py-2 mt-2 text-fg-muted hover:text-bright-red transition-colors duration-150 rounded-[10px] focus-visible:ring-2 focus-visible:ring-bright-blue"
         aria-label="Sign out {user?.name}"

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Flash from "./Flash.svelte";
+
   interface Props {
     title: string;
     icon?: any;
@@ -40,22 +42,7 @@
       {/if}
     </div>
 
-    {#if flash?.notice}
-      <div
-        class="bg-bright-green/10 border border-bright-green text-bright-green px-4 py-3 rounded-[10px] animate-slide-in"
-        role="alert"
-      >
-        {flash.notice}
-      </div>
-    {/if}
-    {#if flash?.alert}
-      <div
-        class="bg-bright-red/10 border border-bright-red text-bright-red px-4 py-3 rounded-[10px] animate-slide-in"
-        role="alert"
-      >
-        {flash.alert}
-      </div>
-    {/if}
+    <Flash {flash} />
 
     {@render children()}
   </div>

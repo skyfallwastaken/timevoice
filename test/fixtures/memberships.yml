@@ -3,9 +3,9 @@
 one:
   workspace: one
   user: one
-  role: MyString
+  role: owner
 
 two:
   workspace: two
   user: two
-  role: MyString
+  role: owner

@@ -1,15 +1,15 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  email: MyString
-  name: MyString
-  avatar_url: MyString
-  google_uid: MyString
-  timezone: MyString
+  email: one@example.com
+  name: User One
+  avatar_url: https://example.com/one.png
+  google_uid: google-uid-one
+  timezone: UTC
 
 two:
-  email: MyString
-  name: MyString
-  avatar_url: MyString
-  google_uid: MyString
-  timezone: MyString
+  email: two@example.com
+  name: User Two
+  avatar_url: https://example.com/two.png
+  google_uid: google-uid-two
+  timezone: UTC

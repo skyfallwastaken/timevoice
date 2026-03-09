@@ -36,7 +36,7 @@
   {...rest}
 >
   {#if !headerless && (header || title || description || headerActions)}
-    <div class="{headerClass}">
+    <div class={headerClass}>
       {#if header}
         {@render header()}
       {:else}
@@ -64,7 +64,7 @@
     </div>
   {/if}
 
-  <div class="{bodyClass}">
+  <div class={bodyClass}>
     {@render children()}
   </div>
 

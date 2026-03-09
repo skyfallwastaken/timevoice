@@ -11,11 +11,12 @@
 
   <% if @is_new_user %>
   <p>
-    <strong>New to Timevoice?</strong> Timevoice is a simple time tracking and invoicing app 
-    that helps teams track their work and bill clients.
+    <strong>New to Timevoice?</strong> Timevoice is a simple time tracking and
+    invoicing app that helps teams track their work and bill clients.
   </p>
   <p>
-    Sign in with Google to accept this invitation and start collaborating with <%= @inviter.name %>.
+    Sign in with Google to accept this invitation and start collaborating with
+    <%= @inviter.name %>.
   </p>
   <% else %>
   <p>
@@ -25,12 +26,12 @@
 </div>
 
 <div class="cta-section">
-  <a href="<%= @accept_url %>" class="cta-button">
-    Accept invite
-  </a>
+  <a href="<%= @accept_url %>" class="cta-button"> Accept invite </a>
 </div>
 
 <div class="footer">
   <p>This invitation expires in 7 days.</p>
-  <p style="margin-top: 6px;">If you don't want to join, you can ignore this email.</p>
+  <p style="margin-top: 6px">
+    If you don't want to join, you can ignore this email.
+  </p>
 </div>

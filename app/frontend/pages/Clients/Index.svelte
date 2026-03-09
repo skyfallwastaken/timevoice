@@ -85,7 +85,12 @@
   variant="narrow"
   flash={$page.props.flash}
 >
-  <SectionCard title="Create New Client" icon={Plus} iconColor="text-bright-blue" bodyClass="p-4">
+  <SectionCard
+    title="Create New Client"
+    icon={Plus}
+    iconColor="text-bright-blue"
+    bodyClass="p-4"
+  >
     <form
       class="space-y-4"
       onsubmit={(e) => {

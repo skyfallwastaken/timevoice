@@ -5,8 +5,8 @@
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import TextArea from "../../components/TextArea.svelte";
-  import { Link, page } from "@inertiajs/svelte";
-  import { router } from "@inertiajs/svelte";
+  import { Link, page, router, useForm } from "@inertiajs/svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
     FileText,
     ArrowLeft,
@@ -14,8 +14,13 @@
     Building2,
     Download,
     Mail,
+    Trash2,
+    Edit2,
+    Check,
+    X,
   } from "lucide-svelte";
   import { formatDate, getStatusClasses } from "../../lib/format";
+  import { routes } from "../../lib/routes";
   import Turnstile from "../../components/Turnstile.svelte";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
@@ -33,6 +38,7 @@
   type Invoice = {
     id: number;
     hashid: string;
+    invoice_number: number;
     status: string;
     period_start: string;
     period_end: string;
@@ -57,6 +63,30 @@
   let sending = $state(false);
   let showLetterOpenerHint = $state(false);
   let turnstileToken = $state("");
+  let showDeleteModal = $state(false);
+  let editingNumber = $state(false);
+  let editInvoiceNumber = $state(0);
+
+  function deleteInvoice() {
+    router.delete(routes.invoices.delete(workspaceId, invoice.hashid), {
+      onSuccess: () => {
+        showDeleteModal = false;
+      },
+    });
+  }
+
+  function saveInvoiceNumber() {
+    router.patch(
+      routes.invoices.update(workspaceId, invoice.hashid),
+      { invoice: { invoice_number: editInvoiceNumber } },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          editingNumber = false;
+        },
+      },
+    );
+  }
 
   function openEmailModal() {
     emailRecipients = "";
@@ -66,12 +96,22 @@
     emailModalOpen = true;
   }
 
+  function startEditingInvoiceNumber() {
+    editInvoiceNumber = invoice.invoice_number;
+    editingNumber = true;
+  }
+
+  function cancelInvoiceNumberEdit() {
+    editInvoiceNumber = invoice.invoice_number;
+    editingNumber = false;
+  }
+
   function sendEmail() {
     if (!emailRecipients.trim()) return;
 
     sending = true;
     router.post(
-      `/${workspaceId}/invoices/${invoice.hashid}/send_email`,
+      routes.invoices.sendEmail(workspaceId, invoice.hashid),
       {
         recipients: emailRecipients,
         cc_self: ccSelf ? "true" : "false",
@@ -93,7 +133,7 @@
 </script>
 
 <PageLayout
-  title={`Invoice #${invoice.id}`}
+  title={`Invoice #${invoice.invoice_number}`}
   icon={FileText}
   iconColor="text-bright-purple"
   variant="wide"
@@ -103,7 +143,7 @@
     <div class="flex items-center gap-2">
       {#if showLetterOpenerHint && isDevMode}
         <a
-          href="/letter_opener"
+          href={routes.devTools.letterOpener}
           target="_blank"
           class="inline-flex items-center gap-2 px-4 py-2 bg-green-950 border-2 border-dashed border-green-500 text-green-400 rounded-[10px] hover:bg-green-900 transition-colors duration-150"
         >
@@ -111,17 +151,58 @@
           View Sent Email
         </a>
       {/if}
+      {#if editingNumber}
+        <div class="flex items-center gap-2">
+          <TextInput
+            type="number"
+            bind:value={editInvoiceNumber}
+            tone="purple"
+            class="w-24 text-sm"
+            min="1"
+          />
+          <Button variant="secondary" type="button" onclick={saveInvoiceNumber}>
+            <Check class="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            type="button"
+            onclick={cancelInvoiceNumberEdit}
+          >
+            <X class="w-4 h-4" />
+          </Button>
+        </div>
+      {:else}
+        <Button
+          variant="secondary"
+          type="button"
+          onclick={startEditingInvoiceNumber}
+        >
+          <Edit2 class="w-4 h-4" />
+          Rename
+        </Button>
+      {/if}
       <Button tone="purple" type="button" onclick={openEmailModal}>
         <Mail class="w-4 h-4" />
         Email Invoice
       </Button>
-      <a href="/{workspaceId}/invoices/{invoice.hashid}/pdf" target="_blank">
+      <a
+        href={routes.invoices.pdf(workspaceId, invoice.hashid)}
+        target="_blank"
+      >
         <Button variant="secondary">
           <Download class="w-4 h-4" />
           Download PDF
         </Button>
       </a>
-      <Link href="/{workspaceId}/invoices">
+      <Button
+        variant="secondary"
+        type="button"
+        onclick={() => (showDeleteModal = true)}
+      >
+        <Trash2 class="w-4 h-4" />
+        Delete
+      </Button>
+      <Link href={routes.invoices.index(workspaceId)}>
         <Button variant="secondary">
           <ArrowLeft class="w-4 h-4" />
           Back
@@ -225,7 +306,11 @@
   </div>
 </PageLayout>
 
-<Modal bind:open={emailModalOpen} title="Email Invoice" maxWidth="max-w-lg">
+<Modal
+  bind:open={emailModalOpen}
+  title={`Email Invoice #${invoice.invoice_number}`}
+  maxWidth="max-w-lg"
+>
   <form
     onsubmit={(e) => {
       e.preventDefault();
@@ -293,3 +378,19 @@
     </div>
   </form>
 </Modal>
+
+<ConfirmDeleteModal
+  bind:open={showDeleteModal}
+  title="Delete Invoice"
+  itemName={`Invoice #${invoice.invoice_number}`}
+  warningMessage="This action cannot be undone. This will permanently delete the invoice and unbill all associated time entries."
+  onConfirm={deleteInvoice}
+  onClose={() => (showDeleteModal = false)}
+>
+  {#snippet details()}
+    <div class="text-sm text-fg-muted space-y-1">
+      <p>Client: {invoice.client.name}</p>
+      <p>Amount: {invoice.total_amount}</p>
+    </div>
+  {/snippet}
+</ConfirmDeleteModal>

@@ -3,17 +3,27 @@ import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import { mount } from "svelte";
 import AppShell from "../components/AppShell.svelte";
 
+const defaultLayout = AppShell as unknown as NonNullable<
+  ResolvedComponent["layout"]
+>;
+
 createInertiaApp({
   resolve: (name) => {
     const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
       eager: true,
     });
-    const page = pages[`../pages/${name}.svelte`];
+    const page = pages[`../pages/${name}.svelte`] as
+      | ResolvedComponent
+      | undefined;
     if (!page) {
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
 
-    return { ...page, layout: page.layout === undefined ? AppShell : page.layout };
+    if (page && page.layout === undefined) {
+      page.layout = defaultLayout;
+    }
+
+    return page as ResolvedComponent;
   },
 
   setup({ el, App, props }) {

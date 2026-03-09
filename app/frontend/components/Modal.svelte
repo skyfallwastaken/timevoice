@@ -66,11 +66,7 @@
           class="p-4 border-b border-bg-tertiary flex items-center justify-between shrink-0"
         >
           <h3 class="font-semibold">{title}</h3>
-          <IconButton
-            type="button"
-            aria-label="Close"
-            onclick={close}
-          >
+          <IconButton type="button" aria-label="Close" onclick={close}>
             <X class="w-4 h-4" aria-hidden="true" />
           </IconButton>
         </div>
