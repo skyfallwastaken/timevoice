@@ -33,6 +33,7 @@
     email: string;
     role: string;
     inviter_name: string;
+    invitee_avatar: string;
     expires_at: string;
     created_at: string;
   };
@@ -339,12 +340,11 @@
           {@const isLast = i === pendingInvites.length - 1}
           <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
             {#snippet leading()}
-              <div
-                class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-lg font-semibold text-fg-muted"
-                aria-hidden="true"
-              >
-                ?
-              </div>
+              <img
+                src={invite.invitee_avatar}
+                alt=""
+                class="w-10 h-10 rounded-full"
+              />
             {/snippet}
             {#snippet primary()}
               {invite.email}

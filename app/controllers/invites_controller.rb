@@ -30,7 +30,7 @@ class InvitesController < ApplicationController
         token: @invite.token,
         workspace_name: @invite.workspace.name,
         inviter_name: @invite.inviter.name,
-        inviter_avatar: @invite.inviter.avatar_url,
+        inviter_avatar: @invite.inviter.display_avatar_url,
         role: @invite.role,
         expires_at: @invite.expires_at.iso8601
       }

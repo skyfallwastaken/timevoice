@@ -22,6 +22,7 @@ class SettingsController < ApplicationController
           email: invite.email,
           role: invite.role,
           inviter_name: invite.inviter.name,
+          invitee_avatar: User.gravatar_url(invite.email),
           expires_at: invite.expires_at.iso8601,
           created_at: invite.created_at.iso8601
         }

@@ -58,6 +58,19 @@ class User < ApplicationRecord
     @current_workspace ||= workspaces.first
   end
 
+  def self.gravatar_url(email, size: 80)
+    hash = Digest::MD5.hexdigest(email.downcase.strip)
+    "https://www.gravatar.com/avatar/#{hash}?s=#{size}&d=mp"
+  end
+
+  def gravatar_url(size: 80)
+    self.class.gravatar_url(email, size: size)
+  end
+
+  def display_avatar_url(size: 80)
+    avatar_url.presence || gravatar_url(size: size)
+  end
+
   def admin?
     admin
   end
