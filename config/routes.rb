@@ -5,11 +5,11 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      resource :me, only: [:show], controller: "me"
-      resources :workspaces, only: [:index, :show]
+      resource :me, only: [ :show ], controller: "me"
+      resources :workspaces, only: [ :index, :show ]
 
       scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
-        resources :time_entries, only: [:index, :show, :create, :update, :destroy] do
+        resources :time_entries, only: [ :index, :show, :create, :update, :destroy ] do
           collection do
             post :start
           end
@@ -17,10 +17,10 @@ Rails.application.routes.draw do
             patch :stop
           end
         end
-        resources :clients, only: [:index, :show, :create, :update, :destroy]
-        resources :projects, only: [:index, :show, :create, :update, :destroy]
-        resources :tags, only: [:index, :show, :create, :update, :destroy]
-        resources :invoices, only: [:index, :show, :create, :update, :destroy]
+        resources :clients, only: [ :index, :show, :create, :update, :destroy ]
+        resources :projects, only: [ :index, :show, :create, :update, :destroy ]
+        resources :tags, only: [ :index, :show, :create, :update, :destroy ]
+        resources :invoices, only: [ :index, :show, :create, :update, :destroy ]
       end
     end
   end

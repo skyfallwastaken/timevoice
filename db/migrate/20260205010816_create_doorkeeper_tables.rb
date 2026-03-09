@@ -12,7 +12,7 @@ class CreateDoorkeeperTables < ActiveRecord::Migration[8.2]
       t.boolean :confidential, null: false, default: false
       t.string  :trust_level,  null: false, default: "community"
       t.references :user, null: false, foreign_key: true
-      t.timestamps             null: false
+      t.timestamps null: false
     end
 
     add_index :oauth_applications, :uid, unique: true
