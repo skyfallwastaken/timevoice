@@ -1,10 +1,9 @@
 class InvitesController < ApplicationController
   skip_before_action :require_workspace, only: [ :show, :accept, :decline ]
+  before_action :set_invite, only: [ :show, :accept, :decline ]
+  before_action :authorize_invite, only: [ :show, :accept, :decline ]
 
   def show
-    @invite = Invite.find_by!(token: params[:token])
-    authorize @invite, :show?
-
     if @invite.expired?
       redirect_to root_path, alert: "This invitation has expired."
       return
@@ -39,9 +38,6 @@ class InvitesController < ApplicationController
   end
 
   def accept
-    @invite = Invite.find_by!(token: params[:token])
-    authorize @invite, :show?
-
     if @invite.expired?
       redirect_to root_path, alert: "This invitation has expired."
       return
@@ -73,9 +69,6 @@ class InvitesController < ApplicationController
   end
 
   def decline
-    @invite = Invite.find_by!(token: params[:token])
-    authorize @invite, :show?
-
     unless @invite.pending?
       redirect_to root_path, alert: "This invitation is no longer valid."
       return
@@ -91,6 +84,14 @@ class InvitesController < ApplicationController
     redirect_to root_path, notice: "Invitation declined."
   end
   private
+
+  def set_invite
+    @invite = Invite.find_by!(token: params[:token])
+  end
+
+  def authorize_invite
+    authorize @invite, :show?
+  end
 
   def workspace_root_path(workspace)
     "/#{workspace.hashid}"
