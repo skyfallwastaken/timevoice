@@ -86,10 +86,15 @@ class InvitesController < ApplicationController
   private
 
   def set_invite
-    @invite = Invite.find_by!(token: params[:token])
+    @invite = Invite.find_by(token: params[:token])
+    unless @invite
+      redirect_to root_path, alert: "This invitation link is invalid."
+      nil
+    end
   end
 
   def authorize_invite
+    return if @invite.nil?
     authorize @invite, :show?
   end
 
