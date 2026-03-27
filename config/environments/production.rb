@@ -46,6 +46,7 @@ Rails.application.configure do
 
   config.session_store :cookie_store,
     key: "_timevoice_session",
+    expire_after: 30.days,
     secure: true,
     httponly: true,
     same_site: :lax
