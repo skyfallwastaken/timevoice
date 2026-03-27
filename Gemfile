@@ -36,7 +36,7 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Vite Ruby for frontend bundling
-gem "vite_rails", "~> 3.0"
+gem "vite_rails", "~> 3.10"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 1.2"
