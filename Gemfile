@@ -100,4 +100,4 @@ end
 
 gem "mission_control-jobs", "~> 1.1"
 
-gem "scalar_ruby", "~> 1.1"
+gem "scalar_ruby", "~> 2.0"
