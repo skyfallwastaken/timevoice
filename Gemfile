@@ -67,6 +67,9 @@ gem "turnstiled", "~> 0.1"
 # Hashids for friendly IDs
 gem "hashids", "~> 1.0"
 
+# CSV (no longer a default gem as of Ruby 3.4)
+gem "csv"
+
 # OAuth2 provider
 gem "doorkeeper", "~> 5.8"
 

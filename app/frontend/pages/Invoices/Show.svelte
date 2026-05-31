@@ -18,6 +18,7 @@
     Edit2,
     Check,
     X,
+    ChevronDown,
   } from "lucide-svelte";
   import { formatDate, getStatusClasses } from "../../lib/format";
   import { routes } from "../../lib/routes";
@@ -66,6 +67,7 @@
   let showDeleteModal = $state(false);
   let editingNumber = $state(false);
   let editInvoiceNumber = $state(0);
+  let downloadMenuOpen = $state(false);
 
   function deleteInvoice() {
     router.delete(routes.invoices.delete(workspaceId, invoice.hashid), {
@@ -185,15 +187,46 @@
         <Mail class="w-4 h-4" />
         Email Invoice
       </Button>
-      <a
-        href={routes.invoices.pdf(workspaceId, invoice.hashid)}
-        target="_blank"
-      >
-        <Button variant="secondary">
+      <div class="relative">
+        <Button
+          variant="secondary"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={downloadMenuOpen}
+          onclick={() => (downloadMenuOpen = !downloadMenuOpen)}
+        >
           <Download class="w-4 h-4" />
-          Download PDF
+          Download
+          <ChevronDown class="w-4 h-4 text-fg-muted" aria-hidden="true" />
         </Button>
-      </a>
+
+        {#if downloadMenuOpen}
+          <div
+            class="absolute top-full right-0 mt-2 min-w-[12rem] rounded-[10px] overflow-hidden z-40 bg-gradient-to-b from-bg-quaternary to-bg-tertiary shadow-[0_0_0_1px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.35),0_12px_24px_-8px_rgba(0,0,0,0.55),0_4px_8px_-4px_rgba(0,0,0,0.4)]"
+            role="menu"
+          >
+            <a
+              href={routes.invoices.pdf(workspaceId, invoice.hashid)}
+              target="_blank"
+              role="menuitem"
+              class="flex items-center gap-2 px-4 py-2.5 text-sm text-fg-primary transition-[background-color,box-shadow,transform] duration-150 hover:bg-gradient-to-b hover:from-white/[0.06] hover:to-transparent active:scale-[0.985]"
+              onclick={() => (downloadMenuOpen = false)}
+            >
+              <FileText class="w-4 h-4" aria-hidden="true" />
+              Download PDF
+            </a>
+            <a
+              href={routes.invoices.csv(workspaceId, invoice.hashid)}
+              role="menuitem"
+              class="flex items-center gap-2 px-4 py-2.5 text-sm text-fg-primary transition-[background-color,box-shadow,transform] duration-150 hover:bg-gradient-to-b hover:from-white/[0.06] hover:to-transparent active:scale-[0.985] shadow-[inset_0_1px_0_rgba(0,0,0,0.4),inset_0_2px_0_-1px_rgba(255,255,255,0.05)]"
+              onclick={() => (downloadMenuOpen = false)}
+            >
+              <Download class="w-4 h-4" aria-hidden="true" />
+              Export CSV
+            </a>
+          </div>
+        {/if}
+      </div>
       <Button
         variant="secondary"
         type="button"

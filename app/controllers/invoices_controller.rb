@@ -1,4 +1,5 @@
 require Rails.root.join("app/services/invoice_pdf").to_s
+require "csv"
 
 class InvoicesController < ApplicationController
   rate_limit to: 10, within: 1.minute, only: :create, with: -> {
@@ -9,9 +10,9 @@ class InvoicesController < ApplicationController
   }
   verify_turnstile_request only: [ :send_email ]
 
-  before_action :set_invoice, only: [ :show, :update, :destroy, :pdf, :send_email ]
+  before_action :set_invoice, only: [ :show, :update, :destroy, :pdf, :csv, :send_email ]
   before_action :authorize_invoice, only: [ :create, :update, :destroy, :send_email ]
-  before_action :authorize_invoice_show, only: [ :show, :pdf ]
+  before_action :authorize_invoice_show, only: [ :show, :pdf, :csv ]
 
   def index
     @invoices = current_workspace.invoices
@@ -162,6 +163,24 @@ class InvoicesController < ApplicationController
       filename: filename,
       type: "application/pdf",
       disposition: "inline"
+  end
+
+  def csv
+    client_name = @invoice.client.name
+    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
+    filename = "Invoice to #{client_name} - #{date_range}.csv"
+
+    data = CSV.generate do |csv|
+      csv << [ "Description", "Hours", "Amount" ]
+      @invoice.invoice_lines.each do |line|
+        csv << [ line.description, line.qty_hours, line.formatted_amount ]
+      end
+    end
+
+    send_data data,
+      filename: filename,
+      type: "text/csv",
+      disposition: "attachment"
   end
 
   def send_email

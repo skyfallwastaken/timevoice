@@ -80,6 +80,7 @@ Rails.application.routes.draw do
     resources :invoices, only: [ :index, :show, :create, :update, :destroy ] do
       member do
         get :pdf
+        get :csv
         post :send_email
       end
     end

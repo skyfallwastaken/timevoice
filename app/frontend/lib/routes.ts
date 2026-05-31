@@ -52,6 +52,8 @@ export const routes = {
       `/${workspaceId}/invoices/${id}`,
     pdf: (workspaceId: string, id: string) =>
       `/${workspaceId}/invoices/${id}/pdf`,
+    csv: (workspaceId: string, id: string) =>
+      `/${workspaceId}/invoices/${id}/csv`,
     sendEmail: (workspaceId: string, id: string) =>
       `/${workspaceId}/invoices/${id}/send_email`,
   },
