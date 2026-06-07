@@ -3,6 +3,7 @@
     ChevronLeft,
     ChevronRight,
     Calendar as CalendarIcon,
+    Clock,
   } from "lucide-svelte";
   import { router, useForm, page } from "@inertiajs/svelte";
   import IconButton from "./IconButton.svelte";
@@ -44,9 +45,21 @@
     end_at: null as string | null,
   });
 
-  let startHour = 6;
-  let endHour = 22;
+  const STORAGE_KEY = "calendar-show-all-hours";
+  let showAllHours = $state(
+    typeof localStorage !== "undefined" &&
+      localStorage.getItem(STORAGE_KEY) === "true",
+  );
+  let startHour = $derived(showAllHours ? 0 : 6);
+  let endHour = $derived(showAllHours ? 23 : 22);
   let hourHeight = 60;
+
+  function toggleShowAllHours() {
+    showAllHours = !showAllHours;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, String(showAllHours));
+    }
+  }
   let isDragging = $state(false);
   let dragStart = $state(null as { hour: number; minute: number } | null);
   let dragCurrent = $state(null as { hour: number; minute: number } | null);
@@ -273,6 +286,18 @@
       <h2 class="text-2xl font-semibold">Week Calendar</h2>
     </div>
     <div class="flex items-center gap-2">
+      <ChipButton
+        type="button"
+        aria-pressed={showAllHours}
+        selected={showAllHours}
+        class={showAllHours
+          ? "border-bright-green text-bright-green"
+          : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
+        onclick={toggleShowAllHours}
+      >
+        <Clock class="w-4 h-4" />
+        <span>{showAllHours ? "Show 6am - 10pm" : "Show 24 hours"}</span>
+      </ChipButton>
       <IconButton
         type="button"
         aria-label="Previous week"
