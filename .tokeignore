@@ -1,0 +1,4 @@
+# Generated lockfiles
+package-lock.json
+bun.lock
+Gemfile.lock
