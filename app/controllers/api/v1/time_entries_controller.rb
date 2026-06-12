@@ -13,12 +13,15 @@ module Api
           .includes(:project, :tags)
           .order(start_at: :desc)
 
-        if params[:start_date].present?
-          time_entries = time_entries.where(start_at: Date.parse(params[:start_date]).beginning_of_day..)
+        begin
+          start_date = Date.parse(params[:start_date]) if params[:start_date].present?
+          end_date = Date.parse(params[:end_date]) if params[:end_date].present?
+        rescue ArgumentError
+          return render json: { error: "unprocessable_entity", message: "start_date and end_date must be valid dates" }, status: :unprocessable_entity
         end
-        if params[:end_date].present?
-          time_entries = time_entries.where(start_at: ..Date.parse(params[:end_date]).end_of_day)
-        end
+
+        time_entries = time_entries.where(start_at: start_date.beginning_of_day..) if start_date
+        time_entries = time_entries.where(start_at: ..end_date.end_of_day) if end_date
 
         render json: time_entries.map { |time_entry| serialize_time_entry(time_entry) }
       end
@@ -108,7 +111,7 @@ module Api
         attrs[:start_at] = src[:started_at] || src[:start_at] if src.key?(:started_at) || src.key?(:start_at)
         attrs[:end_at] = src[:ended_at] || src[:end_at] if src.key?(:ended_at) || src.key?(:end_at)
         if src.key?(:project_id)
-          attrs[:project_id] = src[:project_id].present? ? Project.decode_id(src[:project_id].to_s) : nil
+          attrs[:project_id] = src[:project_id].present? ? current_workspace.projects.find_by!(id: Project.decode_id(src[:project_id].to_s)).id : nil
         end
         attrs
       end
@@ -137,7 +140,7 @@ module Api
           description: time_entry.description,
           started_at: time_entry.start_at&.iso8601(3),
           ended_at: time_entry.end_at&.iso8601(3),
-          duration_seconds: time_entry.end_at && time_entry.start_at ? (time_entry.end_at - time_entry.start_at).round : nil,
+          duration_seconds: time_entry.duration,
           billable: time_entry.billable,
           project: time_entry.project && {
             id: Project.encode_id(time_entry.project.id),

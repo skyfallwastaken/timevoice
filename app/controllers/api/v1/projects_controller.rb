@@ -62,7 +62,7 @@ module Api
         attrs[:color] = src[:color] if src.key?(:color)
         attrs[:billable_default] = src[:billable_default] if src.key?(:billable_default)
         if src.key?(:client_id)
-          attrs[:client_id] = src[:client_id].present? ? Client.decode_id(src[:client_id].to_s) : nil
+          attrs[:client_id] = src[:client_id].present? ? current_workspace.clients.find_by!(id: Client.decode_id(src[:client_id].to_s)).id : nil
         end
         attrs
       end
