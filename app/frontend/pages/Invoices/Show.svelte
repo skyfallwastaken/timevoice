@@ -90,6 +90,14 @@
     );
   }
 
+  function updateInvoiceStatus(status: string) {
+    router.patch(
+      routes.invoices.update(workspaceId, invoice.hashid),
+      { invoice: { status } },
+      { preserveScroll: true },
+    );
+  }
+
   function openEmailModal() {
     emailRecipients = "";
     emailMessage = "";
@@ -181,6 +189,26 @@
         >
           <Edit2 class="w-4 h-4" />
           Rename
+        </Button>
+      {/if}
+      {#if invoice.status === "draft"}
+        <Button
+          variant="secondary"
+          type="button"
+          onclick={() => updateInvoiceStatus("issued")}
+        >
+          <Check class="w-4 h-4" />
+          Issue Invoice
+        </Button>
+      {/if}
+      {#if invoice.status !== "paid"}
+        <Button
+          tone="green"
+          type="button"
+          onclick={() => updateInvoiceStatus("paid")}
+        >
+          <Check class="w-4 h-4" />
+          Mark Paid
         </Button>
       {/if}
       <Button tone="purple" type="button" onclick={openEmailModal}>
