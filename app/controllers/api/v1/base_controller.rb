@@ -35,6 +35,16 @@ module Api
         UserContext.new(current_user, current_workspace)
       end
 
+      # The API docs document flat JSON request bodies, but we also accept the
+      # Rails-conventional nested form ({"time_entry": {...}}). Default JSON
+      # params wrapping copies only model attributes into the nested key, so
+      # documented non-column names (e.g. started_at) only exist at the top
+      # level — top-level keys win.
+      def api_params(key, *permitted)
+        nested = params[key].is_a?(ActionController::Parameters) ? params[key].permit(*permitted).to_h : {}
+        nested.merge(params.permit(*permitted).to_h)
+      end
+
       def require_scope!(*scopes)
         required = scopes.map(&:to_s)
         present = doorkeeper_token.scopes.to_a

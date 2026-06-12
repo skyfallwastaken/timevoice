@@ -9,32 +9,21 @@ module Api
       def index
         projects = current_workspace.projects.includes(:client).order(:name)
 
-        render json: projects.map { |project|
-          project.as_json(
-            only: [ :id, :name, :color, :billable_default ],
-            include: { client: { only: [ :id, :name ] } }
-          )
-        }
+        render json: projects.map { |project| serialize_project(project) }
       end
 
       def show
-        render json: @project.as_json(
-          only: [ :id, :name, :color, :billable_default ],
-          include: { client: { only: [ :id, :name ] } }
-        )
+        render json: serialize_project(@project)
       end
 
       def create
         require_scope!(:projects)
         return if performed?
 
-        project = current_workspace.projects.build(project_params)
+        project = current_workspace.projects.build(project_attrs)
 
         if project.save
-          render json: project.as_json(
-            only: [ :id, :name, :color, :billable_default ],
-            include: { client: { only: [ :id, :name ] } }
-          ), status: :created
+          render json: serialize_project(project), status: :created
         else
           render json: { error: "unprocessable_entity", message: project.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -44,11 +33,8 @@ module Api
         require_scope!(:projects)
         return if performed?
 
-        if @project.update(project_params)
-          render json: @project.as_json(
-            only: [ :id, :name, :color, :billable_default ],
-            include: { client: { only: [ :id, :name ] } }
-          )
+        if @project.update(project_attrs)
+          render json: serialize_project(@project)
         else
           render json: { error: "unprocessable_entity", message: @project.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -69,8 +55,26 @@ module Api
         @project = current_workspace.projects.find_by!(id: project_id)
       end
 
-      def project_params
-        params.require(:project).permit(:name, :client_id, :color, :billable_default)
+      def project_attrs
+        src = api_params(:project, :name, :client_id, :color, :billable_default)
+        attrs = {}
+        attrs[:name] = src[:name] if src.key?(:name)
+        attrs[:color] = src[:color] if src.key?(:color)
+        attrs[:billable_default] = src[:billable_default] if src.key?(:billable_default)
+        if src.key?(:client_id)
+          attrs[:client_id] = src[:client_id].present? ? Client.decode_id(src[:client_id].to_s) : nil
+        end
+        attrs
+      end
+
+      def serialize_project(project)
+        {
+          id: Project.encode_id(project.id),
+          name: project.name,
+          color: project.color,
+          billable_default: project.billable_default,
+          client: project.client && { id: Client.encode_id(project.client.id), name: project.client.name }
+        }
       end
     end
   end
