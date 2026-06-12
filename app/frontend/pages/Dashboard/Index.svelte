@@ -1,6 +1,5 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import TimerInput from "../../components/TimerInput.svelte";
   import { page, router } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import SectionCard from "../../components/SectionCard.svelte";
@@ -147,8 +146,6 @@
     editingEntry = null;
   }
 </script>
-
-<TimerInput runningEntry={$page.props.runningEntry} {projects} {tags} />
 
 <PageLayout title="Timer" variant="narrow" flash={$page.props.flash}>
   {#snippet headerActions()}

@@ -38,6 +38,35 @@ class ApplicationController < ActionController::Base
     Rails.app.creds.require(:cloudflare, :turnstile_site_key)
   }
 
+  # Timer data is shared on every page so the active timer persists across
+  # navigation (it lives in the persistent AppShell layout, not a single page).
+  inertia_share do
+    next {} unless current_workspace
+
+    running = current_user.time_entries
+      .where(workspace: current_workspace)
+      .running
+      .includes(:project, :tags)
+      .first
+
+    {
+      runningEntry: running&.as_json(
+        only: [ :id, :description, :start_at, :billable ],
+        include: {
+          project: { only: [ :id, :name, :color ] },
+          tags: { only: [ :id, :name ] }
+        }
+      ),
+      timerProjects: current_workspace.projects.includes(:client).order(:name).map { |project|
+        project.as_json(
+          only: [ :id, :name, :color, :billable_default ],
+          include: { client: { only: [ :id, :name ] } }
+        )
+      },
+      timerTags: current_workspace.tags.order(:name).as_json(only: [ :id, :name ])
+    }
+  end
+
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   private
