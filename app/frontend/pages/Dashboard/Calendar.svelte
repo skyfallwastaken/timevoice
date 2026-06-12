@@ -1,5 +1,4 @@
 <script lang="ts">
-  import TimerInput from "../../components/TimerInput.svelte";
   import WeekCalendar from "../../components/WeekCalendar.svelte";
   import TimeEntryEditModal from "../../components/TimeEntryEditModal.svelte";
   import { page } from "@inertiajs/svelte";
@@ -18,12 +17,6 @@
     selectedEntry = null;
   }
 </script>
-
-<TimerInput
-  runningEntry={$page.props.runningEntry}
-  projects={($page.props.projects as Project[]) || []}
-  tags={($page.props.tags as Tag[]) || []}
-/>
 
 <div class="flex-1 overflow-hidden">
   <WeekCalendar
