@@ -20,6 +20,7 @@
     sender_address: ($page.props.invoiceSettings as any)?.sender_address || "",
     billable_rate_cents:
       ($page.props.invoiceSettings as any)?.billable_rate_cents || 0,
+    notes: ($page.props.invoiceSettings as any)?.notes || "",
   });
 
   let rateInputValue = $state(
@@ -108,6 +109,24 @@
               class="pl-8 pr-4"
             />
           </div>
+        {/snippet}
+      </FormField>
+
+      <FormField
+        id="invoice-notes"
+        label="Additional Notes"
+        description="These notes appear at the bottom of every invoice (e.g. payment terms or bank details)."
+        error={$form.errors.notes}
+      >
+        {#snippet children({ describedBy })}
+          <TextArea
+            id="invoice-notes"
+            tone="purple"
+            bind:value={$form.notes}
+            placeholder="e.g. Payment due within 30 days. Bank: ..."
+            rows={4}
+            aria-describedby={describedBy}
+          />
         {/snippet}
       </FormField>
 

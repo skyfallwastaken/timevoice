@@ -24,6 +24,7 @@ class InvoicePdf
     build_addresses
     build_line_items_table
     build_totals_section
+    build_notes_section
 
     @document.render
   end
@@ -208,6 +209,28 @@ class InvoicePdf
         t.row(-1).padding_top = 10
       end
     end
+  end
+
+  def build_notes_section
+    notes = sanitize_text(@invoice_setting&.notes)
+    return if notes.blank?
+
+    @document.move_down 35
+
+    @document.stroke_color BORDER_COLOR
+    @document.stroke_horizontal_rule
+    @document.move_down 20
+
+    @document.text "Notes",
+      size: 10,
+      color: TEXT_SECONDARY
+
+    @document.move_down 8
+
+    @document.text notes,
+      size: 9,
+      color: TEXT_SECONDARY,
+      leading: 4
   end
 
   def format_currency(cents)
