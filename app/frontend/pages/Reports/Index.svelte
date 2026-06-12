@@ -58,6 +58,17 @@
 
   let projects = $derived(($page.props.projects as Project[]) || []);
 
+  let dailyEntries = $derived(Object.entries(totals.daily));
+  let maxDailySeconds = $derived(
+    Math.max(1, ...Object.values(totals.daily).map((d) => d.total)),
+  );
+  let maxProjectSeconds = $derived(
+    Math.max(1, ...Object.values(totals.by_project).map((d) => d.total)),
+  );
+  let maxClientSeconds = $derived(
+    Math.max(1, ...Object.values(totals.by_client).map((d) => d.total)),
+  );
+
   let showFilters = $state(false);
   let selectedProjectId = $state("");
 
@@ -139,7 +150,7 @@
   {/snippet}
 
   {#if showFilters}
-    <SectionCard class="animate-slide-in">
+    <SectionCard class="animate-slide-in" bodyClass="p-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <FormField id="report-start" label="Start Date">
           {#snippet children({ describedBy })}
@@ -229,6 +240,52 @@
     </div>
   </div>
 
+  {#if dailyEntries.length > 0}
+    <SectionCard title="Daily Hours">
+      <div class="p-4">
+        <div class="flex items-stretch gap-2 h-48">
+          {#each dailyEntries as [date, data]}
+            {@const barHeight = (data.total / maxDailySeconds) * 100}
+            {@const billableHeight =
+              data.total > 0 ? (data.billable / data.total) * 100 : 0}
+            <div
+              class="flex-1 flex flex-col items-center gap-2 min-w-0"
+              title={`${formatDuration(data.total)} (${formatDuration(data.billable)} billable)`}
+            >
+              <div
+                class="w-full flex-1 flex flex-col justify-end items-center gap-1"
+              >
+                <span class="text-xs text-fg-muted">
+                  {formatDuration(data.total)}
+                </span>
+                <div
+                  class="w-full rounded-t bg-bg-tertiary relative overflow-hidden transition-all duration-200"
+                  style="height: {barHeight}%"
+                >
+                  <div
+                    class="absolute bottom-0 left-0 right-0 bg-bright-green"
+                    style="height: {billableHeight}%"
+                  ></div>
+                </div>
+              </div>
+              <span class="text-xs text-fg-muted">{formatDayOfWeek(date)}</span>
+            </div>
+          {/each}
+        </div>
+        <div
+          class="flex items-center justify-center gap-4 mt-4 text-xs text-fg-muted"
+        >
+          <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-sm bg-bright-green"></span> Billable
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-sm bg-bg-tertiary"></span> Non-billable
+          </span>
+        </div>
+      </div>
+    </SectionCard>
+  {/if}
+
   {#if Object.keys(totals.daily).length > 0}
     <SectionCard title="Daily Breakdown">
       <div class="divide-y divide-bg-tertiary">
@@ -263,13 +320,21 @@
     <SectionCard title="Breakdown by Project">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_project) as [projectName, data]}
-          <div class="p-4 flex items-center justify-between">
-            <span class="font-medium">{projectName}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-bright-green"
-                >{formatDuration(data.billable)} billable</span
-              >
-              <span class="font-semibold">{formatDuration(data.total)}</span>
+          <div class="p-4">
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{projectName}</span>
+              <div class="flex items-center gap-4">
+                <span class="text-bright-green"
+                  >{formatDuration(data.billable)} billable</span
+                >
+                <span class="font-semibold">{formatDuration(data.total)}</span>
+              </div>
+            </div>
+            <div class="mt-2 h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+              <div
+                class="h-full bg-bright-purple rounded-full"
+                style="width: {(data.total / maxProjectSeconds) * 100}%"
+              ></div>
             </div>
           </div>
         {/each}
@@ -281,13 +346,21 @@
     <SectionCard title="Breakdown by Client">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_client) as [clientName, data]}
-          <div class="p-4 flex items-center justify-between">
-            <span class="font-medium">{clientName}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-bright-green"
-                >{formatDuration(data.billable)} billable</span
-              >
-              <span class="font-semibold">{formatDuration(data.total)}</span>
+          <div class="p-4">
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{clientName}</span>
+              <div class="flex items-center gap-4">
+                <span class="text-bright-green"
+                  >{formatDuration(data.billable)} billable</span
+                >
+                <span class="font-semibold">{formatDuration(data.total)}</span>
+              </div>
+            </div>
+            <div class="mt-2 h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+              <div
+                class="h-full bg-bright-blue rounded-full"
+                style="width: {(data.total / maxClientSeconds) * 100}%"
+              ></div>
             </div>
           </div>
         {/each}
