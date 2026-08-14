@@ -18,6 +18,7 @@
   } from "lucide-svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
+  import TimerInput from "./TimerInput.svelte";
   import FormField from "./FormField.svelte";
   import TextInput from "./TextInput.svelte";
   import Button from "./Button.svelte";
@@ -34,9 +35,30 @@
   const isAdmin = $derived($page.props.auth?.is_admin);
   const isDevMode = $derived($page.props.rails_env === "development");
 
+  const runningEntry = $derived($page.props.runningEntry);
+  const timerProjects = $derived(
+    ($page.props.timerProjects as unknown[]) || [],
+  );
+  const timerTags = $derived(($page.props.timerTags as unknown[]) || []);
+
   const currentWorkspaceHashid = $derived(
     $page.props.auth?.workspace?.hashid || "",
   );
+
+  // The full timer always lives on the Timer and Calendar pages (so you can
+  // start one). Everywhere else it only appears while a timer is running.
+  const isTimerPage = $derived(
+    [
+      routes.dashboard.index(currentWorkspaceHashid),
+      routes.dashboard.calendar(currentWorkspaceHashid),
+    ].some(
+      (href) =>
+        $page.url === href ||
+        $page.url.startsWith(href + "/") ||
+        $page.url.startsWith(href + "?"),
+    ),
+  );
+  const showTimer = $derived(!!runningEntry || isTimerPage);
 
   const navItems = [
     { href: routes.dashboard.index, icon: Clock, label: "Timer" },
@@ -416,6 +438,9 @@
     style="--dev-banner-h: {isDevMode ? '1.5rem' : '0px'}"
     tabindex="-1"
   >
+    {#if showTimer}
+      <TimerInput {runningEntry} projects={timerProjects} tags={timerTags} />
+    {/if}
     {@render children()}
   </main>
 

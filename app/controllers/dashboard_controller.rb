@@ -2,7 +2,6 @@ class DashboardController < ApplicationController
   def index
     authorize current_workspace, :show?
 
-    @running_entry = current_user.time_entries.running.includes(:project, :tags).first
     @recent_entries = current_user.time_entries
       .where(workspace: current_workspace)
       .completed
@@ -14,13 +13,6 @@ class DashboardController < ApplicationController
     @tags = current_workspace.tags.order(:name)
 
     render inertia: "Dashboard/Index", props: {
-      runningEntry: @running_entry&.as_json(
-        only: [ :id, :description, :start_at, :billable ],
-        include: {
-          project: { only: [ :id, :name, :color ] },
-          tags: { only: [ :id, :name ] }
-        }
-      ),
       recentEntries: @recent_entries.map { |entry|
         entry.as_json(
           only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
