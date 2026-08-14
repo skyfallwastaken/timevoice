@@ -66,6 +66,37 @@
   let dragDay = $state(null as Date | null);
   let showQuickEdit = $state(false);
 
+  let entryDate = $state("");
+  let startTime = $state("");
+  let endTime = $state("");
+
+  function formatTimeInput(date: Date) {
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  function syncTimeFieldsFromForm() {
+    if ($form.start_at) {
+      const start = new Date($form.start_at);
+      entryDate = toDateString(start);
+      startTime = formatTimeInput(start);
+    }
+    if ($form.end_at) {
+      endTime = formatTimeInput(new Date($form.end_at));
+    }
+  }
+
+  function applyTimeFields() {
+    if (!entryDate || !startTime || !endTime) return;
+    const start = new Date(`${entryDate}T${startTime}:00`);
+    const end = new Date(`${entryDate}T${endTime}:00`);
+    // Roll the end into the next day when it lands before the start (overnight).
+    if (end <= start) end.setDate(end.getDate() + 1);
+    $form.start_at = start.toISOString();
+    $form.end_at = end.toISOString();
+  }
+
   function getWeekDays(weekStart: string) {
     const start = new Date(`${weekStart}T00:00:00`);
     const weekDays = [];
@@ -104,45 +135,63 @@
     return `${hour - 12} PM`;
   }
 
+  function entryBounds(entry: TimeEntry) {
+    const start = new Date(entry.start_at);
+    let end: Date;
+    if (entry.end_at) {
+      end = new Date(entry.end_at);
+    } else if (entry.duration_seconds) {
+      end = new Date(start.getTime() + entry.duration_seconds * 1000);
+    } else {
+      end = new Date(start.getTime() + 3600 * 1000);
+    }
+    return { start, end };
+  }
+
   function getEntriesForDay(date: Date) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Include any entry that overlaps this day, so sessions spanning midnight
+    // render a segment on each day they touch.
     return entries.filter((entry) => {
-      const entryStart = new Date(entry.start_at);
-      return entryStart >= startOfDay && entryStart <= endOfDay;
+      const { start, end } = entryBounds(entry);
+      return start <= endOfDay && end > startOfDay;
     });
   }
 
-  function getEntryStyle(entry: TimeEntry) {
-    const start = new Date(entry.start_at);
-    const startMinutes = start.getHours() * 60 + start.getMinutes();
-    const minutesFromStart = startMinutes - startHour * 60;
-    const top = (minutesFromStart / 60) * hourHeight;
+  function getEntryStyle(entry: TimeEntry, day: Date) {
+    const { start, end } = entryBounds(entry);
 
-    let duration = entry.duration_seconds;
-    if (!duration && entry.end_at) {
-      const end = new Date(entry.end_at);
-      duration = (end.getTime() - start.getTime()) / 1000;
-    }
-    const height = ((duration || 3600) / 3600) * hourHeight;
+    const windowStart = new Date(day);
+    windowStart.setHours(startHour, 0, 0, 0);
+    const windowEnd = new Date(day);
+    windowEnd.setHours(endHour + 1, 0, 0, 0);
+
+    const visibleStart = Math.max(start.getTime(), windowStart.getTime());
+    const visibleEnd = Math.min(end.getTime(), windowEnd.getTime());
+
+    const top = ((visibleStart - windowStart.getTime()) / 3600000) * hourHeight;
+    const height = ((visibleEnd - visibleStart) / 3600000) * hourHeight;
 
     return `top: ${top}px; height: ${Math.max(height, 20)}px;`;
   }
 
   function getDayTotal(date: Date) {
-    const dayEntries = getEntriesForDay(date);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(24, 0, 0, 0);
+
     let totalSeconds = 0;
-    dayEntries.forEach((entry) => {
-      if (entry.duration_seconds) {
-        totalSeconds += entry.duration_seconds;
-      } else if (entry.end_at) {
-        const start = new Date(entry.start_at);
-        const end = new Date(entry.end_at);
-        totalSeconds += (end.getTime() - start.getTime()) / 1000;
-      }
+    getEntriesForDay(date).forEach((entry) => {
+      const { start, end } = entryBounds(entry);
+      // Only count the portion of the entry that falls on this day.
+      const from = Math.max(start.getTime(), startOfDay.getTime());
+      const to = Math.min(end.getTime(), endOfDay.getTime());
+      totalSeconds += Math.max(0, (to - from) / 1000);
     });
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -212,6 +261,7 @@
     $form.description = "";
     $form.project_id = null;
     $form.billable = false;
+    syncTimeFieldsFromForm();
 
     showQuickEdit = true;
     isDragging = false;
@@ -257,13 +307,6 @@
     const height = ((endMinutes - startMinutes) / 60) * hourHeight;
 
     return `top: ${top}px; height: ${height}px;`;
-  }
-
-  function formatTimeRange() {
-    if (!$form.start_at || !$form.end_at) return "";
-    const start = new Date($form.start_at);
-    const end = new Date($form.end_at);
-    return `${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
   }
 
   function selectProject(project: { id: number; billable_default: boolean }) {
@@ -367,9 +410,9 @@
               <button
                 type="button"
                 class="absolute left-1 right-1 rounded-md px-2 py-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 transition-all duration-200 text-left"
-                style="{getEntryStyle(entry)} background-color: {entry.project
-                  ?.color || '#b16286'}40; border-left: 3px solid {entry.project
-                  ?.color || '#b16286'};"
+                style="{getEntryStyle(entry, day)} background-color: {entry
+                  .project?.color || '#b16286'}40; border-left: 3px solid {entry
+                  .project?.color || '#b16286'};"
                 title="{entry.description ||
                   'No description'} ({entry.formattedDuration})"
                 onmousedown={(e) => e.stopPropagation()}
@@ -406,7 +449,41 @@
   onclose={() => (showQuickEdit = false)}
   maxWidth="max-w-md"
 >
-  <p class="text-fg-muted text-sm">{formatTimeRange()}</p>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div>
+      <label for="entry-date" class="block text-sm font-medium mb-2">Date</label
+      >
+      <input
+        id="entry-date"
+        type="date"
+        bind:value={entryDate}
+        onchange={applyTimeFields}
+        class="w-full px-3 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-primary focus-visible:outline-none focus-visible:border-bright-blue"
+      />
+    </div>
+    <div>
+      <label for="entry-start" class="block text-sm font-medium mb-2"
+        >Start</label
+      >
+      <input
+        id="entry-start"
+        type="time"
+        bind:value={startTime}
+        onchange={applyTimeFields}
+        class="w-full px-3 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-primary focus-visible:outline-none focus-visible:border-bright-blue"
+      />
+    </div>
+    <div>
+      <label for="entry-end" class="block text-sm font-medium mb-2">End</label>
+      <input
+        id="entry-end"
+        type="time"
+        bind:value={endTime}
+        onchange={applyTimeFields}
+        class="w-full px-3 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] text-fg-primary focus-visible:outline-none focus-visible:border-bright-blue"
+      />
+    </div>
+  </div>
 
   <div>
     <label for="entry-description" class="block text-sm font-medium mb-2"
