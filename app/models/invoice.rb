@@ -32,23 +32,21 @@ class Invoice < ApplicationRecord
   end
 
   def self.generate_from_time_entries(workspace, client, period_start_date, period_end_date, rate_cents, user = nil)
-    entries_query = TimeEntry
+    entries = TimeEntry
       .where(workspace: workspace)
       .unbilled
       .for_client(client)
-      .in_date_range(period_start_date, period_end_date)
 
-    entries_query = entries_query.where(user: user) if user
-
-    entries = entries_query
+    entries = entries.in_date_range(period_start_date, period_end_date) if period_start_date && period_end_date
+    entries = entries.where(user: user) if user
 
     return nil if entries.empty?
 
     invoice = create!(
       workspace: workspace,
       client: client,
-      period_start: period_start_date,
-      period_end: period_end_date,
+      period_start: period_start_date || entries.minimum(:start_at).to_date,
+      period_end: period_end_date || entries.maximum(:start_at).to_date,
       issued_on: Date.current,
       status: STATUS_DRAFT,
       total_cents: 0

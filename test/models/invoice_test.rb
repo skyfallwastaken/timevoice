@@ -60,4 +60,37 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal 10_000, invoice.total_cents
     assert_empty teammate_entry.reload.invoice_lines
   end
+
+  test "generate_from_time_entries without a period bills every unbilled entry and spans their dates" do
+    user = User.create!(
+      email: "all-entries@example.com",
+      name: "All Entries",
+      google_uid: "all-entries-google-uid",
+      timezone: "UTC"
+    )
+    workspace = Workspace.create!(name: "All Entries Workspace", owner: user)
+    Membership.create!(workspace: workspace, user: user, role: "owner")
+    client = Client.create!(workspace: workspace, name: "Initech")
+    other_client = Client.create!(workspace: workspace, name: "Umbrella")
+    project = Project.create!(workspace: workspace, client: client, name: "TPS", color: "#458588")
+    other_project = Project.create!(workspace: workspace, client: other_client, name: "Hive", color: "#458588")
+
+    entry = ->(project, start, hours) {
+      TimeEntry.create!(
+        user: user, workspace: workspace, project: project, description: "Work",
+        start_at: Time.zone.parse(start), end_at: Time.zone.parse(start) + hours.hours, billable: true
+      )
+    }
+    old_entry = entry.(project, "2025-07-14 09:00:00", 2)
+    recent_entry = entry.(project, "2026-02-03 09:00:00", 1)
+    entry.(other_project, "2026-02-04 09:00:00", 1)
+
+    invoice = Invoice.generate_from_time_entries(workspace, client, nil, nil, 10_000, user)
+
+    assert_equal [ old_entry.id, recent_entry.id ].sort, invoice.invoice_lines.pluck(:time_entry_id).sort
+    assert_equal Date.new(2025, 7, 14), invoice.period_start
+    assert_equal Date.new(2026, 2, 3), invoice.period_end
+    assert_equal 30_000, invoice.total_cents
+    assert_nil Invoice.generate_from_time_entries(workspace, client, nil, nil, 10_000, user)
+  end
 end

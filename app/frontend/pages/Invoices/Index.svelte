@@ -68,6 +68,7 @@
       id: number;
       name: string;
       color: string;
+      client_id: number | null;
     } | null;
     tags: Array<{
       id: number;
@@ -102,6 +103,7 @@
 
   let periodStartDate = $state<Date | null>(null);
   let periodEndDate = $state<Date | null>(null);
+  let useAllEntries = $state(false);
 
   function setTodayAsDefault() {
     const today = new Date();
@@ -116,6 +118,7 @@
         : getRelativeDateRange(daysBack);
     periodStartDate = range.start;
     periodEndDate = range.end;
+    useAllEntries = false;
   }
 
   $effect(() => {
@@ -133,26 +136,43 @@
       0,
   });
 
+  let clientUnbilledEntries = $derived(
+    unbilledEntries.filter(
+      (entry) =>
+        !!$createForm.client_id &&
+        entry.project?.client_id === Number($createForm.client_id),
+    ),
+  );
+  let clientUnbilledHours = $derived(
+    clientUnbilledEntries.reduce((sum, entry) => sum + entry.hours, 0),
+  );
+
   let canCreateInvoice = $derived(
     !!$createForm.client_id &&
-      !!periodStartDate &&
-      !!periodEndDate &&
-      periodStartDate.getTime() <= periodEndDate.getTime() &&
+      (useAllEntries
+        ? clientUnbilledEntries.length > 0
+        : !!periodStartDate &&
+          !!periodEndDate &&
+          periodStartDate.getTime() <= periodEndDate.getTime()) &&
       !$createForm.processing,
   );
 
   function handleCreateInvoice() {
     $createForm
       .transform((data) => ({
-        ...data,
-        period_start: periodStartDate ? toDateString(periodStartDate) : "",
-        period_end: periodEndDate ? toDateString(periodEndDate) : "",
+        invoice: {
+          ...data,
+          all_entries: useAllEntries,
+          period_start: periodStartDate ? toDateString(periodStartDate) : "",
+          period_end: periodEndDate ? toDateString(periodEndDate) : "",
+        },
       }))
       .post(routes.invoices.create(workspaceId), {
         onSuccess: () => {
           $createForm.reset();
           periodStartDate = null;
           periodEndDate = null;
+          useAllEntries = false;
           showCreateForm = false;
         },
       });
@@ -301,40 +321,67 @@
               />
             {/snippet}
           </FormField>
-          <FormField
-            id="invoice-start"
-            label="Period Start"
-            error={$createForm.errors.period_start}
-          >
-            {#snippet children({ describedBy })}
-              <div class="date-input-gruvbox" aria-describedby={describedBy}>
-                <DateInput
-                  bind:value={periodStartDate}
-                  max={periodEndDate ?? undefined}
-                  placeholder="Select start date"
-                  format="yyyy-MM-dd"
-                  closeOnSelection={true}
-                />
-              </div>
-            {/snippet}
-          </FormField>
-          <FormField
-            id="invoice-end"
-            label="Period End"
-            error={$createForm.errors.period_end}
-          >
-            {#snippet children({ describedBy })}
-              <div class="date-input-gruvbox" aria-describedby={describedBy}>
-                <DateInput
-                  bind:value={periodEndDate}
-                  min={periodStartDate ?? undefined}
-                  placeholder="Select end date"
-                  format="yyyy-MM-dd"
-                  closeOnSelection={true}
-                />
-              </div>
-            {/snippet}
-          </FormField>
+          {#if useAllEntries}
+            <div
+              class="md:col-span-2 bg-bg-primary border border-bg-tertiary rounded-[10px] p-4 text-sm"
+            >
+              {#if !$createForm.client_id}
+                <p class="text-fg-muted">
+                  Select a client to see their unbilled entries.
+                </p>
+              {:else if clientUnbilledEntries.length === 0}
+                <p class="text-fg-muted">
+                  This client has no unbilled entries.
+                </p>
+              {:else}
+                <p class="text-fg-primary">
+                  All {clientUnbilledEntries.length} unbilled
+                  {clientUnbilledEntries.length === 1 ? "entry" : "entries"}
+                  ({clientUnbilledHours.toFixed(2)} hours) for this client will be
+                  invoiced.
+                </p>
+                <p class="text-fg-muted mt-1">
+                  The invoice period is set from the earliest to the latest
+                  entry.
+                </p>
+              {/if}
+            </div>
+          {:else}
+            <FormField
+              id="invoice-start"
+              label="Period Start"
+              error={$createForm.errors.period_start}
+            >
+              {#snippet children({ describedBy })}
+                <div class="date-input-gruvbox" aria-describedby={describedBy}>
+                  <DateInput
+                    bind:value={periodStartDate}
+                    max={periodEndDate ?? undefined}
+                    placeholder="Select start date"
+                    format="yyyy-MM-dd"
+                    closeOnSelection={true}
+                  />
+                </div>
+              {/snippet}
+            </FormField>
+            <FormField
+              id="invoice-end"
+              label="Period End"
+              error={$createForm.errors.period_end}
+            >
+              {#snippet children({ describedBy })}
+                <div class="date-input-gruvbox" aria-describedby={describedBy}>
+                  <DateInput
+                    bind:value={periodEndDate}
+                    min={periodStartDate ?? undefined}
+                    placeholder="Select end date"
+                    format="yyyy-MM-dd"
+                    closeOnSelection={true}
+                  />
+                </div>
+              {/snippet}
+            </FormField>
+          {/if}
         </div>
 
         <div class="mb-4">
@@ -342,6 +389,14 @@
             >Quick Select</span
           >
           <div class="flex flex-wrap gap-2">
+            <ChipButton
+              type="button"
+              selected={useAllEntries}
+              aria-pressed={useAllEntries}
+              onclick={() => (useAllEntries = !useAllEntries)}
+            >
+              All Unbilled Entries
+            </ChipButton>
             <ChipButton type="button" onclick={() => setDateRange(7)}>
               Last Week
             </ChipButton>

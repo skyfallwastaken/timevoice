@@ -52,7 +52,7 @@ class InvoicesController < ApplicationController
          entry.as_json(
            only: [ :id, :description, :duration_seconds, :billable, :start_at ],
            include: {
-             project: { only: [ :id, :name, :color ] },
+             project: { only: [ :id, :name, :color, :client_id ] },
              tags: { only: [ :id, :name ] }
            }
          ).merge(
@@ -100,14 +100,18 @@ class InvoicesController < ApplicationController
     end
 
     client = current_workspace.clients.find(attrs[:client_id])
+    all_entries = ActiveModel::Type::Boolean.new.cast(attrs[:all_entries])
 
-    if attrs[:period_start].blank? || attrs[:period_end].blank?
-      redirect_to invoices_path, alert: "Please select an invoice period start and end date."
-      return
+    unless all_entries
+      if attrs[:period_start].blank? || attrs[:period_end].blank?
+        redirect_to invoices_path, alert: "Please select an invoice period start and end date."
+        return
+      end
+
+      start_date = Date.parse(attrs[:period_start])
+      end_date = Date.parse(attrs[:period_end])
     end
 
-    start_date = Date.parse(attrs[:period_start])
-    end_date = Date.parse(attrs[:period_end])
     rate_cents = attrs[:rate_cents].presence || current_workspace.invoice_setting&.billable_rate_cents || 0
 
     invoice = Invoice.generate_from_time_entries(
@@ -120,7 +124,7 @@ class InvoicesController < ApplicationController
     )
 
     if invoice.nil?
-      redirect_to invoices_path, alert: "No unbilled entries found for this client in the selected date range."
+      redirect_to invoices_path, alert: all_entries ? "No unbilled entries found for this client." : "No unbilled entries found for this client in the selected date range."
       return
     end
 
@@ -226,7 +230,7 @@ class InvoicesController < ApplicationController
   end
 
   def invoice_create_params
-    optional_params(:invoice, :client_id, :period_start, :period_end, :rate_cents)
+    optional_params(:invoice, :client_id, :period_start, :period_end, :rate_cents, :all_entries)
   end
 
   def invoice_params
