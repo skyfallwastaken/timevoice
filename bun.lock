@@ -23,7 +23,6 @@
         "@types/node": "^26.6.6",
         "bits-ui": "^2.20.0",
         "clsx": "^2.1.1",
-        "date-picker-svelte": "^2.17.0",
         "prettier": "^3.8.3",
         "prettier-plugin-svelte": "^3.5.2",
         "tailwind-merge": "^3.7.0",
@@ -238,8 +237,6 @@
     "combined-stream": ["combined-stream@1.0.8", "", { "dependencies": { "delayed-stream": "~1.0.0" } }, "sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg=="],
 
     "cssesc": ["cssesc@3.0.0", "", { "bin": { "cssesc": "bin/cssesc" } }, "sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg=="],
-
-    "date-picker-svelte": ["date-picker-svelte@2.17.0", "", { "peerDependencies": { "svelte": "^3.24.0 || ^4.0.0 || ^5.0.0" } }, "sha512-lv558Odoyh0+yYFvC2DAKCALMtGKv9hfGBS+CjdSi1xB0qcJm+dtaVABcLQaAJ5Bj+jizRBVRqfC1Tq2Gcpsog=="],
 
     "deepmerge": ["deepmerge@4.3.1", "", {}, "sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A=="],
 

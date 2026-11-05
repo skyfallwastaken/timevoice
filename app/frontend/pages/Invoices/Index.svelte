@@ -2,7 +2,7 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import { Link, page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
-  import { DateInput } from "date-picker-svelte";
+  import DatePicker from "../../components/DatePicker.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -358,15 +358,13 @@
               error={$createForm.errors.period_start}
             >
               {#snippet children({ describedBy })}
-                <div class="date-input-gruvbox" aria-describedby={describedBy}>
-                  <DateInput
-                    bind:value={periodStartDate}
-                    max={periodEndDate ?? undefined}
-                    placeholder="Select start date"
-                    format="yyyy-MM-dd"
-                    closeOnSelection={true}
-                  />
-                </div>
+                <DatePicker
+                  id="invoice-start"
+                  bind:value={periodStartDate}
+                  max={periodEndDate}
+                  placeholder="Select start date"
+                  aria-describedby={describedBy}
+                />
               {/snippet}
             </FormField>
             <FormField
@@ -375,15 +373,13 @@
               error={$createForm.errors.period_end}
             >
               {#snippet children({ describedBy })}
-                <div class="date-input-gruvbox" aria-describedby={describedBy}>
-                  <DateInput
-                    bind:value={periodEndDate}
-                    min={periodStartDate ?? undefined}
-                    placeholder="Select end date"
-                    format="yyyy-MM-dd"
-                    closeOnSelection={true}
-                  />
-                </div>
+                <DatePicker
+                  id="invoice-end"
+                  bind:value={periodEndDate}
+                  min={periodStartDate}
+                  placeholder="Select end date"
+                  aria-describedby={describedBy}
+                />
               {/snippet}
             </FormField>
           {/if}

@@ -2,7 +2,7 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
-  import { DateInput } from "date-picker-svelte";
+  import DatePicker from "../../components/DatePicker.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -151,30 +151,24 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <FormField id="report-start" label="Start Date">
           {#snippet children({ describedBy })}
-            <div class="date-input-gruvbox" aria-describedby={describedBy}>
-              <DateInput
-                id="report-start"
-                bind:value={startDate}
-                max={endDate || undefined}
-                placeholder="Select start date"
-                format="yyyy-MM-dd"
-                closeOnSelection={true}
-              />
-            </div>
+            <DatePicker
+              id="report-start"
+              bind:value={startDate}
+              max={endDate}
+              placeholder="Select start date"
+              aria-describedby={describedBy}
+            />
           {/snippet}
         </FormField>
         <FormField id="report-end" label="End Date">
           {#snippet children({ describedBy })}
-            <div class="date-input-gruvbox" aria-describedby={describedBy}>
-              <DateInput
-                id="report-end"
-                bind:value={endDate}
-                min={startDate || undefined}
-                placeholder="Select end date"
-                format="yyyy-MM-dd"
-                closeOnSelection={true}
-              />
-            </div>
+            <DatePicker
+              id="report-end"
+              bind:value={endDate}
+              min={startDate}
+              placeholder="Select end date"
+              aria-describedby={describedBy}
+            />
           {/snippet}
         </FormField>
         <Button
