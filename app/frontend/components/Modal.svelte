@@ -1,15 +1,16 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { X } from "lucide-svelte";
-  import { fade, fly } from "svelte/transition";
-  import IconButton from "./IconButton.svelte";
+  import * as Dialog from "$lib/components/ui/dialog/index.js";
+  import { cn } from "$lib/utils.js";
 
   interface Props {
     open: boolean;
     title?: string;
     onclose?: () => void;
     maxWidth?: string;
-    children?: any;
-    footer?: any;
+    children?: Snippet;
+    footer?: Snippet;
   }
 
   let {
@@ -20,65 +21,41 @@
     children,
     footer,
   }: Props = $props();
-
-  function close() {
-    open = false;
-    onclose?.();
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape" && open) {
-      close();
-    }
-  }
-
-  function springEasing(t: number): number {
-    const c4 = (2 * Math.PI) / 3;
-    return t === 0
-      ? 0
-      : t === 1
-        ? 1
-        : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
-  }
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if open}
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-label={title}
-    transition:fade={{ duration: 150 }}
+<Dialog.Root
+  bind:open
+  onOpenChange={(isOpen) => {
+    if (!isOpen) onclose?.();
+  }}
+>
+  <Dialog.Content
+    showCloseButton={false}
+    class={cn(
+      "w-[calc(100%-2rem)] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden text-base",
+      maxWidth,
+    )}
   >
-    <div
-      class="absolute inset-0 bg-black/50 cursor-pointer"
-      onclick={close}
-      aria-hidden="true"
-    ></div>
-    <div
-      class="relative w-full {maxWidth} max-h-[90vh] flex flex-col bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-      transition:fly={{ y: 30, duration: 400, easing: springEasing }}
-    >
-      {#if title}
-        <div
-          class="p-4 border-b border-bg-tertiary flex items-center justify-between shrink-0"
+    {#if title}
+      <div
+        class="p-4 border-b border-bg-tertiary flex items-center justify-between shrink-0"
+      >
+        <Dialog.Title class="font-semibold">{title}</Dialog.Title>
+        <Dialog.Close
+          class="inline-flex items-center justify-center rounded-[10px] p-2 text-fg-muted hover:text-fg-primary transition-colors duration-150"
+          aria-label="Close"
         >
-          <h3 class="font-semibold">{title}</h3>
-          <IconButton type="button" aria-label="Close" onclick={close}>
-            <X class="w-4 h-4" aria-hidden="true" />
-          </IconButton>
-        </div>
-      {/if}
-      <div class="p-4 space-y-4 overflow-y-auto">
-        {@render children?.()}
+          <X class="w-4 h-4" aria-hidden="true" />
+        </Dialog.Close>
       </div>
-      {#if footer}
-        <div class="p-4 border-t border-bg-tertiary shrink-0">
-          {@render footer()}
-        </div>
-      {/if}
+    {/if}
+    <div class="p-4 space-y-4 overflow-y-auto">
+      {@render children?.()}
     </div>
-  </div>
-{/if}
+    {#if footer}
+      <div class="p-4 border-t border-bg-tertiary shrink-0">
+        {@render footer()}
+      </div>
+    {/if}
+  </Dialog.Content>
+</Dialog.Root>

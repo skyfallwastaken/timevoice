@@ -20,7 +20,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["app/frontend/*"],
-      "~/*": ["app/frontend/*"]
+      "~/*": ["app/frontend/*"],
+      "$lib": ["app/frontend/lib"],
+      "$lib/*": ["app/frontend/lib/*"]
     }
   },
 

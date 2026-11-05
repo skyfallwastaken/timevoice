@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
@@ -51,6 +52,31 @@
   --duration-fast: 150ms;
   --duration-normal: 200ms;
   --duration-slow: 250ms;
+}
+
+/* The app is dark-only, so shadcn-svelte's dark: styles always apply. */
+@custom-variant dark (&);
+
+/* shadcn-svelte tokens, mapped onto the Gruvbox palette above */
+@theme inline {
+  --color-background: var(--color-bg-primary);
+  --color-foreground: var(--color-fg-primary);
+  --color-card: var(--color-bg-secondary);
+  --color-card-foreground: var(--color-fg-primary);
+  --color-popover: var(--color-bg-secondary);
+  --color-popover-foreground: var(--color-fg-primary);
+  --color-primary: var(--color-bright-purple);
+  --color-primary-foreground: var(--color-bg-primary);
+  --color-secondary: var(--color-bg-tertiary);
+  --color-secondary-foreground: var(--color-fg-primary);
+  --color-muted: var(--color-bg-tertiary);
+  --color-muted-foreground: var(--color-fg-muted);
+  --color-accent: var(--color-bg-tertiary);
+  --color-accent-foreground: var(--color-fg-primary);
+  --color-destructive: var(--color-bright-red);
+  --color-border: var(--color-bg-tertiary);
+  --color-input: var(--color-bg-tertiary);
+  --color-ring: var(--color-bright-blue);
 }
 
 :root {
