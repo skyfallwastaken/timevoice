@@ -48,10 +48,6 @@ module Api
       def update
         authorize @invoice
 
-        if params.dig(:invoice, :status) == "issued" && @invoice.issued_on.nil?
-          @invoice.issued_on = Date.current
-        end
-
         if @invoice.update(update_params)
           render json: { invoice: invoice_json(@invoice, include_lines: true) }
         else

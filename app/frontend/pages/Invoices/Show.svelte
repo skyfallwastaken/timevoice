@@ -121,13 +121,15 @@
         "cf-turnstile-response": turnstileToken,
       },
       {
-        onFinish: () => {
-          sending = false;
+        onSuccess: () => {
           emailModalOpen = false;
-          turnstileToken = "";
           if (isDevMode) {
             showLetterOpenerHint = true;
           }
+        },
+        onFinish: () => {
+          sending = false;
+          turnstileToken = "";
         },
       },
     );
@@ -269,9 +271,9 @@
             )}
           </span>
           <span
-            >Issued: {invoice.issued_on
-              ? formatDate(invoice.issued_on)
-              : "Not issued"}</span
+            >Issued: {invoice.status === "draft" || !invoice.issued_on
+              ? "Not issued"
+              : formatDate(invoice.issued_on)}</span
           >
         </div>
       </div>

@@ -80,13 +80,12 @@ export function getRelativeDateRange(daysBack: number): { start: Date; end: Date
 }
 
 /**
- * Set a date range for the last month
+ * The previous calendar month (e.g. Oct 1 – Oct 31 when today is in November)
  */
 export function getLastMonthRange(): { start: Date; end: Date } {
-  const end = new Date()
-  end.setHours(0, 0, 0, 0)
-  const start = new Date(end)
-  start.setMonth(end.getMonth() - 1)
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const end = new Date(now.getFullYear(), now.getMonth(), 0)
   return { start, end }
 }
 

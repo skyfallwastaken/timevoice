@@ -69,6 +69,7 @@
       name: string;
       color: string;
       client_id: number | null;
+      client: { id: number; name: string } | null;
     } | null;
     tags: Array<{
       id: number;
@@ -136,6 +137,8 @@
       0,
   });
 
+  let rateInput = $state(formatRate($createForm.rate_cents));
+
   let clientUnbilledEntries = $derived(
     unbilledEntries.filter(
       (entry) =>
@@ -170,6 +173,7 @@
       .post(routes.invoices.create(workspaceId), {
         onSuccess: () => {
           $createForm.reset();
+          rateInput = formatRate($createForm.rate_cents);
           periodStartDate = null;
           periodEndDate = null;
           useAllEntries = false;
@@ -305,16 +309,17 @@
           <FormField
             id="invoice-rate"
             label="Billable Rate ($/hour)"
-            description="Defaults from invoice settings."
+            description={$createForm.rate_cents > 0
+              ? "Defaults from invoice settings."
+              : "No rate set. Enter one here or set a default in Billing Settings."}
           >
             {#snippet children({ describedBy })}
               <TextInput
                 id="invoice-rate"
                 type="number"
                 tone="purple"
-                value={formatRate($createForm.rate_cents)}
-                oninput={(e) =>
-                  ($createForm.rate_cents = parseRate(e.currentTarget.value))}
+                bind:value={rateInput}
+                oninput={() => ($createForm.rate_cents = parseRate(rateInput))}
                 step="0.01"
                 min="0"
                 aria-describedby={describedBy}
@@ -397,11 +402,11 @@
             >
               All Unbilled Entries
             </ChipButton>
-            <ChipButton type="button" onclick={() => setDateRange(7)}>
-              Last Week
+            <ChipButton type="button" onclick={() => setDateRange(6)}>
+              Last 7 Days
             </ChipButton>
-            <ChipButton type="button" onclick={() => setDateRange(14)}>
-              Last 2 Weeks
+            <ChipButton type="button" onclick={() => setDateRange(13)}>
+              Last 14 Days
             </ChipButton>
             <ChipButton type="button" onclick={() => setDateRange("month")}>
               Last Month
@@ -451,7 +456,10 @@
                   <DollarSign class="w-4 h-4 text-bright-green" />
                 {/if}
               </div>
-              <div class="flex items-center gap-3 text-sm text-fg-muted mt-1">
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted mt-1"
+              >
+                <span>{formatDate(entry.start_at.slice(0, 10))}</span>
                 {#if entry.project}
                   <span class="flex items-center gap-1">
                     <span
@@ -460,6 +468,13 @@
                     ></span>
                     {entry.project.name}
                   </span>
+                {/if}
+                {#if entry.project?.client}
+                  <span>{entry.project.client.name}</span>
+                {:else}
+                  <span class="text-bright-yellow"
+                    >No client · can't be invoiced</span
+                  >
                 {/if}
                 <span>{entry.formattedDuration}</span>
                 <span>({entry.hours.toFixed(2)} hours)</span>
@@ -534,9 +549,9 @@
                   <div>
                     <span class="text-fg-muted">Issued:</span>
                     <span class="ml-2"
-                      >{invoice.issued_on
-                        ? formatDate(invoice.issued_on)
-                        : "Not issued"}</span
+                      >{invoice.status === "draft" || !invoice.issued_on
+                        ? "Not issued"
+                        : formatDate(invoice.issued_on)}</span
                     >
                   </div>
                   <div>

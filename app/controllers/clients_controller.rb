@@ -20,7 +20,7 @@ class ClientsController < ApplicationController
     if @client.save
       redirect_to clients_path, notice: "Client created successfully!"
     else
-      redirect_to clients_path, alert: @client.errors.full_messages.join(", ")
+      redirect_to clients_path, alert: @client.errors.full_messages.join(", "), inertia: { errors: @client.errors }
     end
   end
 
@@ -28,14 +28,16 @@ class ClientsController < ApplicationController
     if @client.update(client_params)
       redirect_to clients_path, notice: "Client updated successfully!"
     else
-      redirect_to clients_path, alert: @client.errors.full_messages.join(", ")
+      redirect_to clients_path, alert: @client.errors.full_messages.join(", "), inertia: { errors: @client.errors }
     end
   end
 
   def destroy
-    @client.destroy
-
-    redirect_to clients_path, notice: "Client deleted successfully!"
+    if @client.destroy
+      redirect_to clients_path, notice: "Client deleted successfully!"
+    else
+      redirect_to clients_path, alert: "#{@client.name} has invoices and can't be deleted. Delete its invoices first."
+    end
   end
 
   private

@@ -12,6 +12,8 @@ class ReportsController < ApplicationController
       .completed
       .in_date_range(start_date, end_date)
       .includes(:tags, project: :client)
+      .order(start_at: :asc)
+    @entries = @entries.where(project_id: params[:project_id]) if params[:project_id].present?
 
     @totals = calculate_totals(@entries)
 
@@ -30,6 +32,7 @@ class ReportsController < ApplicationController
         start: start_date.to_s,
         end: end_date.to_s
       },
+      projectId: params[:project_id].presence,
       projects: current_workspace.projects.includes(:client).order(:name).map { |p|
         p.as_json(only: [ :id, :name, :color ], include: { client: { only: [ :id, :name ] } })
       }

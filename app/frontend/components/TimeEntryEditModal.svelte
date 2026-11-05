@@ -104,6 +104,9 @@
         data.tag_ids.forEach((id) => {
           formData.append("time_entry[tag_ids][]", id.toString());
         });
+        if (data.tag_ids.length === 0) {
+          formData.append("time_entry[tag_ids][]", "");
+        }
         data.files.forEach((file) => {
           formData.append("time_entry[files][]", file);
         });

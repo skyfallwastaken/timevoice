@@ -38,7 +38,7 @@ class SettingsController < ApplicationController
     if @workspace.update(workspace_params)
       redirect_to settings_workspace_path, notice: "Workspace updated successfully!"
     else
-      redirect_to settings_workspace_path, alert: @workspace.errors.full_messages.join(", ")
+      redirect_to settings_workspace_path, alert: @workspace.errors.full_messages.join(", "), inertia: { errors: @workspace.errors }
     end
   end
 
@@ -75,7 +75,8 @@ class SettingsController < ApplicationController
     end
 
     render inertia: "Settings/Billing", props: {
-      invoiceSettings: settings_json
+      invoiceSettings: settings_json,
+      canEdit: policy(current_workspace).update?
     }
   end
 
@@ -86,7 +87,7 @@ class SettingsController < ApplicationController
     if @invoice_settings.update(billing_params)
       redirect_to settings_billing_path, notice: "Billing settings updated successfully!"
     else
-      redirect_to settings_billing_path, alert: @invoice_settings.errors.full_messages.join(", ")
+      redirect_to settings_billing_path, alert: @invoice_settings.errors.full_messages.join(", "), inertia: { errors: @invoice_settings.errors }
     end
   end
 

@@ -52,7 +52,7 @@
   );
   const canManageMembers = $derived(myRole === "owner" || myRole === "admin");
   const canDeleteWorkspace = $derived(myRole === "owner");
-  const canEditWorkspace = $derived(myRole === "owner");
+  const canEditWorkspace = $derived(myRole === "owner" || myRole === "admin");
 
   let workspaceNameDraft = $state("");
   let hasWorkspaceNameDraft = $state(false);
@@ -201,7 +201,7 @@
         id="workspace-name"
         label="Workspace Name"
         description={!canEditWorkspace
-          ? "Workspace name can only be changed by the owner."
+          ? "Workspace name can only be changed by admins."
           : undefined}
       >
         {#snippet children({ describedBy })}
@@ -437,7 +437,9 @@
           aria-describedby={describedBy}
         >
           <option value="member">Member</option>
-          <option value="admin">Admin</option>
+          {#if myRole === "owner"}
+            <option value="admin">Admin</option>
+          {/if}
         </SelectInput>
       {/snippet}
     </FormField>

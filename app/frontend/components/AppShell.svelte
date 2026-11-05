@@ -55,12 +55,14 @@
   let desktopWorkspaceOpen = $state(false);
   let showCreateModal = $state(false);
 
-  const activeIndex = $derived(
-    navItems.findIndex((item) => {
+  const activeIndex = $derived.by(() => {
+    const path = $page.url.split("?")[0];
+    if (path === `/${currentWorkspaceHashid}`) return 0;
+    return navItems.findIndex((item) => {
       const href = item.href(currentWorkspaceHashid);
-      return $page.url === href || $page.url.startsWith(href + "/");
-    }),
-  );
+      return path === href || path.startsWith(href + "/");
+    });
+  });
   const navIndicatorY = new Tween(0, { duration: 140, easing: cubicOut });
   let indicatorInitialized = false;
 

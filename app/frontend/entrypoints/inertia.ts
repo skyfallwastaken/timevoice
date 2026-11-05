@@ -7,6 +7,9 @@ const defaultLayout = AppShell as unknown as NonNullable<
   ResolvedComponent["layout"]
 >;
 
+// The server reads this to bucket entries into days in the browser's timezone.
+document.cookie = `tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}; path=/; max-age=31536000; samesite=lax`;
+
 createInertiaApp({
   resolve: (name) => {
     const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {

@@ -15,9 +15,9 @@ class TimeEntriesController < ApplicationController
 
     if @time_entry.save
       assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
-      redirect_to root_path, notice: "Timer started!"
+      redirect_back fallback_location: root_path, notice: @time_entry.running? ? "Timer started!" : "Entry created!"
     else
-      redirect_to root_path, alert: @time_entry.errors.full_messages.join(", ")
+      redirect_back fallback_location: root_path, alert: @time_entry.errors.full_messages.join(", "), inertia: { errors: @time_entry.errors }
     end
   end
 
@@ -33,7 +33,7 @@ class TimeEntriesController < ApplicationController
 
       redirect_back(fallback_location: root_path, notice: "Entry updated!")
     else
-      redirect_back(fallback_location: root_path, alert: @time_entry.errors.full_messages.join(", "))
+      redirect_back(fallback_location: root_path, alert: @time_entry.errors.full_messages.join(", "), inertia: { errors: @time_entry.errors })
     end
   end
 

@@ -7,10 +7,7 @@
   import ChipButton from "./ChipButton.svelte";
   import { formatFileSize } from "../lib/format";
   import { routes } from "../lib/routes";
-  import {
-    applySelectedProject,
-    toggleSelectedTag,
-  } from "../lib/time-entry-form";
+  import { toggleSelectedTag } from "../lib/time-entry-form";
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
@@ -93,13 +90,15 @@
     if (!$form.description.trim()) return;
 
     $form.start_at = new Date().toISOString();
-    $form.post(routes.timeEntries.create(workspaceId), {
-      preserveScroll: true,
-      onSuccess: () => {
-        showProjectDropdown = false;
-        showTagDropdown = false;
-      },
-    });
+    $form
+      .transform((data) => ({ time_entry: data }))
+      .post(routes.timeEntries.create(workspaceId), {
+        preserveScroll: true,
+        onSuccess: () => {
+          showProjectDropdown = false;
+          showTagDropdown = false;
+        },
+      });
   }
 
   function stopTimer() {
@@ -146,7 +145,8 @@
   }
 
   function selectProject(project: { id: number; billable_default: boolean }) {
-    applySelectedProject($form, project);
+    $form.project_id = project.id;
+    if (project.billable_default) $form.billable = true;
     showProjectDropdown = false;
   }
 

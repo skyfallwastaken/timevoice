@@ -20,7 +20,7 @@ class TagsController < ApplicationController
     if @tag.save
       redirect_to tags_path, notice: "Tag created successfully!"
     else
-      redirect_to tags_path, alert: @tag.errors.full_messages.join(", ")
+      redirect_to tags_path, alert: @tag.errors.full_messages.join(", "), inertia: { errors: @tag.errors }
     end
   end
 
@@ -28,7 +28,7 @@ class TagsController < ApplicationController
     if @tag.update(tag_params)
       redirect_to tags_path, notice: "Tag updated successfully!"
     else
-      redirect_to tags_path, alert: @tag.errors.full_messages.join(", ")
+      redirect_to tags_path, alert: @tag.errors.full_messages.join(", "), inertia: { errors: @tag.errors }
     end
   end
 

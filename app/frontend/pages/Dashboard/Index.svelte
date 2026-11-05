@@ -34,90 +34,48 @@
   let showDeleteModal = $state(false);
   let entryToDelete = $state<TimeEntry | null>(null);
 
-  let showFilters = $state(false);
-  let filters = $state({
-    search: "",
-    projectId: "",
-    dateRange: "this_week",
+  type Filters = { range: string; project_id: string; q: string };
+
+  const initialFilters = ($page.props.filters as Partial<Filters>) || {};
+  let showFilters = $state(
+    !!(initialFilters.project_id || initialFilters.q) ||
+      (initialFilters.range ?? "this_week") !== "this_week",
+  );
+  let filters = $state<Filters>({
+    range: initialFilters.range ?? "this_week",
+    project_id: initialFilters.project_id ?? "",
+    q: initialFilters.q ?? "",
   });
+  let hasEntries = $derived(!!$page.props.hasEntries);
+  let entryLimit = $derived(($page.props.entryLimit as number) || 0);
 
-  function getDateRange(range: string): {
-    start: Date | null;
-    end: Date | null;
-  } {
-    const now = new Date();
-
-    const startOfDay = (d: Date) => {
-      const x = new Date(d);
-      x.setHours(0, 0, 0, 0);
-      return x;
-    };
-
-    const endOfDay = (d: Date) => {
-      const x = new Date(d);
-      x.setHours(23, 59, 59, 999);
-      return x;
-    };
-
-    switch (range) {
-      case "today":
-        return { start: startOfDay(now), end: endOfDay(now) };
-      case "this_week": {
-        const day = now.getDay();
-        const diff = (day + 6) % 7;
-        const start = new Date(now);
-        start.setDate(now.getDate() - diff);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        return { start: startOfDay(start), end: endOfDay(end) };
-      }
-      case "last_week": {
-        const day = now.getDay();
-        const diff = (day + 6) % 7;
-        const startThisWeek = new Date(now);
-        startThisWeek.setDate(now.getDate() - diff);
-        const start = new Date(startThisWeek);
-        start.setDate(startThisWeek.getDate() - 7);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        return { start: startOfDay(start), end: endOfDay(end) };
-      }
-      case "this_month": {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return { start: startOfDay(start), end: endOfDay(end) };
-      }
-      default:
-        return { start: null, end: null };
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  function applyFilters({ debounce = false } = {}) {
+    clearTimeout(searchTimer);
+    const run = () =>
+      router.get(
+        routes.dashboard.index(workspaceId),
+        {
+          range: filters.range,
+          project_id: filters.project_id || undefined,
+          q: filters.q.trim() || undefined,
+        },
+        { preserveState: true, preserveScroll: true, replace: true },
+      );
+    if (debounce) {
+      searchTimer = setTimeout(run, 300);
+    } else {
+      run();
     }
   }
 
-  function getFilteredEntries(allEntries: TimeEntry[]) {
-    const search = filters.search.trim().toLowerCase();
-    const projectId = filters.projectId;
-    const { start, end } = getDateRange(filters.dateRange);
-
-    return allEntries.filter((entry) => {
-      if (search) {
-        const hay = (entry.description || "").toLowerCase();
-        if (!hay.includes(search)) return false;
-      }
-
-      if (projectId) {
-        if (!entry.project || entry.project.id.toString() !== projectId)
-          return false;
-      }
-
-      if (start && end) {
-        const startedAt = new Date(entry.start_at);
-        if (startedAt < start || startedAt > end) return false;
-      }
-
-      return true;
-    });
-  }
-
-  let filteredEntries = $derived(getFilteredEntries(recentEntries));
+  const rangeLabels: Record<string, string> = {
+    today: "today",
+    this_week: "this week",
+    last_week: "last week",
+    this_month: "this month",
+    all: "",
+  };
 
   function openDeleteModal(entry: TimeEntry) {
     entryToDelete = entry;
@@ -136,6 +94,7 @@
     router.delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
       preserveScroll: true,
     });
+    if (editingEntry?.id === entryToDelete.id) closeEdit();
     closeDeleteModal();
   }
 
@@ -181,7 +140,8 @@
               <TextInput
                 id="entry-search"
                 tone="blue"
-                bind:value={filters.search}
+                bind:value={filters.q}
+                oninput={() => applyFilters({ debounce: true })}
                 placeholder="Search entries..."
                 aria-describedby={describedBy}
                 class="pl-10 pr-4"
@@ -194,7 +154,8 @@
             <SelectInput
               id="filter-project"
               tone="blue"
-              bind:value={filters.projectId}
+              bind:value={filters.project_id}
+              onchange={() => applyFilters()}
               aria-describedby={describedBy}
             >
               <option value="">All Projects</option>
@@ -209,13 +170,15 @@
             <SelectInput
               id="filter-date"
               tone="blue"
-              bind:value={filters.dateRange}
+              bind:value={filters.range}
+              onchange={() => applyFilters()}
               aria-describedby={describedBy}
             >
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
               <option value="last_week">Last Week</option>
               <option value="this_month">This Month</option>
+              <option value="all">All Time</option>
             </SelectInput>
           {/snippet}
         </FormField>
@@ -223,15 +186,28 @@
     </SectionCard>
   {/if}
 
-  <SectionCard title={`Time Entries (${filteredEntries.length})`}>
-    {#if filteredEntries.length === 0}
+  <SectionCard
+    title={`Time Entries (${recentEntries.length}${recentEntries.length >= entryLimit ? "+" : ""})`}
+  >
+    {#if !hasEntries}
       <div class="p-8 text-center text-fg-muted">
-        <p>No time entries match your filters.</p>
+        <p class="text-fg-primary font-medium">No time tracked yet</p>
+        <p class="mt-1">
+          Type what you're working on above and press Enter to start the timer.
+        </p>
+      </div>
+    {:else if recentEntries.length === 0}
+      <div class="p-8 text-center text-fg-muted">
+        {#if filters.q || filters.project_id}
+          <p>No time entries match your filters.</p>
+        {:else}
+          <p>No time entries {rangeLabels[filters.range]}.</p>
+        {/if}
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary">
-        {#each filteredEntries as entry, i}
-          {@const isLast = i === filteredEntries.length - 1}
+        {#each recentEntries as entry, i}
+          {@const isLast = i === recentEntries.length - 1}
           <div
             class="hover:bg-bg-tertiary/50 transition-colors duration-150 {isLast
               ? 'rounded-b-[10px]'

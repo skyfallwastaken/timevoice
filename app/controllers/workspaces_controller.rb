@@ -15,9 +15,9 @@ class WorkspacesController < ApplicationController
       workspace.memberships.create!(user: current_user, role: :owner)
 
       session[:workspace_id] = workspace.id
-      redirect_back(fallback_location: root_path, notice: "Workspace created successfully.")
+      redirect_to "/#{workspace.hashid}/timer", notice: "Workspace created successfully."
     else
-      redirect_back(fallback_location: root_path, alert: workspace.errors.full_messages.join(", "))
+      redirect_back(fallback_location: root_path, alert: workspace.errors.full_messages.join(", "), inertia: { errors: workspace.errors })
     end
   end
 

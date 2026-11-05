@@ -22,6 +22,7 @@ class Invoice < ApplicationRecord
   scope :paid, -> { where(status: STATUS_PAID) }
 
   before_create :set_invoice_number
+  before_save :stamp_issued_on, if: -> { status_changed? && status_was == STATUS_DRAFT }
 
   def total_amount
     total_cents / 100.0
@@ -42,39 +43,45 @@ class Invoice < ApplicationRecord
 
     return nil if entries.empty?
 
-    invoice = create!(
-      workspace: workspace,
-      client: client,
-      period_start: period_start_date || entries.minimum(:start_at).to_date,
-      period_end: period_end_date || entries.maximum(:start_at).to_date,
-      issued_on: Date.current,
-      status: STATUS_DRAFT,
-      total_cents: 0
-    )
-
-    total = 0
-
-    entries.each do |entry|
-      hours = entry.duration_hours
-      amount = (hours * rate_cents).round
-
-      InvoiceLine.create!(
-        invoice: invoice,
-        time_entry: entry,
-        description: entry.description,
-        qty_hours: hours,
-        rate_cents: rate_cents,
-        amount_cents: amount
+    transaction do
+      invoice = create!(
+        workspace: workspace,
+        client: client,
+        period_start: period_start_date || entries.minimum(:start_at).to_date,
+        period_end: period_end_date || entries.maximum(:start_at).to_date,
+        issued_on: Date.current,
+        status: STATUS_DRAFT,
+        total_cents: 0
       )
 
-      total += amount
-    end
+      total = 0
 
-    invoice.update!(total_cents: total)
-    invoice
+      entries.each do |entry|
+        hours = entry.duration_hours
+        amount = (hours * rate_cents).round
+
+        InvoiceLine.create!(
+          invoice: invoice,
+          time_entry: entry,
+          description: entry.description,
+          qty_hours: hours,
+          rate_cents: rate_cents,
+          amount_cents: amount
+        )
+
+        total += amount
+      end
+
+      invoice.update!(total_cents: total)
+      invoice
+    end
   end
 
   private
+
+  def stamp_issued_on
+    self.issued_on = Date.current
+  end
 
   def set_invoice_number
     self.invoice_number = (workspace.invoices.maximum(:invoice_number) || 0) + 1

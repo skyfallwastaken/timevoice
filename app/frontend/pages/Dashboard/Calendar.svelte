@@ -2,6 +2,7 @@
   import TimerInput from "../../components/TimerInput.svelte";
   import WeekCalendar from "../../components/WeekCalendar.svelte";
   import TimeEntryEditModal from "../../components/TimeEntryEditModal.svelte";
+  import Flash from "../../components/Flash.svelte";
   import { page } from "@inertiajs/svelte";
   import type { TimeEntry, Project, Tag } from "../../types";
 
@@ -24,6 +25,12 @@
   projects={($page.props.projects as Project[]) || []}
   tags={($page.props.tags as Tag[]) || []}
 />
+
+{#if $page.props.flash?.notice || $page.props.flash?.alert}
+  <div class="px-4 pt-4 -mb-4">
+    <Flash />
+  </div>
+{/if}
 
 <div class="flex-1 overflow-hidden">
   <WeekCalendar

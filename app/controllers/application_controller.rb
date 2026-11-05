@@ -7,6 +7,7 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!
   before_action :require_workspace
   before_action :set_current_workspace
+  around_action :use_user_time_zone
 
   inertia_share auth: -> {
     {
@@ -106,6 +107,20 @@ class ApplicationController < ActionController::Base
     else
       redirect_to signin_path, alert: "No workspace found. Please contact support."
     end
+  end
+
+  def use_user_time_zone(&)
+    browser_zone = cookies[:tz] if cookies[:tz].present? && ActiveSupport::TimeZone[cookies[:tz]]
+
+    if current_user && browser_zone && current_user.timezone != browser_zone
+      current_user.update_column(:timezone, browser_zone)
+    end
+
+    Time.use_zone(browser_zone || current_user&.timezone || "UTC", &)
+  end
+
+  def redirect_with_error(location, message, field: :base)
+    redirect_to location, alert: message, inertia: { errors: { field => message } }
   end
 
   def user_not_authorized

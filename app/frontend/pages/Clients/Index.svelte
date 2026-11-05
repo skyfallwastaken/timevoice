@@ -113,7 +113,7 @@
       <FormField
         id="billing-address"
         label="Billing Address"
-        description="Line breaks will appear on invoices. Press Enter to create."
+        description="Line breaks will appear on invoices."
       >
         {#snippet children({ describedBy })}
           <TextArea

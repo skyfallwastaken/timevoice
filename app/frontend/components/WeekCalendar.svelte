@@ -14,10 +14,7 @@
   import type { TimeEntry, Project, Tag } from "../types";
   import { toDateString } from "../lib/format";
   import { routes } from "../lib/routes";
-  import {
-    applySelectedProject,
-    toggleSelectedTag,
-  } from "../lib/time-entry-form";
+  import { toggleSelectedTag } from "../lib/time-entry-form";
 
   interface Props {
     entries?: TimeEntry[];
@@ -267,7 +264,8 @@
   }
 
   function selectProject(project: { id: number; billable_default: boolean }) {
-    applySelectedProject($form, project);
+    $form.project_id = project.id;
+    if (project.billable_default) $form.billable = true;
   }
 
   function toggleTag(tagId: number) {

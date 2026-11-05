@@ -58,8 +58,10 @@
 
   let projects = $derived(($page.props.projects as Project[]) || []);
 
-  let showFilters = $state(false);
-  let selectedProjectId = $state("");
+  let selectedProjectId = $state(
+    ($page.props.projectId as string | null)?.toString() ?? "",
+  );
+  let showFilters = $state(!!$page.props.projectId);
 
   const initialDateRange = ($page.props.dateRange as {
     start: string;
@@ -84,9 +86,21 @@
     if (startDate && endDate && startDate <= endDate) {
       $dateFilterForm.start_date = toDateString(startDate);
       $dateFilterForm.end_date = toDateString(endDate);
-      const auth = $page.props.auth as { workspace: { hashid: string } };
-      $dateFilterForm.get(routes.reports.index(auth.workspace.hashid));
+      loadReport();
     }
+  }
+
+  function loadReport() {
+    const auth = $page.props.auth as { workspace: { hashid: string } };
+    $dateFilterForm
+      .transform((data) => ({
+        ...data,
+        project_id: selectedProjectId || undefined,
+      }))
+      .get(routes.reports.index(auth.workspace.hashid), {
+        preserveState: true,
+        preserveScroll: true,
+      });
   }
 
   function formatDuration(seconds: number): string {
@@ -100,12 +114,6 @@
       weekday: "short",
     });
   }
-
-  let filteredEntries = $derived(
-    selectedProjectId
-      ? entries.filter((e) => e.project?.id.toString() === selectedProjectId)
-      : entries,
-  );
 
   let canUpdateRange = $derived(
     !!startDate &&
@@ -185,6 +193,7 @@
               id="report-project"
               tone="purple"
               bind:value={selectedProjectId}
+              onchange={loadReport}
               aria-describedby={describedBy}
               class="md:w-1/2"
             >
@@ -240,10 +249,12 @@
                   >{formatDayOfWeek(date)}</span
                 >
                 <span class="block text-lg font-semibold"
-                  >{new Date(date).getDate()}</span
+                  >{new Date(`${date}T00:00:00`).getDate()}</span
                 >
               </div>
-              <span class="text-fg-muted">{formatShortDate(date)}</span>
+              <span class="text-fg-muted"
+                >{formatShortDate(`${date}T00:00:00`)}</span
+              >
             </div>
             <div class="flex items-center gap-4">
               <div class="text-right">
@@ -295,15 +306,15 @@
     </SectionCard>
   {/if}
 
-  <SectionCard title={`Time Entries (${filteredEntries.length})`}>
-    {#if filteredEntries.length === 0}
+  <SectionCard title={`Time Entries (${entries.length})`}>
+    {#if entries.length === 0}
       <div class="p-8 text-center text-fg-muted">
         <Clock class="w-12 h-12 mx-auto mb-4 opacity-50" />
         <p>No time entries for the selected period.</p>
       </div>
     {:else}
       <div class="divide-y divide-bg-tertiary max-h-150 overflow-y-auto">
-        {#each filteredEntries as entry}
+        {#each entries as entry}
           <div class="p-4">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">

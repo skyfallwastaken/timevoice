@@ -14,6 +14,7 @@
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
   let flash = $derived($page.props.flash || {});
+  let canEdit = $derived(!!$page.props.canEdit);
 
   let form = useForm({
     sender_name: ($page.props.invoiceSettings as any)?.sender_name || "",
@@ -49,7 +50,12 @@
     description="Configure default settings for invoices generated from your time entries."
     bodyClass="p-4"
   >
-    <div class="space-y-6">
+    <fieldset class="space-y-6" disabled={!canEdit}>
+      {#if !canEdit}
+        <p class="text-sm text-fg-muted">
+          Only workspace admins can change billing settings.
+        </p>
+      {/if}
       <FormField
         id="sender-name"
         label="Sender Name"
@@ -120,7 +126,7 @@
           {$form.processing ? "Saving..." : "Save Settings"}
         </Button>
       </div>
-    </div>
+    </fieldset>
   </SectionCard>
 
   <SectionCard title="About Invoice Settings" bodyClass="p-4">

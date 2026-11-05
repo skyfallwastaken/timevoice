@@ -93,4 +93,26 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal 30_000, invoice.total_cents
     assert_nil Invoice.generate_from_time_entries(workspace, client, nil, nil, 10_000, user)
   end
+
+  test "issuing a draft sets the issue date to the day it is issued" do
+    invoice = invoices(:one)
+
+    travel_to Date.new(2026, 4, 10) do
+      invoice.update!(status: Invoice::STATUS_ISSUED)
+    end
+    assert_equal Date.new(2026, 4, 10), invoice.issued_on
+
+    travel_to Date.new(2026, 5, 1) do
+      invoice.update!(status: Invoice::STATUS_PAID)
+    end
+    assert_equal Date.new(2026, 4, 10), invoice.reload.issued_on
+  end
+
+  test "a workspace with invoices can be deleted" do
+    workspace = workspaces(:one)
+    invoice_id = invoices(:one).id
+
+    assert workspace.destroy
+    assert_not Invoice.exists?(invoice_id)
+  end
 end

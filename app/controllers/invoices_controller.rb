@@ -18,14 +18,13 @@ class InvoicesController < ApplicationController
     @invoices = current_workspace.invoices
       .includes(:client, :invoice_lines)
       .order(created_at: :desc)
-      .limit(20)
 
     @clients = current_workspace.clients.order(:name)
 
     @unbilled_entries = current_user.time_entries
       .where(workspace: current_workspace)
       .unbilled
-      .includes(:project, :tags)
+      .includes(:tags, project: :client)
       .order(start_at: :desc)
 
     @invoice_settings = current_workspace.invoice_setting || InvoiceSetting.new(
@@ -52,7 +51,7 @@ class InvoicesController < ApplicationController
          entry.as_json(
            only: [ :id, :description, :duration_seconds, :billable, :start_at ],
            include: {
-             project: { only: [ :id, :name, :color, :client_id ] },
+             project: { only: [ :id, :name, :color, :client_id ], include: { client: { only: [ :id, :name ] } } },
              tags: { only: [ :id, :name ] }
            }
          ).merge(
@@ -95,7 +94,7 @@ class InvoicesController < ApplicationController
     attrs = invoice_create_params
 
     if attrs[:client_id].blank?
-      redirect_to invoices_path, alert: "Please select a client."
+      redirect_with_error invoices_path, "Please select a client.", field: :client_id
       return
     end
 
@@ -104,7 +103,7 @@ class InvoicesController < ApplicationController
 
     unless all_entries
       if attrs[:period_start].blank? || attrs[:period_end].blank?
-        redirect_to invoices_path, alert: "Please select an invoice period start and end date."
+        redirect_with_error invoices_path, "Please select an invoice period start and end date.", field: :period_start
         return
       end
 
@@ -124,26 +123,22 @@ class InvoicesController < ApplicationController
     )
 
     if invoice.nil?
-      redirect_to invoices_path, alert: all_entries ? "No unbilled entries found for this client." : "No unbilled entries found for this client in the selected date range."
+      redirect_with_error invoices_path, all_entries ? "No unbilled entries found for this client." : "No unbilled entries found for this client in the selected date range."
       return
     end
 
     redirect_to invoices_path, notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
   rescue ArgumentError
-    redirect_to invoices_path, alert: "Invalid invoice period dates."
+    redirect_with_error invoices_path, "Invalid invoice period dates.", field: :period_start
   rescue ActiveRecord::RecordNotFound
-    redirect_to invoices_path, alert: "Client not found."
+    redirect_with_error invoices_path, "Client not found.", field: :client_id
   end
 
   def update
-    if params.dig(:invoice, :status) == "issued" && @invoice.issued_on.nil?
-      @invoice.issued_on = Date.current
-    end
-
     if @invoice.update(invoice_params)
-      redirect_to invoices_path, notice: "Invoice updated successfully!"
+      redirect_back fallback_location: invoices_path, notice: "Invoice updated successfully!"
     else
-      redirect_to invoices_path, alert: @invoice.errors.full_messages.join(", ")
+      redirect_back fallback_location: invoices_path, alert: @invoice.errors.full_messages.join(", "), inertia: { errors: @invoice.errors }
     end
   end
 
@@ -193,13 +188,13 @@ class InvoicesController < ApplicationController
     message = email_params[:message].to_s.strip
 
     if recipients.empty?
-      redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), alert: "Please enter at least one recipient email."
+      redirect_with_error invoice_path(current_workspace.hashid, @invoice.hashid), "Please enter at least one recipient email.", field: :recipients
       return
     end
 
     invalid_emails = recipients.reject { |email| email.match?(URI::MailTo::EMAIL_REGEXP) }
     if invalid_emails.any?
-      redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), alert: "Invalid email address: #{invalid_emails.first}"
+      redirect_with_error invoice_path(current_workspace.hashid, @invoice.hashid), "Invalid email address: #{invalid_emails.first}", field: :recipients
       return
     end
 
