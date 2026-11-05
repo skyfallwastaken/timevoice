@@ -65,6 +65,10 @@ Rails.application.routes.draw do
     end
 
     resources :time_entries, only: [ :create, :update, :destroy ] do
+      collection do
+        patch :bulk_update
+        delete :bulk_destroy
+      end
       member do
         patch :stop
         put :stop

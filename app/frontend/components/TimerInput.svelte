@@ -1,11 +1,18 @@
 <script lang="ts">
-  import { Play, Square, DollarSign, X, Paperclip } from "lucide-svelte";
+  import {
+    Play,
+    Square,
+    DollarSign,
+    X,
+    Paperclip,
+    Folder,
+    Tag,
+    CirclePlay,
+    CirclePlus,
+  } from "lucide-svelte";
   import { router, useForm, page, Link } from "@inertiajs/svelte";
-  import TextInput from "./TextInput.svelte";
-  import IconButton from "./IconButton.svelte";
-  import Button from "./Button.svelte";
-  import ChipButton from "./ChipButton.svelte";
-  import { formatFileSize } from "../lib/format";
+  import DatePicker from "./DatePicker.svelte";
+  import { formatDuration, formatFileSize } from "../lib/format";
   import { routes } from "../lib/routes";
   import { toggleSelectedTag } from "../lib/time-entry-form";
   import * as Popover from "$lib/components/ui/popover/index.js";
@@ -36,13 +43,35 @@
     }
   });
 
+  let mode = $state<"timer" | "manual">("timer");
   let showProjectDropdown = $state(false);
   let showTagDropdown = $state(false);
   let elapsed = $state(0);
-  let timerInterval: ReturnType<typeof setInterval> | null = null;
   let descriptionInput: HTMLInputElement | null = $state(null);
   let selectedFiles: File[] = $state([]);
   let fileInput: HTMLInputElement | null = $state(null);
+
+  const timeOfDay = (date: Date) =>
+    `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+  let manualDate = $state<Date | null>(new Date());
+  let manualStart = $state(timeOfDay(new Date()));
+  let manualEnd = $state(timeOfDay(new Date()));
+
+  let manualRange = $derived.by(() => {
+    if (!manualDate || !manualStart || !manualEnd) return null;
+    const at = (time: string) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      const date = new Date(manualDate!);
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+    const start = at(manualStart);
+    const end = at(manualEnd);
+    // An end time before the start time means the entry ran past midnight.
+    if (end < start) end.setDate(end.getDate() + 1);
+    return { start, end };
+  });
 
   let selectedProject = $derived(
     projects.find((p: { id: number }) => p.id === $form.project_id),
@@ -53,39 +82,31 @@
   );
 
   let isRunning = $derived(!!runningEntry);
+  let isManual = $derived(mode === "manual" && !isRunning);
+
+  let displayedSeconds = $derived(
+    isManual && manualRange
+      ? (manualRange.end.getTime() - manualRange.start.getTime()) / 1000
+      : elapsed,
+  );
 
   $effect(() => {
-    if (runningEntry) {
-      const startTime = new Date(runningEntry.start_at).getTime();
-      elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-      timerInterval = setInterval(() => {
-        elapsed = Math.floor((Date.now() - startTime) / 1000);
-      }, 1000);
-    } else {
+    if (!runningEntry) {
       elapsed = 0;
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
+      return;
     }
-
-    return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-    };
+    const startTime = new Date(runningEntry.start_at).getTime();
+    const tick = () => (elapsed = Math.floor((Date.now() - startTime) / 1000));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
   });
 
-  function formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  function resetForm() {
+    $form.description = "";
+    $form.project_id = null;
+    $form.tag_ids = [];
+    $form.billable = false;
   }
 
   function startTimer() {
@@ -99,6 +120,30 @@
         onSuccess: () => {
           showProjectDropdown = false;
           showTagDropdown = false;
+        },
+      });
+  }
+
+  function addManualEntry() {
+    if (!$form.description.trim() || !manualRange || displayedSeconds <= 0)
+      return;
+    const { start, end } = manualRange;
+
+    $form
+      .transform((data) => ({
+        time_entry: {
+          ...data,
+          start_at: start.toISOString(),
+          end_at: end.toISOString(),
+        },
+      }))
+      .post(routes.timeEntries.create(workspaceId), {
+        preserveScroll: true,
+        onSuccess: () => {
+          resetForm();
+          manualStart = timeOfDay(end);
+          manualEnd = timeOfDay(end);
+          descriptionInput?.focus();
         },
       });
   }
@@ -118,10 +163,7 @@
         preserveScroll: true,
         onSuccess: () => {
           selectedFiles = [];
-          $form.description = "";
-          $form.project_id = null;
-          $form.tag_ids = [];
-          $form.billable = false;
+          resetForm();
           setTimeout(() => descriptionInput?.focus(), 100);
         },
       },
@@ -146,9 +188,11 @@
     selectedFiles = selectedFiles.filter((_, i) => i !== index);
   }
 
-  function selectProject(project: { id: number; billable_default: boolean }) {
-    $form.project_id = project.id;
-    if (project.billable_default) $form.billable = true;
+  function selectProject(
+    project: { id: number; billable_default: boolean } | null,
+  ) {
+    $form.project_id = project?.id ?? null;
+    if (project?.billable_default) $form.billable = true;
     showProjectDropdown = false;
   }
 
@@ -156,146 +200,147 @@
     $form.tag_ids = toggleSelectedTag($form.tag_ids, tagId);
   }
 
-  function clearProject() {
-    $form.project_id = null;
-  }
-
   function handleDescriptionKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter" && !isRunning && $form.description.trim()) {
-      event.preventDefault();
+    if (event.key !== "Enter" || isRunning || !$form.description.trim()) return;
+    event.preventDefault();
+    if (isManual) {
+      addManualEntry();
+    } else {
       startTimer();
     }
   }
+
+  const iconButton =
+    "inline-flex items-center gap-1.5 p-2 rounded-[10px] text-fg-dim hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150 disabled:pointer-events-none data-[state=open]:bg-bg-tertiary data-[state=open]:text-fg-primary";
+  const timeField =
+    "bg-transparent text-fg-primary font-tabular scheme-dark px-2 py-1.5 rounded-[10px] hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150";
 </script>
 
 <div
-  class="bg-bg-secondary border-b border-bg-tertiary p-3 md:p-4"
+  class="bg-bg-secondary border-b border-bg-tertiary px-4 md:px-6 py-3 md:py-4"
   role="region"
   aria-label="Time tracker"
 >
-  <div class="flex flex-col md:flex-row gap-3 md:gap-4">
-    <div class="flex-1 w-full">
-      <label for="timer-description" class="sr-only"
-        >What are you working on?</label
-      >
-      <TextInput
-        id="timer-description"
-        bind:value={$form.description}
-        bind:inputRef={descriptionInput}
-        placeholder="What are you working on?"
-        disabled={isRunning}
-        onkeydown={handleDescriptionKeydown}
-        class="px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base"
-        aria-label="Task description"
-        autocomplete="off"
-      />
-    </div>
+  <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+    <label for="timer-description" class="sr-only"
+      >What are you working on?</label
+    >
+    <input
+      id="timer-description"
+      bind:value={$form.description}
+      bind:this={descriptionInput}
+      placeholder="What are you working on?"
+      disabled={isRunning}
+      onkeydown={handleDescriptionKeydown}
+      class="flex-1 min-w-0 bg-transparent text-lg md:text-xl text-fg-primary placeholder:text-fg-muted outline-none py-2 disabled:opacity-100"
+      autocomplete="off"
+    />
 
-    <div class="flex items-center gap-2 md:gap-4 flex-wrap md:flex-nowrap">
-      <div class="flex items-center gap-1">
-        <Popover.Root bind:open={showProjectDropdown}>
-          <Popover.Trigger disabled={isRunning}>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                variant="secondary"
-                class="bg-bg-primary border-bg-tertiary {selectedProject
-                  ? 'hover:border-bright-blue'
-                  : ''} px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
-                aria-label={selectedProject
-                  ? `Selected project: ${selectedProject.name}`
-                  : "Select project"}
-              >
+    <div class="flex items-center gap-1 md:gap-2 flex-wrap">
+      <Popover.Root bind:open={showProjectDropdown}>
+        <Popover.Trigger disabled={isRunning}>
+          {#snippet child({ props })}
+            <button
+              {...props}
+              type="button"
+              class="{iconButton} max-w-48"
+              aria-label={selectedProject
+                ? `Project: ${selectedProject.name}`
+                : "Select project"}
+              title={selectedProject ? selectedProject.name : "Project"}
+            >
+              {#if selectedProject}
+                <span
+                  class="w-2.5 h-2.5 rounded-full shrink-0"
+                  style="background-color: {selectedProject.color}"
+                  aria-hidden="true"
+                ></span>
+                <span
+                  class="truncate text-sm font-medium"
+                  style="color: {selectedProject.color}"
+                  >{selectedProject.name}</span
+                >
+              {:else}
+                <Folder class="w-5 h-5" aria-hidden="true" />
+              {/if}
+            </button>
+          {/snippet}
+        </Popover.Trigger>
+        <Popover.Content align="end" class="w-64 p-0">
+          {#if projects.length === 0}
+            <p class="p-3 text-fg-muted text-sm">
+              No projects yet. <Link
+                href={routes.projects.index(workspaceId)}
+                class="text-bright-blue hover:underline">Create one</Link
+              >.
+            </p>
+          {:else}
+            <Command.Root>
+              <Command.Input placeholder="Search projects..." />
+              <Command.List class="p-1">
+                <Command.Empty>No matching projects.</Command.Empty>
                 {#if selectedProject}
-                  <span
-                    class="w-3 h-3 rounded-full"
-                    style="background-color: {selectedProject.color}"
-                    aria-hidden="true"
-                  ></span>
-                  <span class="text-fg-primary">{selectedProject.name}</span>
-                {:else}
-                  Project
+                  <Command.Item
+                    value="No project"
+                    onSelect={() => selectProject(null)}
+                    class="gap-3 px-3 py-2 rounded-lg text-fg-muted"
+                  >
+                    <X class="w-3 h-3" aria-hidden="true" />
+                    No project
+                  </Command.Item>
                 {/if}
-              </Button>
-            {/snippet}
-          </Popover.Trigger>
-          <Popover.Content align="start" class="w-64 p-0">
-            {#if projects.length === 0}
-              <p class="p-3 text-fg-muted text-sm">
-                No projects yet. <Link
-                  href={routes.projects.index(workspaceId)}
-                  class="text-bright-blue hover:underline">Create one</Link
-                >.
-              </p>
-            {:else}
-              <Command.Root>
-                <Command.Input placeholder="Search projects..." />
-                <Command.List class="p-1">
-                  <Command.Empty>No matching projects.</Command.Empty>
-                  {#each projects as project (project.id)}
-                    <Command.Item
-                      value={`${project.name} ${project.client?.name ?? ""}`}
-                      data-checked={$form.project_id === project.id}
-                      onSelect={() => selectProject(project)}
-                      class="gap-3 px-3 py-2 rounded-lg"
-                    >
-                      <span
-                        class="w-3 h-3 rounded-full shrink-0"
-                        style="background-color: {project.color}"
-                        aria-hidden="true"
-                      ></span>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-fg-primary truncate">{project.name}</p>
-                        {#if project.client}
-                          <p class="text-xs text-fg-muted truncate">
-                            {project.client.name}
-                          </p>
-                        {/if}
-                      </div>
-                    </Command.Item>
-                  {/each}
-                </Command.List>
-              </Command.Root>
-            {/if}
-          </Popover.Content>
-        </Popover.Root>
-        {#if selectedProject && !isRunning}
-          <IconButton
-            type="button"
-            tone="danger"
-            onclick={clearProject}
-            class="hover:bg-bg-secondary"
-            aria-label="Clear project selection"
-          >
-            <X class="w-4 h-4" aria-hidden="true" />
-          </IconButton>
-        {/if}
-      </div>
+                {#each projects as project (project.id)}
+                  <Command.Item
+                    value={`${project.name} ${project.client?.name ?? ""}`}
+                    data-checked={$form.project_id === project.id}
+                    onSelect={() => selectProject(project)}
+                    class="gap-3 px-3 py-2 rounded-lg"
+                  >
+                    <span
+                      class="w-3 h-3 rounded-full shrink-0"
+                      style="background-color: {project.color}"
+                      aria-hidden="true"
+                    ></span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-fg-primary truncate">{project.name}</p>
+                      {#if project.client}
+                        <p class="text-xs text-fg-muted truncate">
+                          {project.client.name}
+                        </p>
+                      {/if}
+                    </div>
+                  </Command.Item>
+                {/each}
+              </Command.List>
+            </Command.Root>
+          {/if}
+        </Popover.Content>
+      </Popover.Root>
 
       <Popover.Root bind:open={showTagDropdown}>
         <Popover.Trigger disabled={isRunning}>
           {#snippet child({ props })}
-            <Button
+            <button
               {...props}
-              variant="secondary"
-              class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
+              type="button"
+              class="{iconButton} {selectedTags.length > 0
+                ? 'text-bright-purple'
+                : ''}"
               aria-label={selectedTags.length > 0
-                ? `Selected ${selectedTags.length} tags`
+                ? `Tags: ${selectedTags.map((t: { name: string }) => t.name).join(", ")}`
                 : "Select tags"}
+              title={selectedTags.length > 0
+                ? selectedTags.map((t: { name: string }) => t.name).join(", ")
+                : "Tags"}
             >
+              <Tag class="w-5 h-5" aria-hidden="true" />
               {#if selectedTags.length > 0}
-                <span class="text-fg-primary"
-                  >{selectedTags.length} tag{selectedTags.length === 1
-                    ? ""
-                    : "s"}</span
-                >
-              {:else}
-                Tags
+                <span class="text-sm font-medium">{selectedTags.length}</span>
               {/if}
-            </Button>
+            </button>
           {/snippet}
         </Popover.Trigger>
-        <Popover.Content align="start" class="w-56 p-0">
+        <Popover.Content align="end" class="w-56 p-0">
           {#if tags.length === 0}
             <p class="p-3 text-fg-muted text-sm">
               No tags yet. <Link
@@ -323,19 +368,18 @@
           {/if}
         </Popover.Content>
       </Popover.Root>
-      <ChipButton
+
+      <button
         type="button"
-        selected={$form.billable}
         disabled={isRunning}
-        class={$form.billable
-          ? "border-bright-green text-bright-green"
-          : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
+        class="{iconButton} {$form.billable ? 'text-bright-green' : ''}"
         aria-pressed={$form.billable}
+        aria-label="Billable"
+        title={$form.billable ? "Billable" : "Non-billable"}
         onclick={() => ($form.billable = !$form.billable)}
       >
-        <DollarSign class="w-4 h-4" aria-hidden="true" />
-        <span>Billable</span>
-      </ChipButton>
+        <DollarSign class="w-5 h-5" aria-hidden="true" />
+      </button>
 
       {#if runningEntry}
         <input
@@ -350,13 +394,14 @@
           type="button"
           onclick={() => fileInput?.click()}
           disabled={selectedFiles.length >= 3}
-          class="relative p-2 md:p-3 text-fg-muted hover:text-fg-primary border border-bg-tertiary rounded-[10px] hover:border-bright-blue transition-colors duration-150 disabled:opacity-50"
+          class="{iconButton} relative"
           aria-label="Attach files"
+          title="Attach files"
         >
-          <Paperclip class="w-5 h-5" />
+          <Paperclip class="w-5 h-5" aria-hidden="true" />
           {#if selectedFiles.length > 0}
             <span
-              class="absolute -top-1 -right-1 w-4 h-4 bg-bright-blue text-bg-primary text-xs rounded-full flex items-center justify-center"
+              class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-bright-blue text-bg-primary text-xs rounded-full flex items-center justify-center"
             >
               {selectedFiles.length}
             </span>
@@ -364,69 +409,132 @@
         </button>
       {/if}
 
-      <div
-        class="flex items-center gap-2 md:gap-3 ml-auto md:ml-0"
-        role="timer"
-        aria-label={isRunning ? "Timer running" : "Timer stopped"}
-      >
+      {#if isManual}
+        <div class="flex items-center gap-1 text-sm">
+          <label class="sr-only" for="manual-start">Start time</label>
+          <input
+            id="manual-start"
+            type="time"
+            bind:value={manualStart}
+            class={timeField}
+          />
+          <span class="text-fg-dim" aria-hidden="true">–</span>
+          <label class="sr-only" for="manual-end">End time</label>
+          <input
+            id="manual-end"
+            type="time"
+            bind:value={manualEnd}
+            class={timeField}
+          />
+          <DatePicker
+            id="manual-date"
+            bind:value={manualDate}
+            max={new Date()}
+            format={(date) =>
+              date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            class="w-auto gap-1.5 px-2 py-1.5 border-transparent bg-transparent hover:bg-bg-tertiary hover:border-transparent data-[state=open]:border-transparent data-[state=open]:bg-bg-tertiary"
+          />
+        </div>
+      {/if}
+
+      <div class="flex items-center gap-3 ml-auto md:ml-2">
         <span
-          class="text-2xl md:text-3xl font-tabular font-semibold text-fg-primary min-w-20 md:min-w-25 text-center"
-          aria-live="polite"
-          aria-atomic="true"
+          class="text-xl md:text-2xl font-tabular font-semibold text-fg-primary min-w-24 text-right"
+          role="timer"
+          aria-live="off"
+          aria-label={isRunning ? "Elapsed time" : "Duration"}
         >
-          {formatDuration(elapsed)}
+          {formatDuration(displayedSeconds)}
         </span>
 
         {#if runningEntry}
           <button
             onclick={stopTimer}
-            class="p-3 md:p-4 bg-bright-red hover:bg-accent-red text-bg-primary rounded-[10px] transition-colors duration-150"
+            class="size-12 shrink-0 grid place-items-center rounded-full bg-bright-red hover:bg-accent-red text-bg-primary ring-4 ring-bright-red/20 transition-colors duration-150"
             aria-label="Stop timer"
           >
-            <Square
-              class="w-5 h-5 md:w-6 md:h-6 fill-current"
-              aria-hidden="true"
-            />
+            <Square class="w-5 h-5 fill-current" aria-hidden="true" />
+          </button>
+        {:else if isManual}
+          <button
+            onclick={addManualEntry}
+            disabled={!$form.description.trim() || displayedSeconds <= 0}
+            class="h-12 shrink-0 px-5 rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary font-semibold ring-4 ring-bright-purple/20 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Add
           </button>
         {:else}
           <button
             onclick={startTimer}
             disabled={!$form.description.trim()}
-            class="p-3 md:p-4 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="size-12 shrink-0 grid place-items-center rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary ring-4 ring-bright-purple/20 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Start timer"
           >
-            <Play
-              class="w-5 h-5 md:w-6 md:h-6 fill-current"
-              aria-hidden="true"
-            />
+            <Play class="w-5 h-5 ml-0.5 fill-current" aria-hidden="true" />
           </button>
+        {/if}
+
+        {#if !isRunning}
+          <div class="flex flex-col" role="radiogroup" aria-label="Entry mode">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === "timer"}
+              aria-label="Timer mode"
+              title="Timer mode"
+              onclick={() => (mode = "timer")}
+              class="p-0.5 rounded-full transition-colors duration-150 {mode ===
+              'timer'
+                ? 'text-fg-primary'
+                : 'text-fg-dim hover:text-fg-secondary'}"
+            >
+              <CirclePlay class="w-5 h-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === "manual"}
+              aria-label="Manual mode"
+              title="Manual mode: add a finished entry"
+              onclick={() => (mode = "manual")}
+              class="p-0.5 rounded-full transition-colors duration-150 {mode ===
+              'manual'
+                ? 'text-fg-primary'
+                : 'text-fg-dim hover:text-fg-secondary'}"
+            >
+              <CirclePlus class="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
         {/if}
       </div>
     </div>
-
-    {#if runningEntry && selectedFiles.length > 0}
-      <div class="border-t border-bg-tertiary pt-3">
-        <div class="flex flex-wrap gap-2">
-          {#each selectedFiles as file, index}
-            <div
-              class="flex items-center gap-2 px-3 py-1.5 bg-bg-primary border border-bg-tertiary rounded-lg text-sm"
-            >
-              <span class="truncate max-w-37.5">{file.name}</span>
-              <span class="text-fg-muted text-xs"
-                >({formatFileSize(file.size)})</span
-              >
-              <button
-                type="button"
-                onclick={() => removeFile(index)}
-                class="p-1 text-fg-muted hover:text-bright-red rounded transition-colors"
-                aria-label="Remove file"
-              >
-                <X class="w-3 h-3" />
-              </button>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
   </div>
+
+  {#if runningEntry && selectedFiles.length > 0}
+    <div class="border-t border-bg-tertiary pt-3 mt-3">
+      <div class="flex flex-wrap gap-2">
+        {#each selectedFiles as file, index}
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 bg-bg-primary border border-bg-tertiary rounded-lg text-sm"
+          >
+            <span class="truncate max-w-37.5">{file.name}</span>
+            <span class="text-fg-muted text-xs"
+              >({formatFileSize(file.size)})</span
+            >
+            <button
+              type="button"
+              onclick={() => removeFile(index)}
+              class="p-1 text-fg-muted hover:text-bright-red rounded transition-colors"
+              aria-label="Remove file"
+            >
+              <X class="w-3 h-3" />
+            </button>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 </div>

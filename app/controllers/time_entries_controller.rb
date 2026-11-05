@@ -8,12 +8,18 @@ class TimeEntriesController < ApplicationController
   before_action :set_time_entry, only: [ :update, :destroy, :remove_file ]
   before_action :set_running_time_entry, only: [ :stop ]
   before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop, :remove_file ]
+  before_action :set_selected_time_entries, only: [ :bulk_update, :bulk_destroy ]
 
   def create
     @time_entry = current_user.time_entries.build(time_entry_params)
     @time_entry.workspace = current_workspace
 
-    if @time_entry.save
+    saved = TimeEntry.transaction do
+      workspace_entries.running.find_each(&:stop!) if @time_entry.running?
+      @time_entry.save || raise(ActiveRecord::Rollback)
+    end
+
+    if saved
       assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
       redirect_back fallback_location: root_path, notice: @time_entry.running? ? "Timer started!" : "Entry created!"
     else
@@ -43,6 +49,34 @@ class TimeEntriesController < ApplicationController
     redirect_back(fallback_location: root_path, notice: "Entry deleted!")
   end
 
+  def bulk_update
+    changes = params.fetch(:changes, {}).permit(:project_id, :billable, add_tag_ids: [])
+    attributes = {}
+    if changes.key?(:project_id)
+      attributes[:project] = changes[:project_id].present? ? current_workspace.projects.find(changes[:project_id]) : nil
+    end
+    attributes[:billable] = ActiveModel::Type::Boolean.new.cast(changes[:billable]) if changes.key?(:billable)
+    added_tags = current_workspace.tags.where(id: changes[:add_tag_ids])
+
+    TimeEntry.transaction do
+      @time_entries.each do |entry|
+        entry.update!(attributes)
+        entry.tags << (added_tags - entry.tags)
+      end
+    end
+
+    redirect_back fallback_location: root_path, notice: "#{helpers.pluralize(@time_entries.size, 'entry')} updated!"
+  rescue ActiveRecord::RecordInvalid => e
+    message = e.record.errors.full_messages.join(", ")
+    redirect_back fallback_location: root_path, alert: message, inertia: { errors: { base: message } }
+  end
+
+  def bulk_destroy
+    TimeEntry.transaction { @time_entries.each(&:destroy!) }
+
+    redirect_back fallback_location: root_path, notice: "#{helpers.pluralize(@time_entries.size, 'entry')} deleted!"
+  end
+
   def stop
     @time_entry.stop!
 
@@ -65,12 +99,21 @@ class TimeEntriesController < ApplicationController
 
   private
 
+  def workspace_entries
+    current_user.time_entries.where(workspace: current_workspace)
+  end
+
+  def set_selected_time_entries
+    @time_entries = workspace_entries.where(id: Array(params[:ids])).includes(:tags).to_a
+    @time_entries.each { |entry| authorize entry, :update? }
+  end
+
   def set_time_entry
-    @time_entry = current_user.time_entries.where(workspace: current_workspace).find(params[:id])
+    @time_entry = workspace_entries.find(params[:id])
   end
 
   def set_running_time_entry
-    @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by(id: params[:id])
+    @time_entry = workspace_entries.running.find_by(id: params[:id])
     unless @time_entry
       redirect_back(fallback_location: root_path, alert: "No running timer found in this workspace.") and return
     end

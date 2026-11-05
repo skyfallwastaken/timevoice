@@ -40,6 +40,10 @@ export const routes = {
       `/${workspaceId}/time_entries/${id}/stop`,
     removeFile: (workspaceId: string, id: number) =>
       `/${workspaceId}/time_entries/${id}/remove_file`,
+    bulkUpdate: (workspaceId: string) =>
+      `/${workspaceId}/time_entries/bulk_update`,
+    bulkDestroy: (workspaceId: string) =>
+      `/${workspaceId}/time_entries/bulk_destroy`,
   },
 
   invoices: {

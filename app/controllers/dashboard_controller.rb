@@ -35,6 +35,10 @@ class DashboardController < ApplicationController
       tags: @tags.as_json(only: [ :id, :name ]),
       filters: filters,
       hasEntries: workspace_entries.completed.exists?,
+      totals: {
+        today: workspace_entries.completed.where(start_at: Time.current.all_day).sum(:duration_seconds),
+        week: workspace_entries.completed.where(start_at: Time.current.all_week).sum(:duration_seconds)
+      },
       entryLimit: ENTRY_LIMIT
     }
   end

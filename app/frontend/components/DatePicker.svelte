@@ -4,6 +4,7 @@
   import { Calendar } from "$lib/components/ui/calendar/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import { toDateString } from "../lib/format";
+  import { cn } from "$lib/utils.js";
 
   interface Props {
     id?: string;
@@ -11,6 +12,8 @@
     min?: Date | null;
     max?: Date | null;
     placeholder?: string;
+    class?: string;
+    format?: (date: Date) => string;
     "aria-describedby"?: string;
   }
 
@@ -20,6 +23,8 @@
     min = null,
     max = null,
     placeholder = "Select date",
+    class: className = "",
+    format = toDateString,
     "aria-describedby": describedBy,
   }: Props = $props();
 
@@ -47,10 +52,13 @@
   <Popover.Trigger
     {id}
     aria-describedby={describedBy}
-    class="w-full flex items-center justify-between gap-2 px-4 py-2 rounded-[10px] border border-bg-tertiary bg-bg-primary text-left transition-colors duration-150 hover:border-bg-quaternary data-[state=open]:border-bright-blue"
+    class={cn(
+      "w-full flex items-center justify-between gap-2 px-4 py-2 rounded-[10px] border border-bg-tertiary bg-bg-primary text-left transition-colors duration-150 hover:border-bg-quaternary data-[state=open]:border-bright-blue",
+      className,
+    )}
   >
     <span class={value ? "text-fg-primary" : "text-fg-dim"}>
-      {value ? toDateString(value) : placeholder}
+      {value ? format(value) : placeholder}
     </span>
     <CalendarDays class="w-4 h-4 text-fg-muted" aria-hidden="true" />
   </Popover.Trigger>
