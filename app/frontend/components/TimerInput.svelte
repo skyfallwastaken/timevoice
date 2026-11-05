@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Play, Square, DollarSign, Check, X, Paperclip } from "lucide-svelte";
+  import { Play, Square, DollarSign, X, Paperclip } from "lucide-svelte";
   import { router, useForm, page, Link } from "@inertiajs/svelte";
   import TextInput from "./TextInput.svelte";
   import IconButton from "./IconButton.svelte";
@@ -8,6 +8,8 @@
   import { formatFileSize } from "../lib/format";
   import { routes } from "../lib/routes";
   import { toggleSelectedTag } from "../lib/time-entry-form";
+  import * as Popover from "$lib/components/ui/popover/index.js";
+  import * as Command from "$lib/components/ui/command/index.js";
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
@@ -158,13 +160,6 @@
     $form.project_id = null;
   }
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      showProjectDropdown = false;
-      showTagDropdown = false;
-    }
-  }
-
   function handleDescriptionKeydown(event: KeyboardEvent) {
     if (event.key === "Enter" && !isRunning && $form.description.trim()) {
       event.preventDefault();
@@ -172,8 +167,6 @@
     }
   }
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div
   class="bg-bg-secondary border-b border-bg-tertiary p-3 md:p-4"
@@ -199,162 +192,137 @@
     </div>
 
     <div class="flex items-center gap-2 md:gap-4 flex-wrap md:flex-nowrap">
-      <div class="relative">
-        {#if selectedProject}
-          <div class="flex items-center gap-1">
-            <Button
-              variant="secondary"
-              class="bg-bg-primary border-bg-tertiary hover:border-bright-blue px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
-              disabled={isRunning}
-              onclick={() =>
-                !isRunning && (showProjectDropdown = !showProjectDropdown)}
-              aria-haspopup="listbox"
-              aria-expanded={showProjectDropdown}
-              aria-label="Selected project: {selectedProject.name}"
-            >
-              <span
-                class="w-3 h-3 rounded-full"
-                style="background-color: {selectedProject.color}"
-                aria-hidden="true"
-              ></span>
-              <span class="text-fg-primary">{selectedProject.name}</span>
-            </Button>
-            {#if !isRunning}
-              <IconButton
-                type="button"
-                tone="danger"
-                onclick={clearProject}
-                class="hover:bg-bg-secondary"
-                aria-label="Clear project selection"
+      <div class="flex items-center gap-1">
+        <Popover.Root bind:open={showProjectDropdown}>
+          <Popover.Trigger disabled={isRunning}>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                variant="secondary"
+                class="bg-bg-primary border-bg-tertiary {selectedProject
+                  ? 'hover:border-bright-blue'
+                  : ''} px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
+                aria-label={selectedProject
+                  ? `Selected project: ${selectedProject.name}`
+                  : "Select project"}
               >
-                <X class="w-4 h-4" aria-hidden="true" />
-              </IconButton>
-            {/if}
-          </div>
-        {:else}
-          <Button
-            variant="secondary"
-            class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
-            disabled={isRunning}
-            onclick={() => (showProjectDropdown = !showProjectDropdown)}
-            aria-haspopup="listbox"
-            aria-expanded={showProjectDropdown}
-            aria-label="Select project"
-          >
-            Project
-          </Button>
-        {/if}
-
-        {#if showProjectDropdown && !isRunning}
-          <div
-            class="absolute top-full left-0 mt-2 w-64 bg-bg-secondary border border-bg-tertiary rounded-[10px] shadow-lg z-50 animate-slide-in"
-            role="listbox"
-            aria-label="Available projects"
-          >
-            <div class="p-2 max-h-64 overflow-y-auto">
-              {#if projects.length === 0}
-                <p class="p-3 text-fg-muted text-sm">
-                  No projects yet. <Link
-                    href={routes.projects.index(workspaceId)}
-                    class="text-bright-blue hover:underline">Create one</Link
-                  >.
-                </p>
-              {:else}
-                {#each projects as project}
-                  <button
-                    onclick={() => selectProject(project)}
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-bg-tertiary transition-colors duration-150 text-left"
-                    role="option"
-                    aria-selected={$form.project_id === project.id}
-                  >
-                    <span
-                      class="w-3 h-3 rounded-full"
-                      style="background-color: {project.color}"
-                      aria-hidden="true"
-                    ></span>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-fg-primary truncate">{project.name}</p>
-                      {#if project.client}
-                        <p class="text-xs text-fg-muted truncate">
-                          {project.client.name}
-                        </p>
-                      {/if}
-                    </div>
-                    {#if $form.project_id === project.id}
-                      <Check
-                        class="w-4 h-4 text-bright-green"
+                {#if selectedProject}
+                  <span
+                    class="w-3 h-3 rounded-full"
+                    style="background-color: {selectedProject.color}"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="text-fg-primary">{selectedProject.name}</span>
+                {:else}
+                  Project
+                {/if}
+              </Button>
+            {/snippet}
+          </Popover.Trigger>
+          <Popover.Content align="start" class="w-64 p-0">
+            {#if projects.length === 0}
+              <p class="p-3 text-fg-muted text-sm">
+                No projects yet. <Link
+                  href={routes.projects.index(workspaceId)}
+                  class="text-bright-blue hover:underline">Create one</Link
+                >.
+              </p>
+            {:else}
+              <Command.Root>
+                <Command.Input placeholder="Search projects..." />
+                <Command.List class="p-1">
+                  <Command.Empty>No matching projects.</Command.Empty>
+                  {#each projects as project (project.id)}
+                    <Command.Item
+                      value={`${project.name} ${project.client?.name ?? ""}`}
+                      data-checked={$form.project_id === project.id}
+                      onSelect={() => selectProject(project)}
+                      class="gap-3 px-3 py-2 rounded-lg"
+                    >
+                      <span
+                        class="w-3 h-3 rounded-full shrink-0"
+                        style="background-color: {project.color}"
                         aria-hidden="true"
-                      />
-                    {/if}
-                  </button>
-                {/each}
-              {/if}
-            </div>
-          </div>
+                      ></span>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-fg-primary truncate">{project.name}</p>
+                        {#if project.client}
+                          <p class="text-xs text-fg-muted truncate">
+                            {project.client.name}
+                          </p>
+                        {/if}
+                      </div>
+                    </Command.Item>
+                  {/each}
+                </Command.List>
+              </Command.Root>
+            {/if}
+          </Popover.Content>
+        </Popover.Root>
+        {#if selectedProject && !isRunning}
+          <IconButton
+            type="button"
+            tone="danger"
+            onclick={clearProject}
+            class="hover:bg-bg-secondary"
+            aria-label="Clear project selection"
+          >
+            <X class="w-4 h-4" aria-hidden="true" />
+          </IconButton>
         {/if}
       </div>
 
-      <div class="relative">
-        <Button
-          variant="secondary"
-          class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
-          disabled={isRunning}
-          onclick={() => (showTagDropdown = !showTagDropdown)}
-          aria-haspopup="listbox"
-          aria-expanded={showTagDropdown}
-          aria-label={selectedTags.length > 0
-            ? `Selected ${selectedTags.length} tags`
-            : "Select tags"}
-        >
-          {#if selectedTags.length > 0}
-            <span class="text-fg-primary"
-              >{selectedTags.length} tag{selectedTags.length === 1
-                ? ""
-                : "s"}</span
+      <Popover.Root bind:open={showTagDropdown}>
+        <Popover.Trigger disabled={isRunning}>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              variant="secondary"
+              class="bg-bg-primary border-bg-tertiary px-3 md:px-4 py-2 md:py-3 text-sm md:text-base"
+              aria-label={selectedTags.length > 0
+                ? `Selected ${selectedTags.length} tags`
+                : "Select tags"}
             >
-          {:else}
-            Tags
-          {/if}
-        </Button>
-
-        {#if showTagDropdown && !isRunning}
-          <div
-            class="absolute top-full left-0 mt-2 w-56 bg-bg-secondary border border-bg-tertiary rounded-[10px] shadow-lg z-50 animate-slide-in"
-            role="listbox"
-            aria-label="Available tags"
-            aria-multiselectable="true"
-          >
-            <div class="p-2 max-h-64 overflow-y-auto">
-              {#if tags.length === 0}
-                <p class="p-3 text-fg-muted text-sm">
-                  No tags yet. <Link
-                    href={routes.tags.index(workspaceId)}
-                    class="text-bright-blue hover:underline">Create one</Link
-                  >.
-                </p>
+              {#if selectedTags.length > 0}
+                <span class="text-fg-primary"
+                  >{selectedTags.length} tag{selectedTags.length === 1
+                    ? ""
+                    : "s"}</span
+                >
               {:else}
-                {#each tags as tag}
-                  <button
-                    onclick={() => toggleTag(tag.id)}
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-bg-tertiary transition-colors duration-150 text-left"
-                    role="option"
-                    aria-selected={$form.tag_ids.includes(tag.id)}
+                Tags
+              {/if}
+            </Button>
+          {/snippet}
+        </Popover.Trigger>
+        <Popover.Content align="start" class="w-56 p-0">
+          {#if tags.length === 0}
+            <p class="p-3 text-fg-muted text-sm">
+              No tags yet. <Link
+                href={routes.tags.index(workspaceId)}
+                class="text-bright-blue hover:underline">Create one</Link
+              >.
+            </p>
+          {:else}
+            <Command.Root>
+              <Command.Input placeholder="Search tags..." />
+              <Command.List class="p-1">
+                <Command.Empty>No matching tags.</Command.Empty>
+                {#each tags as tag (tag.id)}
+                  <Command.Item
+                    value={tag.name}
+                    data-checked={$form.tag_ids.includes(tag.id)}
+                    onSelect={() => toggleTag(tag.id)}
+                    class="px-3 py-2 rounded-lg"
                   >
                     <span class="text-fg-primary">{tag.name}</span>
-                    {#if $form.tag_ids.includes(tag.id)}
-                      <Check
-                        class="w-4 h-4 text-bright-green ml-auto"
-                        aria-hidden="true"
-                      />
-                    {/if}
-                  </button>
+                  </Command.Item>
                 {/each}
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
-
+              </Command.List>
+            </Command.Root>
+          {/if}
+        </Popover.Content>
+      </Popover.Root>
       <ChipButton
         type="button"
         selected={$form.billable}
@@ -462,15 +430,3 @@
     {/if}
   </div>
 </div>
-
-{#if showProjectDropdown || showTagDropdown}
-  <button
-    type="button"
-    class="fixed inset-0 z-40 bg-transparent"
-    onclick={() => {
-      showProjectDropdown = false;
-      showTagDropdown = false;
-    }}
-    aria-label="Close dropdowns"
-  ></button>
-{/if}

@@ -178,6 +178,11 @@ body {
   border-radius: 2px;
 }
 
+/* The command palette's search box sits in a bordered group; don't double up the ring */
+[data-slot="command-input"]:focus-visible {
+  box-shadow: none;
+}
+
 /* Remove focus outline for mouse users only */
 *:focus:not(:focus-visible) {
   outline: none;
