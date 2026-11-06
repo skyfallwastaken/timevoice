@@ -80,6 +80,13 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
+          # Placeholder credentials so the app boots without RAILS_MASTER_KEY.
+          # The Turnstile keys are Cloudflare's always-pass test keys.
+          GOOGLE__CLIENT_ID: ci-google-client-id
+          GOOGLE__CLIENT_SECRET: ci-google-client-secret
+          CLOUDFLARE__TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+          CLOUDFLARE__TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+          SMTP__DEFAULT_FROM: ci@example.com
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
@@ -105,6 +112,13 @@ jobs:
       - name: Run System Tests
         env:
           RAILS_ENV: test
+          # Placeholder credentials so the app boots without RAILS_MASTER_KEY.
+          # The Turnstile keys are Cloudflare's always-pass test keys.
+          GOOGLE__CLIENT_ID: ci-google-client-id
+          GOOGLE__CLIENT_SECRET: ci-google-client-secret
+          CLOUDFLARE__TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+          CLOUDFLARE__TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+          SMTP__DEFAULT_FROM: ci@example.com
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system

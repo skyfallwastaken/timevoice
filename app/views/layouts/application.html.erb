@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html data-theme="<%= current_theme.key %>" data-mode="<%= current_theme.mode %>">
+<html
+  data-theme="<%= current_theme.key %>"
+  data-mode="<%= current_theme.mode %>"
+>
   <head>
     <title><%= content_for(:title) || "Timevoice" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -13,10 +16,10 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.png" />
 
-    <%= javascript_include_tag "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit", "data-turbo-track": "reload", defer: true %>
-    <%= vite_client_tag %>
-    <%= vite_typescript_tag "inertia" %>
-    <%= inertia_ssr_head %>
+    <%=
+    javascript_include_tag("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
+    "data-turbo-track": "reload", defer: true) %> <%= vite_client_tag %> <%=
+    vite_typescript_tag("inertia") %> <%= inertia_ssr_head %>
   </head>
 
   <body class="bg-bg-primary text-fg-primary antialiased">
