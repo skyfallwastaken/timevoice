@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
 
   inertia_share auth: -> {
     {
-      user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone ]),
+      user: current_user&.as_json(only: [ :id, :name, :email, :avatar_url, :timezone, :theme ]),
       workspace: current_workspace&.as_json(only: [ :id, :name ], methods: [ :hashid ]),
       workspaces: current_user&.workspaces&.order(:name)&.map { |w| { id: w.id, name: w.name, hashid: w.hashid } } || [],
       is_admin: current_user&.admin? || false
@@ -69,6 +69,12 @@ class ApplicationController < ActionController::Base
   end
 
   helper_method :current_workspace
+
+  def current_theme
+    Theme.find(current_user&.theme)
+  end
+
+  helper_method :current_theme
 
   def pundit_user
     UserContext.new(current_user, current_workspace)

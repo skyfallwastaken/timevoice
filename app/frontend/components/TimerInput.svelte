@@ -213,7 +213,7 @@
   const iconButton =
     "inline-flex items-center gap-1.5 p-2 rounded-[10px] text-fg-dim hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150 disabled:pointer-events-none data-[state=open]:bg-bg-tertiary data-[state=open]:text-fg-primary";
   const timeField =
-    "bg-transparent text-fg-primary font-tabular scheme-dark px-2 py-1.5 rounded-[10px] hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150";
+    "bg-transparent text-fg-primary font-tabular px-2 py-1.5 rounded-[10px] hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150";
 </script>
 
 <div
@@ -255,9 +255,7 @@
                   style="background-color: {selectedProject.color}"
                   aria-hidden="true"
                 ></span>
-                <span
-                  class="truncate text-sm font-medium"
-                  style="color: {selectedProject.color}"
+                <span class="truncate text-sm font-medium text-fg-primary"
                   >{selectedProject.name}</span
                 >
               {:else}

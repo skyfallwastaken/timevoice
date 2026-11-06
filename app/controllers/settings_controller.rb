@@ -1,5 +1,5 @@
 class SettingsController < ApplicationController
-  before_action :authorize_workspace_view, only: [ :workspace, :billing ]
+  before_action :authorize_workspace_view, only: [ :workspace, :billing, :themes ]
 
   def workspace
     @workspace = current_workspace
@@ -88,6 +88,21 @@ class SettingsController < ApplicationController
       redirect_to settings_billing_path, notice: "Billing settings updated successfully!"
     else
       redirect_to settings_billing_path, alert: @invoice_settings.errors.full_messages.join(", "), inertia: { errors: @invoice_settings.errors }
+    end
+  end
+
+  def themes
+    render inertia: "Settings/Themes", props: {
+      themes: Theme.all.map(&:to_h),
+      currentTheme: current_theme.key
+    }
+  end
+
+  def update_theme
+    if current_user.update(theme: params[:theme])
+      redirect_to settings_themes_path
+    else
+      redirect_to settings_themes_path, alert: "That theme isn't available."
     end
   end
 

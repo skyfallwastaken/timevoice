@@ -197,7 +197,7 @@
 
       <!-- Footer -->
       <div class="px-4 py-3 bg-bg-primary border-t border-bg-tertiary">
-        <p class="text-xs text-fg-dim text-center truncate">
+        <p class="text-xs text-fg-muted text-center truncate">
           Redirects to <span class="font-mono">{redirectUri}</span>
         </p>
       </div>

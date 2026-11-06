@@ -78,7 +78,7 @@
         </button>
       </form>
 
-      <p class="text-center text-sm text-fg-dim">
+      <p class="text-center text-sm text-fg-muted">
         Signing in will create your workspace if you do not have one yet.
       </p>
     </div>

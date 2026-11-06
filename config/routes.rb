@@ -57,6 +57,8 @@ Rails.application.routes.draw do
     delete "/settings/workspace", to: "settings#destroy_workspace"
     get "/settings/billing", to: "settings#billing"
     patch "/settings/billing", to: "settings#update_billing"
+    get "/settings/themes", to: "settings#themes"
+    patch "/settings/themes", to: "settings#update_theme"
     get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
     resources :oauth_applications, only: [ :create, :update, :destroy ], path: "settings/developer/applications" do
       member do

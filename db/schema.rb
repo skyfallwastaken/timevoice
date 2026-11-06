@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
+ActiveRecord::Schema[8.2].define(version: 2026_11_05_223502) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -229,6 +229,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.string "name", null: false
     t.string "timezone", default: "UTC"
     t.datetime "updated_at", null: false
+    t.string "theme", default: "daydream-dark", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["google_uid"], name: "index_users_on_google_uid", unique: true
     t.index ["last_used_workspace_id"], name: "index_users_on_last_used_workspace_id"

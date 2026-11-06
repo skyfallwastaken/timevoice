@@ -448,8 +448,7 @@
                     </button>
                     {#if entry.project}
                       <span
-                        class="flex items-center gap-1.5 text-sm min-w-0 shrink-0"
-                        style="color: {entry.project.color}"
+                        class="flex items-center gap-1.5 text-sm text-fg-secondary min-w-0 shrink-0"
                       >
                         <span
                           class="w-2 h-2 rounded-full shrink-0"

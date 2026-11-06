@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <p class="text-sm text-fg-dim text-center">
+    <p class="text-sm text-fg-muted text-center">
       By accepting, you'll join this workspace and can start collaborating with
       the team.
     </p>

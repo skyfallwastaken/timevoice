@@ -4,43 +4,40 @@
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
+@import "./themes.css";
 
 @theme {
-  /* Gruvbox Dark Theme Colors */
-  --color-bg-primary: #1d2021;
-  --color-bg-secondary: #282828;
-  --color-bg-tertiary: #3c3836;
-  --color-bg-quaternary: #504945;
+  /* Defaults are Daydream Dark; themes.css overrides them per [data-theme]. */
 
-  /* Foreground colors */
-  --color-fg-primary: #ebdbb2;
-  --color-fg-secondary: #d5c4a1;
-  --color-fg-muted: #a89984;
-  --color-fg-dim: #928374;
+  /* Backgrounds, page to raised */
+  --color-bg-primary: #131613;
+  --color-bg-secondary: #1b1f1b;
+  --color-bg-tertiary: #2f372f;
+  --color-bg-quaternary: #3d463d;
 
-  /* Accent colors - Gruvbox */
-  --color-accent-red: #cc241d;
-  --color-accent-green: #98971a;
-  --color-accent-yellow: #d79921;
-  --color-accent-blue: #458588;
-  --color-accent-purple: #b16286;
-  --color-accent-aqua: #689d6a;
-  --color-accent-orange: #d65d0e;
+  /* Foregrounds, strongest to faintest */
+  --color-fg-primary: #e1e7e0;
+  --color-fg-secondary: #ccccc9;
+  --color-fg-muted: #9ca49c;
+  --color-fg-dim: #7d847c;
 
-  /* Bright variants */
-  --color-bright-red: #fb4934;
-  --color-bright-green: #b8bb26;
-  --color-bright-yellow: #fabd2f;
-  --color-bright-blue: #83a598;
-  --color-bright-purple: #d3869b;
-  --color-bright-aqua: #8ec07c;
-  --color-bright-orange: #fe8019;
+  /* Accents: text, solid buttons, and 20% tints */
+  --color-bright-red: #e3908a;
+  --color-bright-green: #70cf92;
+  --color-bright-yellow: #e1bb5a;
+  --color-bright-blue: #76a7e2;
+  --color-bright-purple: #d5b5ff;
+  --color-bright-aqua: #2ed7d0;
+  --color-bright-orange: #ffb36c;
 
-  /* Status colors */
-  --color-status-success: #b8bb26;
-  --color-status-warning: #fabd2f;
-  --color-status-error: #fb4934;
-  --color-status-info: #83a598;
+  /* Hover shades for solid accent buttons */
+  --color-accent-red: #c17a75;
+  --color-accent-green: #5fb07c;
+  --color-accent-yellow: #bf9f4c;
+  --color-accent-blue: #648ec0;
+  --color-accent-purple: #b59ad9;
+  --color-accent-aqua: #27b7b1;
+  --color-accent-orange: #d9985c;
 
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
@@ -54,10 +51,10 @@
   --duration-slow: 250ms;
 }
 
-/* The app is dark-only, so shadcn-svelte's dark: styles always apply. */
-@custom-variant dark (&);
+/* shadcn-svelte's dark: styles follow the active theme's mode. */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
-/* shadcn-svelte tokens, mapped onto the Gruvbox palette above */
+/* shadcn-svelte tokens, mapped onto the theme palette above */
 @theme inline {
   --color-background: var(--color-bg-primary);
   --color-foreground: var(--color-fg-primary);
@@ -77,6 +74,13 @@
   --color-border: var(--color-bg-tertiary);
   --color-input: var(--color-bg-tertiary);
   --color-ring: var(--color-bright-blue);
+}
+
+/* Set briefly by applyTheme() so a theme change doesn't animate */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 /* Base styles */
@@ -189,7 +193,7 @@ body {
   top: 0;
 }
 
-/* Custom scrollbar for Gruvbox theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

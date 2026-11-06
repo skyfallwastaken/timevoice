@@ -407,7 +407,7 @@
         href="/docs"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-[10px] bg-bright-purple text-white hover:bg-bright-purple/90 transition-colors"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-[10px] bg-bright-purple text-bg-primary hover:bg-accent-purple transition-colors"
       >
         <ExternalLink class="w-4 h-4" />
         Open API Reference

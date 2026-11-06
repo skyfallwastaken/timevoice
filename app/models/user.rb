@@ -14,6 +14,7 @@ class User < ApplicationRecord
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
   validates :google_uid, presence: true, uniqueness: true
+  validates :theme, inclusion: { in: Theme.keys }
 
   def self.from_omniauth(auth)
     user = find_by(google_uid: auth.uid)

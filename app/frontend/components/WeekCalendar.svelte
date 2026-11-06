@@ -327,7 +327,7 @@
           <div class="text-center py-2">
             <div class="text-sm text-fg-muted">{header.dayName}</div>
             <div class="text-lg font-semibold">{header.dayNum}</div>
-            <div class="text-xs text-fg-dim mt-1">{getDayTotal(day)}</div>
+            <div class="text-xs text-fg-muted mt-1">{getDayTotal(day)}</div>
           </div>
         {/each}
       </div>
@@ -365,9 +365,12 @@
               <button
                 type="button"
                 class="absolute left-1 right-1 rounded-md px-2 py-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 transition-all duration-200 text-left"
-                style="{getEntryStyle(entry)} background-color: {entry.project
-                  ?.color || '#b16286'}40; border-left: 3px solid {entry.project
-                  ?.color || '#b16286'};"
+                style="{getEntryStyle(
+                  entry,
+                )} background-color: color-mix(in oklab, {entry.project
+                  ?.color ||
+                  '#b16286'} 20%, var(--color-bg-secondary)); border-left: 3px solid {entry
+                  .project?.color || '#b16286'};"
                 title="{entry.description ||
                   'No description'} ({entry.formattedDuration})"
                 onmousedown={(e) => e.stopPropagation()}
@@ -379,7 +382,7 @@
                 <div class="font-medium truncate text-fg-primary">
                   {entry.description || "No description"}
                 </div>
-                <div class="text-fg-secondary truncate">
+                <div class="text-fg-primary/90 truncate">
                   {entry.formattedDuration}
                 </div>
               </button>

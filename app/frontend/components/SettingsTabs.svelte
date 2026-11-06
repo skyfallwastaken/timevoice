@@ -4,7 +4,7 @@
 
   interface Props {
     workspaceId: string;
-    active: "workspace" | "billing" | "developer";
+    active: "workspace" | "billing" | "developer" | "themes";
   }
 
   let { workspaceId, active }: Props = $props();
@@ -13,14 +13,15 @@
     { key: "workspace", label: "Workspace", href: routes.settings.workspace },
     { key: "billing", label: "Billing", href: routes.settings.billing },
     { key: "developer", label: "Developer", href: routes.settings.developer },
+    { key: "themes", label: "Themes", href: routes.settings.themes },
   ] as const;
 </script>
 
-<div class="grid grid-cols-3">
+<div class="grid grid-cols-4">
   {#each tabs as tab, index}
     <Link
       href={tab.href(workspaceId)}
-      class="px-4 py-2 text-sm font-medium transition-colors duration-150 {active ===
+      class="px-2 sm:px-4 py-2 text-sm font-medium text-center truncate transition-colors duration-150 {active ===
       tab.key
         ? 'bg-bg-tertiary text-fg-primary'
         : 'text-fg-secondary hover:bg-bg-tertiary'} {index < tabs.length - 1

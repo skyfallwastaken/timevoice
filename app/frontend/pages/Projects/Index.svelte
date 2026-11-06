@@ -255,7 +255,7 @@
                 {#if project.client}
                   {project.client.name}
                 {:else}
-                  <span class="text-fg-dim italic">No client</span>
+                  <span class="text-fg-muted italic">No client</span>
                 {/if}
               {/snippet}
               {#snippet actions()}

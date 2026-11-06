@@ -76,6 +76,7 @@ export const routes = {
     deleteWorkspace: (workspaceId: string) =>
       `/${workspaceId}/settings/workspace`,
     updateBilling: (workspaceId: string) => `/${workspaceId}/settings/billing`,
+    themes: (workspaceId: string) => `/${workspaceId}/settings/themes`,
   },
 
   oauthApplications: {

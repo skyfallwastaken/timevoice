@@ -2,6 +2,7 @@ import "../assets/tailwind.css";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import { mount } from "svelte";
 import AppShell from "../components/AppShell.svelte";
+import { syncThemeColor } from "../lib/theme";
 
 const defaultLayout = AppShell as unknown as NonNullable<
   ResolvedComponent["layout"]
@@ -9,6 +10,8 @@ const defaultLayout = AppShell as unknown as NonNullable<
 
 // The server reads this to bucket entries into days in the browser's timezone.
 document.cookie = `tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}; path=/; max-age=31536000; samesite=lax`;
+
+syncThemeColor();
 
 createInertiaApp({
   resolve: (name) => {

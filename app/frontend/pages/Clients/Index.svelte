@@ -207,7 +207,7 @@ Country"
                     {client.billing_address}
                   </span>
                 {:else}
-                  <span class="text-fg-dim italic">No billing address</span>
+                  <span class="text-fg-muted italic">No billing address</span>
                 {/if}
               {/snippet}
               {#snippet actions()}

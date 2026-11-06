@@ -149,7 +149,7 @@
         <a
           href={routes.devTools.letterOpener}
           target="_blank"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-green-950 border-2 border-dashed border-green-500 text-green-400 rounded-[10px] hover:bg-green-900 transition-colors duration-150"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-bright-green/10 border-2 border-dashed border-bright-green/60 text-bright-green rounded-[10px] hover:bg-bright-green/20 transition-colors duration-150"
         >
           <Mail class="w-4 h-4" />
           View Sent Email
@@ -292,7 +292,9 @@
             {invoice.client.billing_address}
           </div>
         {:else}
-          <div class="mt-1 text-sm text-fg-dim italic">No billing address</div>
+          <div class="mt-1 text-sm text-fg-muted italic">
+            No billing address
+          </div>
         {/if}
       </div>
 

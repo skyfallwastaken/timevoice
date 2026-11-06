@@ -290,14 +290,14 @@
           <div class="px-4 pb-4">
             <div class="admin-tools rounded-lg">
               <p
-                class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2"
+                class="text-xs font-medium text-fg-muted uppercase tracking-wider px-3 py-2"
               >
                 Admin
               </p>
               <a
                 href={routes.admin.jobs}
                 onclick={closeMobileNav}
-                class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg text-bright-yellow hover:bg-bright-yellow/10 transition-colors duration-150"
               >
                 <Workflow class="w-4 h-4" aria-hidden="true" />
                 <span class="text-sm font-medium">Jobs</span>
@@ -383,13 +383,13 @@
       <div class="px-4 pb-4">
         <div class="admin-tools rounded-lg">
           <p
-            class="text-xs font-medium text-fg-dim uppercase tracking-wider px-3 py-2"
+            class="text-xs font-medium text-fg-muted uppercase tracking-wider px-3 py-2"
           >
             Admin
           </p>
           <a
             href={routes.admin.jobs}
-            class="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors duration-150"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-bright-yellow hover:bg-bright-yellow/10 transition-colors duration-150"
           >
             <Workflow class="w-4 h-4" aria-hidden="true" />
             <span class="text-sm font-medium">Jobs</span>

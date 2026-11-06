@@ -1,0 +1,349 @@
+/*
+ * Color themes. Each block overrides the palette from tailwind.css for the
+ * element carrying data-theme (the <html> element, or a preview card), so
+ * Tailwind utilities such as bg-bg-primary pick up the theme automatically.
+ * Keep keys in sync with app/models/theme.rb.
+ *
+ * Accents and muted text were nudged where needed so text meets WCAG AA:
+ * fg-primary >= 7:1; fg-muted >= 4.5:1 on page, card, and tertiary
+ * backgrounds; bright-* >= 4.5:1 on page and card backgrounds and on their
+ * own 20% tint; fg-dim (placeholders and icons) >= 3:1.
+ */
+
+[data-theme="daydream-dark"] {
+  color-scheme: dark;
+  --color-bg-primary: #131613;
+  --color-bg-secondary: #1b1f1b;
+  --color-bg-tertiary: #2f372f;
+  --color-bg-quaternary: #3d463d;
+  --color-fg-primary: #e1e7e0;
+  --color-fg-secondary: #ccccc9;
+  --color-fg-muted: #9ca49c;
+  --color-fg-dim: #7d847c;
+  --color-bright-red: #e3908a;
+  --color-bright-green: #70cf92;
+  --color-bright-yellow: #e1bb5a;
+  --color-bright-blue: #76a7e2;
+  --color-bright-purple: #d5b5ff;
+  --color-bright-aqua: #2ed7d0;
+  --color-bright-orange: #ffb36c;
+  --color-accent-red: #c17a75;
+  --color-accent-green: #5fb07c;
+  --color-accent-yellow: #bf9f4c;
+  --color-accent-blue: #648ec0;
+  --color-accent-purple: #b59ad9;
+  --color-accent-aqua: #27b7b1;
+  --color-accent-orange: #d9985c;
+}
+
+[data-theme="daydream-light"] {
+  color-scheme: light;
+  --color-bg-primary: #f0f1ef;
+  --color-bg-secondary: #fafaf8;
+  --color-bg-tertiary: #dde2dd;
+  --color-bg-quaternary: #c4cbc4;
+  --color-fg-primary: #1f251f;
+  --color-fg-secondary: #2f352f;
+  --color-fg-muted: #595959;
+  --color-fg-dim: #7a7f7a;
+  --color-bright-red: #953c39;
+  --color-bright-green: #256441;
+  --color-bright-yellow: #76530e;
+  --color-bright-blue: #21599d;
+  --color-bright-purple: #68439c;
+  --color-bright-aqua: #166269;
+  --color-bright-orange: #8f430f;
+  --color-accent-red: #7f3330;
+  --color-accent-green: #1f5537;
+  --color-accent-yellow: #64470c;
+  --color-accent-blue: #1c4c85;
+  --color-accent-purple: #583985;
+  --color-accent-aqua: #135359;
+  --color-accent-orange: #7a390d;
+}
+
+[data-theme="gruvbox-dark"] {
+  color-scheme: dark;
+  --color-bg-primary: #1d2021;
+  --color-bg-secondary: #282828;
+  --color-bg-tertiary: #3c3836;
+  --color-bg-quaternary: #504945;
+  --color-fg-primary: #ebdbb2;
+  --color-fg-secondary: #d5c4a1;
+  --color-fg-muted: #aea08d;
+  --color-fg-dim: #928374;
+  --color-bright-red: #fc8677;
+  --color-bright-green: #b8bb26;
+  --color-bright-yellow: #fabd2f;
+  --color-bright-blue: #99b5ab;
+  --color-bright-purple: #db9dae;
+  --color-bright-aqua: #90c17f;
+  --color-bright-orange: #fe943e;
+  --color-accent-red: #cc241d;
+  --color-accent-green: #98971a;
+  --color-accent-yellow: #d79921;
+  --color-accent-blue: #458588;
+  --color-accent-purple: #b16286;
+  --color-accent-aqua: #689d6a;
+  --color-accent-orange: #d65d0e;
+}
+
+[data-theme="gruvbox-light"] {
+  color-scheme: light;
+  --color-bg-primary: #f2e5bc;
+  --color-bg-secondary: #fbf1c7;
+  --color-bg-tertiary: #d5c4a1;
+  --color-bg-quaternary: #bdae93;
+  --color-fg-primary: #3c3836;
+  --color-fg-secondary: #504945;
+  --color-fg-muted: #5a514a;
+  --color-fg-dim: #7c6f64;
+  --color-bright-red: #9b0006;
+  --color-bright-green: #59550b;
+  --color-bright-yellow: #724b0d;
+  --color-bright-blue: #065968;
+  --color-bright-purple: #7e3763;
+  --color-bright-aqua: #315a41;
+  --color-bright-orange: #913002;
+  --color-accent-red: #840005;
+  --color-accent-green: #4c4809;
+  --color-accent-yellow: #61400b;
+  --color-accent-blue: #054c58;
+  --color-accent-purple: #6b2f54;
+  --color-accent-aqua: #2a4c37;
+  --color-accent-orange: #7b2902;
+}
+
+[data-theme="catppuccin-latte"] {
+  color-scheme: light;
+  --color-bg-primary: #e6e9ef;
+  --color-bg-secondary: #eff1f5;
+  --color-bg-tertiary: #ccd0da;
+  --color-bg-quaternary: #bcc0cc;
+  --color-fg-primary: #484b64;
+  --color-fg-secondary: #56586f;
+  --color-fg-muted: #555869;
+  --color-fg-dim: #828596;
+  --color-bright-red: #a00c2b;
+  --color-bright-green: #26601a;
+  --color-bright-yellow: #774b10;
+  --color-bright-blue: #164cb6;
+  --color-bright-purple: #6c2dbe;
+  --color-bright-aqua: #0f5d62;
+  --color-bright-orange: #8e3806;
+  --color-accent-red: #880a25;
+  --color-accent-green: #205216;
+  --color-accent-yellow: #65400e;
+  --color-accent-blue: #13419b;
+  --color-accent-purple: #5c26a2;
+  --color-accent-aqua: #0d4f53;
+  --color-accent-orange: #793005;
+}
+
+[data-theme="catppuccin-frappe"] {
+  color-scheme: dark;
+  --color-bg-primary: #292c3c;
+  --color-bg-secondary: #303446;
+  --color-bg-tertiary: #414559;
+  --color-bg-quaternary: #51576d;
+  --color-fg-primary: #c6d0f5;
+  --color-fg-secondary: #b5bfe2;
+  --color-fg-muted: #aab2d1;
+  --color-fg-dim: #838ba7;
+  --color-bright-red: #efabad;
+  --color-bright-green: #abd490;
+  --color-bright-yellow: #e5c890;
+  --color-bright-blue: #acc2f3;
+  --color-bright-purple: #d7b6ec;
+  --color-bright-aqua: #98d2ca;
+  --color-bright-orange: #f3b494;
+  --color-accent-red: #cb9193;
+  --color-accent-green: #91b47a;
+  --color-accent-yellow: #c3aa7a;
+  --color-accent-blue: #92a5cf;
+  --color-accent-purple: #b79bc9;
+  --color-accent-aqua: #81b2ac;
+  --color-accent-orange: #cf997e;
+}
+
+[data-theme="catppuccin-macchiato"] {
+  color-scheme: dark;
+  --color-bg-primary: #1e2030;
+  --color-bg-secondary: #24273a;
+  --color-bg-tertiary: #363a4f;
+  --color-bg-quaternary: #494d64;
+  --color-fg-primary: #cad3f5;
+  --color-fg-secondary: #b8c0e0;
+  --color-fg-muted: #a5adcb;
+  --color-fg-dim: #8087a2;
+  --color-bright-red: #ef97a4;
+  --color-bright-green: #a6da95;
+  --color-bright-yellow: #eed49f;
+  --color-bright-blue: #93b4f5;
+  --color-bright-purple: #c9a5f6;
+  --color-bright-aqua: #8bd5ca;
+  --color-bright-orange: #f5a97f;
+  --color-accent-red: #cb808b;
+  --color-accent-green: #8db97f;
+  --color-accent-yellow: #cab487;
+  --color-accent-blue: #7d99d0;
+  --color-accent-purple: #ab8cd1;
+  --color-accent-aqua: #76b5ac;
+  --color-accent-orange: #d0906c;
+}
+
+[data-theme="catppuccin-mocha"] {
+  color-scheme: dark;
+  --color-bg-primary: #181825;
+  --color-bg-secondary: #1e1e2e;
+  --color-bg-tertiary: #313244;
+  --color-bg-quaternary: #45475a;
+  --color-fg-primary: #cdd6f4;
+  --color-fg-secondary: #bac2de;
+  --color-fg-muted: #a6adc8;
+  --color-fg-dim: #7f849c;
+  --color-bright-red: #f38ba8;
+  --color-bright-green: #a6e3a1;
+  --color-bright-yellow: #f9e2af;
+  --color-bright-blue: #89b4fa;
+  --color-bright-purple: #cba6f7;
+  --color-bright-aqua: #94e2d5;
+  --color-bright-orange: #fab387;
+  --color-accent-red: #cf768f;
+  --color-accent-green: #8dc189;
+  --color-accent-yellow: #d4c095;
+  --color-accent-blue: #7499d4;
+  --color-accent-purple: #ad8dd2;
+  --color-accent-aqua: #7ec0b5;
+  --color-accent-orange: #d49873;
+}
+
+[data-theme="nord"] {
+  color-scheme: dark;
+  --color-bg-primary: #272c36;
+  --color-bg-secondary: #2e3440;
+  --color-bg-tertiary: #3b4252;
+  --color-bg-quaternary: #4c566a;
+  --color-fg-primary: #eceff4;
+  --color-fg-secondary: #e5e9f0;
+  --color-fg-muted: #c0c8d6;
+  --color-fg-dim: #9aa3b5;
+  --color-bright-red: #dfafb4;
+  --color-bright-green: #b5cba3;
+  --color-bright-yellow: #ebcb8b;
+  --color-bright-blue: #abc0d5;
+  --color-bright-purple: #cdb4c9;
+  --color-bright-aqua: #a7cac9;
+  --color-bright-orange: #e0b0a0;
+  --color-accent-red: #be9599;
+  --color-accent-green: #9aad8b;
+  --color-accent-yellow: #c8ad76;
+  --color-accent-blue: #91a3b5;
+  --color-accent-purple: #ae99ab;
+  --color-accent-aqua: #8eacab;
+  --color-accent-orange: #be9688;
+}
+
+[data-theme="dracula"] {
+  color-scheme: dark;
+  --color-bg-primary: #21222c;
+  --color-bg-secondary: #282a36;
+  --color-bg-tertiary: #44475a;
+  --color-bg-quaternary: #565a70;
+  --color-fg-primary: #f8f8f2;
+  --color-fg-secondary: #e2e2dc;
+  --color-fg-muted: #b6b8c6;
+  --color-fg-dim: #8c90ad;
+  --color-bright-red: #ff8888;
+  --color-bright-green: #50fa7b;
+  --color-bright-yellow: #f1fa8c;
+  --color-bright-blue: #8be9fd;
+  --color-bright-purple: #c8a4fa;
+  --color-bright-aqua: #8be9fd;
+  --color-bright-orange: #ffb86c;
+  --color-accent-red: #d97474;
+  --color-accent-green: #44d469;
+  --color-accent-yellow: #cdd477;
+  --color-accent-blue: #76c6d7;
+  --color-accent-purple: #aa8bd4;
+  --color-accent-aqua: #76c6d7;
+  --color-accent-orange: #d99c5c;
+}
+
+[data-theme="tokyo-night"] {
+  color-scheme: dark;
+  --color-bg-primary: #16161e;
+  --color-bg-secondary: #1a1b26;
+  --color-bg-tertiary: #292e42;
+  --color-bg-quaternary: #414868;
+  --color-fg-primary: #c0caf5;
+  --color-fg-secondary: #a9b1d6;
+  --color-fg-muted: #9aa5ce;
+  --color-fg-dim: #737aa2;
+  --color-bright-red: #f77990;
+  --color-bright-green: #9ece6a;
+  --color-bright-yellow: #e0af68;
+  --color-bright-blue: #7aa2f7;
+  --color-bright-purple: #bb9af7;
+  --color-bright-aqua: #73daca;
+  --color-bright-orange: #ff9e64;
+  --color-accent-red: #d2677a;
+  --color-accent-green: #86af5a;
+  --color-accent-yellow: #be9558;
+  --color-accent-blue: #688ad2;
+  --color-accent-purple: #9f83d2;
+  --color-accent-aqua: #62b9ac;
+  --color-accent-orange: #d98655;
+}
+
+[data-theme="rose-pine"] {
+  color-scheme: dark;
+  --color-bg-primary: #191724;
+  --color-bg-secondary: #1f1d2e;
+  --color-bg-tertiary: #403d52;
+  --color-bg-quaternary: #524f67;
+  --color-fg-primary: #e0def4;
+  --color-fg-secondary: #cfcce6;
+  --color-fg-muted: #aba8be;
+  --color-fg-dim: #6e6a86;
+  --color-bright-red: #ee82a0;
+  --color-bright-green: #9ccfd8;
+  --color-bright-yellow: #f6c177;
+  --color-bright-blue: #68a8c1;
+  --color-bright-purple: #c4a7e7;
+  --color-bright-aqua: #9ccfd8;
+  --color-bright-orange: #ebbcba;
+  --color-accent-red: #ca6e88;
+  --color-accent-green: #85b0b8;
+  --color-accent-yellow: #d1a465;
+  --color-accent-blue: #588fa4;
+  --color-accent-purple: #a78ec4;
+  --color-accent-aqua: #85b0b8;
+  --color-accent-orange: #c8a09e;
+}
+
+[data-theme="rose-pine-dawn"] {
+  color-scheme: light;
+  --color-bg-primary: #f2e9e1;
+  --color-bg-secondary: #fffaf3;
+  --color-bg-tertiary: #dfdad9;
+  --color-bg-quaternary: #cecacd;
+  --color-fg-primary: #4d496c;
+  --color-fg-secondary: #575279;
+  --color-fg-muted: #605c74;
+  --color-fg-dim: #898494;
+  --color-bright-red: #7c4454;
+  --color-bright-green: #225a71;
+  --color-bright-yellow: #744e1a;
+  --color-bright-blue: #355c63;
+  --color-bright-purple: #5e506f;
+  --color-bright-aqua: #355c63;
+  --color-bright-orange: #784946;
+  --color-accent-red: #693a47;
+  --color-accent-green: #1d4c60;
+  --color-accent-yellow: #634216;
+  --color-accent-blue: #2d4e54;
+  --color-accent-purple: #50445e;
+  --color-accent-aqua: #2d4e54;
+  --color-accent-orange: #663e3c;
+}

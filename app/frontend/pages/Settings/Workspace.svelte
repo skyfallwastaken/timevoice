@@ -379,7 +379,7 @@
     </SectionCard>
   {/if}
 
-  <div class="bg-bg-tertiary/50 border border-bright-red/30 rounded-[10px] p-4">
+  <div class="bg-bg-secondary border border-bright-red/40 rounded-[10px] p-4">
     <h3 class="font-semibold text-bright-red mb-2">Danger Zone</h3>
     <p class="text-sm text-fg-muted mb-4">
       These actions are irreversible. Please be certain before proceeding.
