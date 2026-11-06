@@ -38,4 +38,15 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get "/#{other.hashid}/calendar"
     assert_equal "Elsewhere", inertia_props.dig("runningEntry", "description")
   end
+
+  test "the Amp widget script loads only for admins" do
+    widget = "script[src='https://ampcode.com/w/client_01M6R2YREB0ZEYGG2BFBYVZAAY.js']"
+
+    get "/#{@workspace.hashid}/timer"
+    assert_select widget, count: 0
+
+    @user.update!(admin: true)
+    get "/#{@workspace.hashid}/timer"
+    assert_select widget, count: 1
+  end
 end

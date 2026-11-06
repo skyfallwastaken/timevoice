@@ -15,8 +15,12 @@
     <link rel="icon" href="/icon.png" type="image/png" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.png" />
-
-    <%=
+    <% if current_user&.admin? %>
+    <script
+      src="https://ampcode.com/w/client_01M6R2YREB0ZEYGG2BFBYVZAAY.js"
+      async
+    ></script>
+    <% end %> <%=
     javascript_include_tag("https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit",
     "data-turbo-track": "reload", defer: true) %> <%= vite_client_tag %> <%=
     vite_typescript_tag("inertia") %> <%= inertia_ssr_head %>

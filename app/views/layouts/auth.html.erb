@@ -15,8 +15,12 @@
     <link rel="icon" href="/icon.png" type="image/png" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon.png" />
-
-    <%= vite_client_tag %> <%= vite_typescript_tag "inertia" %> <%=
+    <% if current_user&.admin? %>
+    <script
+      src="https://ampcode.com/w/client_01M6R2YREB0ZEYGG2BFBYVZAAY.js"
+      async
+    ></script>
+    <% end %> <%= vite_client_tag %> <%= vite_typescript_tag "inertia" %> <%=
     inertia_ssr_head %>
   </head>
 

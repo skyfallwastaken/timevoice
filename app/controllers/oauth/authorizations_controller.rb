@@ -20,10 +20,14 @@ class Oauth::AuthorizationsController < Doorkeeper::AuthorizationsController
 
   private
 
-  def current_theme
-    Theme.find(current_resource_owner&.theme)
+  def current_user
+    current_resource_owner
   end
-  helper_method :current_theme
+
+  def current_theme
+    Theme.find(current_user&.theme)
+  end
+  helper_method :current_user, :current_theme
 
   def render_authorize_form
     render inertia: "OAuth/Authorize", props: {
