@@ -273,7 +273,7 @@
               />
             {:else}
               <div
-                class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-lg font-semibold"
+                class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-sm font-medium"
                 aria-hidden="true"
               >
                 {membership.user.name?.[0]?.toUpperCase() || "?"}

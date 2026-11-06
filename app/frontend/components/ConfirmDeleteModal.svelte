@@ -36,7 +36,7 @@
   }}
 >
   <AlertDialog.Content
-    class="w-[calc(100%-2rem)] data-[size=default]:max-w-md data-[size=default]:sm:max-w-md gap-0 p-0 text-base"
+    class="w-[calc(100%-2rem)] data-[size=default]:max-w-md data-[size=default]:sm:max-w-md gap-0 p-0 text-sm"
   >
     <div class="p-4 border-b border-bg-tertiary">
       <AlertDialog.Title class="font-semibold text-base"
@@ -44,7 +44,7 @@
       >
     </div>
     <div class="p-4 space-y-4">
-      <AlertDialog.Description class="text-fg-primary text-base">
+      <AlertDialog.Description class="text-fg-primary text-sm">
         Are you sure you want to {actionVerb}
         <span class="font-semibold">{itemName}</span>?
       </AlertDialog.Description>

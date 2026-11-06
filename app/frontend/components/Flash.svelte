@@ -20,7 +20,7 @@
     role="status"
   >
     <Check class="w-5 h-5 flex-shrink-0" />
-    <p class="flex-1">{flash.notice}</p>
+    <p class="flex-1 text-sm">{flash.notice}</p>
   </div>
 {/if}
 
@@ -30,6 +30,6 @@
     role="alert"
   >
     <AlertCircle class="w-5 h-5 flex-shrink-0" />
-    <p class="flex-1">{flash.alert}</p>
+    <p class="flex-1 text-sm">{flash.alert}</p>
   </div>
 {/if}

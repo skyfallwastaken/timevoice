@@ -28,7 +28,9 @@
       >
         T
       </div>
-      <h1 class="text-2xl font-semibold text-center text-fg-primary">
+      <h1
+        class="text-2xl font-semibold tracking-tight text-center text-fg-primary"
+      >
         Sign in to Timevoice
       </h1>
     </div>

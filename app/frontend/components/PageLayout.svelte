@@ -33,7 +33,9 @@
         {#if IconComponent}
           <IconComponent class="w-6 h-6 {iconColor}" aria-hidden="true" />
         {/if}
-        <h2 class="text-xl sm:text-2xl font-semibold truncate">{title}</h2>
+        <h2 class="text-xl sm:text-2xl font-semibold tracking-tight truncate">
+          {title}
+        </h2>
       </div>
       {#if headerActions}
         <div class="flex items-center gap-2 sm:justify-end">

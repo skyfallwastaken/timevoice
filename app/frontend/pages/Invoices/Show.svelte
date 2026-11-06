@@ -248,9 +248,9 @@
     >
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <h3 class="font-semibold text-lg truncate">{invoice.client.name}</h3>
+          <h3 class="font-semibold truncate">{invoice.client.name}</h3>
           <span
-            class="px-2 py-0.5 text-xs rounded-full capitalize {getStatusClasses(
+            class="px-2 py-0.5 text-xs font-medium rounded-full capitalize {getStatusClasses(
               invoice.status,
             )}"
           >
@@ -286,7 +286,7 @@
           <Building2 class="w-4 h-4" />
           <span class="text-sm">Client</span>
         </div>
-        <div class="font-medium">{invoice.client.name}</div>
+        <div class="text-sm font-medium">{invoice.client.name}</div>
         {#if invoice.client.billing_address}
           <div class="mt-1 text-sm text-fg-muted whitespace-pre-line">
             {invoice.client.billing_address}

@@ -162,19 +162,19 @@
 {/snippet}
 
 {#snippet userProfile()}
-  <div class="flex items-center gap-3 px-4 py-3">
+  <div class="flex items-center gap-3 px-3 py-2">
     {#if user?.avatar_url}
-      <img src={user.avatar_url} alt="" class="w-10 h-10 rounded-full" />
+      <img src={user.avatar_url} alt="" class="w-8 h-8 rounded-full" />
     {:else}
       <div
-        class="w-10 h-10 rounded-full bg-bg-tertiary flex items-center justify-center text-lg font-semibold"
+        class="w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center text-sm font-medium"
         aria-hidden="true"
       >
         {user?.name?.[0]?.toUpperCase() || "?"}
       </div>
     {/if}
     <div class="flex-1 min-w-0">
-      <p class="font-medium truncate">{user?.name}</p>
+      <p class="text-sm font-medium truncate">{user?.name}</p>
       <p class="text-sm text-fg-muted truncate">{user?.email}</p>
     </div>
   </div>
@@ -185,7 +185,7 @@
 <div class="h-screen bg-bg-primary text-fg-primary flex overflow-hidden">
   {#if isDevMode}
     <div
-      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-30 bg-yellow-500 text-black text-center text-xs font-bold py-1 px-2"
+      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-30 bg-yellow-500 text-black text-center text-xs font-semibold py-1 px-2"
     >
       DEV MODE
     </div>
@@ -233,7 +233,9 @@
         <div
           class="p-4 border-b border-bg-tertiary flex items-center justify-between"
         >
-          <h1 class="text-lg font-bold text-bright-purple">Timevoice</h1>
+          <h1 class="text-lg font-semibold tracking-tight text-bright-purple">
+            Timevoice
+          </h1>
           <IconButton onclick={closeMobileNav} aria-label="Close navigation">
             <X class="w-5 h-5" aria-hidden="true" />
           </IconButton>
@@ -242,7 +244,7 @@
         <div class="p-4 border-b border-bg-tertiary">
           <button
             type="button"
-            class="w-full flex items-center justify-between px-4 py-2 bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
+            class="w-full flex items-center justify-between px-3 py-2 text-sm bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
             aria-label="Switch workspace: {workspace?.name || 'Workspace'}"
             aria-expanded={mobileWorkspaceOpen}
             onclick={() => (mobileWorkspaceOpen = !mobileWorkspaceOpen)}
@@ -327,14 +329,16 @@
     aria-label="Application sidebar"
   >
     <div class="p-6 border-b border-bg-tertiary">
-      <h1 class="text-2xl font-bold text-bright-purple">Timevoice</h1>
+      <h1 class="text-xl font-semibold tracking-tight text-bright-purple">
+        Timevoice
+      </h1>
     </div>
 
     <div class="p-4 border-b border-bg-tertiary">
       <div class="relative">
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-2 bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
+          class="w-full flex items-center justify-between px-3 py-2 text-sm bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
           aria-label="Switch workspace: {workspace?.name || 'Workspace'}"
           aria-expanded={desktopWorkspaceOpen}
           onclick={() => (desktopWorkspaceOpen = !desktopWorkspaceOpen)}
@@ -403,10 +407,10 @@
       <button
         type="button"
         onclick={signOut}
-        class="w-full flex items-center gap-3 px-4 py-2 mt-2 text-fg-muted hover:text-bright-red transition-colors duration-150 rounded-[10px] focus-visible:ring-2 focus-visible:ring-bright-blue"
+        class="w-full flex items-center gap-2 px-3 py-2 mt-2 text-sm font-medium text-fg-muted hover:text-bright-red transition-colors duration-150 rounded-[10px] focus-visible:ring-2 focus-visible:ring-bright-blue"
         aria-label="Sign out {user?.name}"
       >
-        <LogOut class="w-5 h-5" aria-hidden="true" />
+        <LogOut class="w-4 h-4" aria-hidden="true" />
         <span>Sign out</span>
       </button>
     </div>

@@ -49,7 +49,7 @@
   <section class="pt-32 pb-20 px-6">
     <div class="max-w-4xl mx-auto text-center">
       <h1
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
+        class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight mb-6"
       >
         Track time.<br class="hidden sm:block" />
         <span class="text-bright-blue">Invoice clients.</span>
@@ -85,7 +85,9 @@
   <!-- Features Section -->
   <section class="py-20 px-6 border-t border-bg-tertiary">
     <div class="max-w-6xl mx-auto">
-      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-4">
+      <h2
+        class="text-2xl sm:text-3xl font-semibold tracking-tight text-center mb-4"
+      >
         Everything you need to bill your time
       </h2>
       <p class="text-fg-muted text-center max-w-2xl mx-auto mb-16">
@@ -253,7 +255,7 @@
   <!-- CTA Section -->
   <section class="py-20 px-6 border-t border-bg-tertiary">
     <div class="max-w-3xl mx-auto text-center">
-      <h2 class="text-2xl sm:text-3xl font-bold mb-4">
+      <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight mb-4">
         Start tracking your time today
       </h2>
       <p class="text-fg-muted mb-8">

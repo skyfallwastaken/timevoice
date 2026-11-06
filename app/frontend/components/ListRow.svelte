@@ -44,7 +44,7 @@
       </div>
     {/if}
     <div class="min-w-0">
-      <div class="font-medium truncate {primaryClass}">
+      <div class="text-sm font-medium truncate {primaryClass}">
         {@render primary()}
       </div>
       {#if secondary}

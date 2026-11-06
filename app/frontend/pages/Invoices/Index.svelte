@@ -239,14 +239,14 @@
             <span class="text-2xl font-semibold"
               >{formatRate(invoiceSettings.billable_rate_cents)}</span
             >
-            <span class="text-fg-muted">/hour</span>
+            <span class="text-sm text-fg-muted">/hour</span>
           </div>
         </div>
         <div>
           <span class="block text-sm font-medium text-fg-secondary mb-1"
             >Sender Name</span
           >
-          <p class="text-fg-primary">
+          <p class="text-sm text-fg-primary">
             {invoiceSettings.sender_name || "Not configured"}
           </p>
         </div>
@@ -445,7 +445,7 @@
           <div class="p-4 flex items-center justify-between">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <p class="font-medium truncate">
+                <p class="text-sm font-medium truncate">
                   {entry.description || "No description"}
                 </p>
                 {#if entry.billable}
@@ -509,9 +509,11 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <p class="font-medium">Invoice #{invoice.invoice_number}</p>
+                    <p class="text-sm font-medium">
+                      Invoice #{invoice.invoice_number}
+                    </p>
                     <span
-                      class="px-2 py-0.5 text-xs rounded-full {getStatusBg(
+                      class="px-2 py-0.5 text-xs font-medium rounded-full {getStatusBg(
                         invoice.status,
                       )} {getStatusColor(invoice.status)} capitalize"
                     >
@@ -526,7 +528,9 @@
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right">
-                  <p class="font-semibold text-lg">{invoice.total_amount}</p>
+                  <p class="text-sm font-semibold font-tabular">
+                    {invoice.total_amount}
+                  </p>
                   <p class="text-sm text-fg-muted">
                     {invoice.line_count} line items
                   </p>

@@ -132,16 +132,16 @@
   <SectionCard title="About Invoice Settings" bodyClass="p-4">
     <div class="space-y-2 text-sm text-fg-muted">
       <p>
-        <strong class="text-fg-primary">Sender Information:</strong>
+        <strong class="font-medium text-fg-primary">Sender Information:</strong>
         This appears at the top of your invoices as the "From" address.
       </p>
       <p>
-        <strong class="text-fg-primary">Default Rate:</strong>
+        <strong class="font-medium text-fg-primary">Default Rate:</strong>
         When you create an invoice, this rate is automatically applied to billable
         time entries. You can override it per-invoice if needed.
       </p>
       <p>
-        <strong class="text-fg-primary">Client Addresses:</strong>
+        <strong class="font-medium text-fg-primary">Client Addresses:</strong>
         Client billing addresses are managed in the <Link
           href={routes.clients.index(workspaceId)}
           class="text-bright-purple hover:text-accent-purple transition-colors duration-150"

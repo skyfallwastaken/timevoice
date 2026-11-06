@@ -26,11 +26,11 @@
     <Icon class="w-8 h-8 text-fg-muted" />
   </div>
 
-  <h3 class="text-lg font-semibold text-fg-primary mb-2">
+  <h3 class="text-base font-semibold text-fg-primary mb-1">
     {title}
   </h3>
 
-  <p class="text-fg-muted max-w-sm mb-6">
+  <p class="text-sm text-fg-muted max-w-sm mb-6">
     {description}
   </p>
 

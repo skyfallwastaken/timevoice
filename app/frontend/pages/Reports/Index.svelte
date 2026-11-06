@@ -236,7 +236,7 @@
     <SectionCard title="Daily Breakdown">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.daily) as [date, data]}
-          <div class="p-4 flex items-center justify-between">
+          <div class="p-4 flex items-center justify-between text-sm">
             <div class="flex items-center gap-3">
               <div class="text-center min-w-12">
                 <span class="block text-xs text-fg-muted"
@@ -256,7 +256,9 @@
                   >{formatDuration(data.billable)} billable</span
                 >
               </div>
-              <span class="font-semibold">{formatDuration(data.total)}</span>
+              <span class="font-medium font-tabular"
+                >{formatDuration(data.total)}</span
+              >
             </div>
           </div>
         {/each}
@@ -268,13 +270,15 @@
     <SectionCard title="Breakdown by Project">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_project) as [projectName, data]}
-          <div class="p-4 flex items-center justify-between">
+          <div class="p-4 flex items-center justify-between text-sm">
             <span class="font-medium">{projectName}</span>
             <div class="flex items-center gap-4">
               <span class="text-bright-green"
                 >{formatDuration(data.billable)} billable</span
               >
-              <span class="font-semibold">{formatDuration(data.total)}</span>
+              <span class="font-medium font-tabular"
+                >{formatDuration(data.total)}</span
+              >
             </div>
           </div>
         {/each}
@@ -286,13 +290,15 @@
     <SectionCard title="Breakdown by Client">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_client) as [clientName, data]}
-          <div class="p-4 flex items-center justify-between">
+          <div class="p-4 flex items-center justify-between text-sm">
             <span class="font-medium">{clientName}</span>
             <div class="flex items-center gap-4">
               <span class="text-bright-green"
                 >{formatDuration(data.billable)} billable</span
               >
-              <span class="font-semibold">{formatDuration(data.total)}</span>
+              <span class="font-medium font-tabular"
+                >{formatDuration(data.total)}</span
+              >
             </div>
           </div>
         {/each}
@@ -309,7 +315,7 @@
     {:else}
       <div class="divide-y divide-bg-tertiary max-h-150 overflow-y-auto">
         {#each entries as entry}
-          <div class="p-4">
+          <div class="p-4 text-sm">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
@@ -334,7 +340,7 @@
                     <span class="flex items-center gap-1">
                       {#each entry.tags as tag}
                         <span
-                          class="px-1.5 py-0.5 bg-bg-tertiary rounded text-xs"
+                          class="px-1.5 py-0.5 bg-bg-tertiary rounded text-xs font-medium"
                           >{tag.name}</span
                         >
                       {/each}
@@ -343,7 +349,9 @@
                 </div>
               </div>
               <div class="text-right ml-4">
-                <p class="font-semibold">{entry.formattedDuration}</p>
+                <p class="font-medium font-tabular">
+                  {entry.formattedDuration}
+                </p>
                 <p class="text-sm text-fg-muted">
                   {formatShortDate(entry.start_at)}
                 </p>

@@ -255,18 +255,18 @@
                   Created {formatDate(app.created_at)}
                   {#if app.confidential}
                     <span
-                      class="ml-2 px-1.5 py-0.5 text-xs bg-bright-blue/20 text-bright-blue rounded"
+                      class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-bright-blue/20 text-bright-blue rounded"
                       >Confidential</span
                     >
                   {:else}
                     <span
-                      class="ml-2 px-1.5 py-0.5 text-xs bg-bright-purple/20 text-bright-purple rounded"
+                      class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-bright-purple/20 text-bright-purple rounded"
                       >Public (PKCE)</span
                     >
                   {/if}
                   {#if app.trust_level === "official"}
                     <span
-                      class="ml-1 px-1.5 py-0.5 text-xs bg-bright-green/20 text-bright-green rounded"
+                      class="ml-1 px-1.5 py-0.5 text-xs font-medium bg-bright-green/20 text-bright-green rounded"
                       >Official</span
                     >
                   {/if}
@@ -372,7 +372,7 @@
                   <div class="flex flex-wrap gap-1">
                     {#each app.scopes as scope}
                       <span
-                        class="px-2 py-0.5 text-xs bg-bright-purple/20 text-bright-purple rounded"
+                        class="px-2 py-0.5 text-xs font-medium bg-bright-purple/20 text-bright-purple rounded"
                         >{scope}</span
                       >
                     {/each}

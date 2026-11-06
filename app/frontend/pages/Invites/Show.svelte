@@ -71,7 +71,9 @@
 >
   <div class="max-w-md w-full flex flex-col items-center">
     <div class="flex flex-col items-center gap-2 mb-7">
-      <h1 class="text-2xl font-semibold text-center text-fg-primary">
+      <h1
+        class="text-2xl font-semibold tracking-tight text-center text-fg-primary"
+      >
         Join workspace
       </h1>
     </div>

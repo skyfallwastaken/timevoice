@@ -186,7 +186,7 @@
       >
       <button
         type="button"
-        class="w-full px-4 py-2 border rounded-[10px] transition-colors duration-150 {$editForm.billable
+        class="w-full h-9 px-3 text-sm font-medium border rounded-[10px] transition-colors duration-150 {$editForm.billable
           ? 'border-bright-green text-bright-green'
           : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
         aria-pressed={$editForm.billable}

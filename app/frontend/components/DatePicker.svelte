@@ -53,7 +53,7 @@
     {id}
     aria-describedby={describedBy}
     class={cn(
-      "w-full flex items-center justify-between gap-2 px-4 py-2 rounded-[10px] border border-bg-tertiary bg-bg-primary text-left transition-colors duration-150 hover:border-bg-quaternary data-[state=open]:border-bright-blue",
+      "w-full flex items-center justify-between gap-2 h-9 px-3 text-base md:text-sm rounded-[10px] border border-bg-tertiary bg-bg-primary text-left transition-colors duration-150 hover:border-bg-quaternary data-[state=open]:border-bright-blue",
       className,
     )}
   >

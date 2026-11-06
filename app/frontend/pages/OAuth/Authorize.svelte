@@ -63,14 +63,14 @@
           by {application.owner_name}
           {#if application.trust_level === "community"}
             <span
-              class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-bright-yellow/20 text-bright-yellow text-xs rounded-full"
+              class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-bright-yellow/20 text-bright-yellow text-xs font-medium rounded-full"
             >
               <AlertTriangle class="w-3 h-3" />
               Community
             </span>
           {:else}
             <span
-              class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-bright-green/20 text-bright-green text-xs rounded-full"
+              class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-bright-green/20 text-bright-green text-xs font-medium rounded-full"
             >
               <Check class="w-3 h-3" />
               Official

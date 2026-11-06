@@ -32,7 +32,7 @@
   <Dialog.Content
     showCloseButton={false}
     class={cn(
-      "w-[calc(100%-2rem)] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden text-base",
+      "w-[calc(100%-2rem)] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden text-sm",
       maxWidth,
     )}
   >

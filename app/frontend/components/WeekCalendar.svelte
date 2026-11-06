@@ -304,7 +304,7 @@
         <ChevronLeft class="w-5 h-5" />
       </IconButton>
       <span
-        class="px-4 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] font-medium min-w-50 text-center"
+        class="px-4 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] text-sm font-medium min-w-50 text-center"
       >
         {currentWeek.start} - {currentWeek.end}
       </span>

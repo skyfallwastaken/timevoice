@@ -18,7 +18,7 @@
   }: Props = $props();
 
   const baseClass =
-    "w-full bg-bg-primary border border-bg-tertiary rounded-[10px] px-4 py-2 text-fg-primary placeholder:text-fg-dim focus:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
+    "w-full bg-bg-primary border border-bg-tertiary rounded-[10px] h-9 px-3 text-base md:text-sm text-fg-primary placeholder:text-fg-dim focus:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const toneClasses = {
     blue: "focus:border-bright-blue",

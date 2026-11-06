@@ -403,7 +403,7 @@
                 onCheckedChange={(value) =>
                   setGroupSelected(group.entries, value)}
               />
-              <h3 class="font-semibold">{dayLabel(group.key)}</h3>
+              <h3 class="text-sm font-semibold">{dayLabel(group.key)}</h3>
               <span class="ml-auto font-tabular text-fg-muted text-sm"
                 >{formatDuration(group.seconds)}</span
               >
@@ -415,7 +415,7 @@
                 {@const isSelected = selected.has(entry.id)}
                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                 <li
-                  class="group flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors duration-150 {isSelected
+                  class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150 {isSelected
                     ? 'bg-bright-purple/10'
                     : 'hover:bg-bg-tertiary/40'}"
                   onclick={(e) => handleRowClick(e, entry)}
@@ -462,7 +462,7 @@
                       <span class="hidden md:flex items-center gap-1 shrink-0">
                         {#each entry.tags as tag (tag.id)}
                           <span
-                            class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs text-fg-secondary"
+                            class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs font-medium text-fg-secondary"
                             >{tag.name}</span
                           >
                         {/each}
