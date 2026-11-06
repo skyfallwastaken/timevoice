@@ -16,6 +16,17 @@ class TimeEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "New" ], @user.time_entries.where(workspace: @workspace).running.pluck(:description)
   end
 
+  test "stopping at a requested end time never records time past now" do
+    freeze_time
+    entry = TimeEntry.create!(user: @user, workspace: @workspace, description: "Focus", start_at: 30.minutes.ago)
+    patch "/#{@workspace.hashid}/time_entries/#{entry.id}/stop", params: { time_entry: { end_at: 5.minutes.ago.iso8601 } }
+    assert_equal 25 * 60, entry.reload.duration_seconds
+
+    later = TimeEntry.create!(user: @user, workspace: @workspace, description: "Late", start_at: 10.minutes.ago)
+    patch "/#{@workspace.hashid}/time_entries/#{later.id}/stop", params: { time_entry: { end_at: 1.hour.from_now.iso8601 } }
+    assert_equal 10 * 60, later.reload.duration_seconds
+  end
+
   test "bulk update changes only the selected entries of the current user and adds tags" do
     tagged = time_entries(:one)
     extra_tag = Tag.create!(workspace: @workspace, name: "Extra")

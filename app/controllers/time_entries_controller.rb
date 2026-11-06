@@ -78,7 +78,7 @@ class TimeEntriesController < ApplicationController
   end
 
   def stop
-    @time_entry.stop!
+    @time_entry.stop!(at: requested_end_at)
 
     if params[:time_entry] && params[:time_entry][:files].present?
       @time_entry.files.attach(params[:time_entry][:files])
@@ -121,6 +121,14 @@ class TimeEntriesController < ApplicationController
 
   def authorize_time_entry
     authorize(@time_entry || TimeEntry.new(user: current_user, workspace: current_workspace))
+  end
+
+  # A countdown sends the time it was due to end, so a late stop
+  # (a throttled or closed tab) doesn't record extra time.
+  def requested_end_at
+    Time.zone.parse(params.dig(:time_entry, :end_at).to_s)
+  rescue ArgumentError
+    nil
   end
 
   def time_entry_params

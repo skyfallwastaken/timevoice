@@ -49,13 +49,11 @@ class TimeEntry < ApplicationRecord
     duration_seconds || (end_at - start_at).to_i
   end
 
-  def stop!
+  def stop!(at: nil)
     return false unless running?
 
-    update!(
-      end_at: Time.current,
-      duration_seconds: (Time.current - start_at).to_i
-    )
+    ended = (at || Time.current).clamp(start_at, Time.current)
+    update!(end_at: ended, duration_seconds: (ended - start_at).to_i)
   end
 
   def formatted_duration
