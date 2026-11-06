@@ -343,7 +343,7 @@
 
 <TimerInput runningEntry={$page.props.runningEntry} {projects} {tags} />
 
-<div class="shrink-0 bg-bg-secondary border-b border-bg-tertiary">
+<div class="@container shrink-0 bg-bg-secondary border-b border-bg-tertiary">
   <div
     class="flex flex-wrap items-center gap-2 px-4 md:px-6 py-2"
     role="toolbar"
@@ -355,7 +355,7 @@
   >
     {#if view === "calendar"}
       <div
-        class="flex items-center h-8 rounded-lg border border-bg-tertiary bg-bg-primary"
+        class="flex items-center w-full @3xl:w-auto h-8 rounded-lg border border-bg-tertiary bg-bg-primary"
       >
         <button
           type="button"
@@ -367,7 +367,7 @@
         </button>
         <button
           type="button"
-          class="flex items-center justify-center gap-2 h-full w-52 px-3 border-x border-bg-tertiary text-sm font-medium font-tabular hover:bg-bg-tertiary transition-colors"
+          class="flex flex-1 @3xl:flex-none items-center justify-center gap-2 h-full @3xl:w-52 px-3 border-x border-bg-tertiary text-base md:text-sm font-medium font-tabular hover:bg-bg-tertiary transition-colors"
           title="Go to this week"
           onclick={() => visit({ view: "calendar" })}
         >
@@ -386,71 +386,79 @@
           <ChevronRight class="size-4" aria-hidden="true" />
         </button>
       </div>
-    {:else if selecting}
-      <div
-        class="h-8 flex-1 flex items-center gap-1 px-1 rounded-lg bg-bg-primary border border-bright-purple/40"
-      >
-        <span class="px-2 text-sm font-medium" aria-live="polite">
-          {selected.size}
-          {selected.size === 1 ? "item" : "items"} selected
-        </span>
-        <span class="w-px h-5 bg-bg-tertiary mx-1" aria-hidden="true"></span>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm hover:bg-bg-tertiary transition-colors"
-          onclick={() => (showBulkEdit = true)}
-        >
-          <Pencil class="w-4 h-4" aria-hidden="true" /> Edit
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
-          onclick={() => (showBulkDelete = true)}
-        >
-          <Trash2 class="w-4 h-4" aria-hidden="true" /> Delete
-        </button>
-        <button
-          type="button"
-          class="ml-auto grid place-items-center size-6 rounded-[5px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
-          aria-label="Clear selection"
-          title="Clear selection (Esc)"
-          onclick={clearSelection}
-        >
-          <X class="w-4 h-4" aria-hidden="true" />
-        </button>
-      </div>
     {:else}
-      <div class="flex flex-1 flex-wrap items-center gap-2">
-        <label class="sr-only" for="filter-date">Date range</label>
-        <div class="w-36">
-          <SelectInput
-            id="filter-date"
-            bind:value={filters.range}
-            onchange={() => applyFilters()}
-            class="h-8 rounded-lg py-0 bg-bg-primary"
+      <div class="contents @3xl:flex @3xl:flex-1 @3xl:items-center @3xl:gap-2">
+        {#if selecting}
+          <div
+            class="h-8 basis-full @3xl:flex-1 flex items-center gap-1 px-1 rounded-lg bg-bg-primary border border-bright-purple/40"
           >
-            <option value="today">Today</option>
-            <option value="this_week">This week</option>
-            <option value="last_week">Last week</option>
-            <option value="this_month">This month</option>
-            <option value="all">All dates</option>
-          </SelectInput>
-        </div>
-        <label class="sr-only" for="filter-project">Project</label>
-        <div class="w-44">
-          <SelectInput
-            id="filter-project"
-            bind:value={filters.project_id}
-            onchange={() => applyFilters()}
-            class="h-8 rounded-lg py-0 bg-bg-primary"
-          >
-            <option value="">All projects</option>
-            {#each projects as project}
-              <option value={project.id}>{project.name}</option>
-            {/each}
-          </SelectInput>
-        </div>
-        <div class="relative flex-1 min-w-40">
+            <span
+              class="px-2 @max-sm:px-1 text-sm font-medium whitespace-nowrap"
+              aria-live="polite"
+            >
+              {selected.size}
+              <span class="@max-sm:hidden"
+                >{selected.size === 1 ? "item" : "items"}</span
+              > selected
+            </span>
+            <span class="w-px h-5 bg-bg-tertiary mx-1" aria-hidden="true"
+            ></span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm hover:bg-bg-tertiary transition-colors"
+              onclick={() => (showBulkEdit = true)}
+            >
+              <Pencil class="w-4 h-4" aria-hidden="true" /> Edit
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
+              onclick={() => (showBulkDelete = true)}
+            >
+              <Trash2 class="w-4 h-4" aria-hidden="true" /> Delete
+            </button>
+            <button
+              type="button"
+              class="ml-auto grid place-items-center size-6 rounded-[5px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
+              aria-label="Clear selection"
+              title="Clear selection (Esc)"
+              onclick={clearSelection}
+            >
+              <X class="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        {:else}
+          <label class="sr-only" for="filter-date">Date range</label>
+          <div class="grow basis-[calc(50%-0.5rem)] @3xl:grow-0 @3xl:basis-36">
+            <SelectInput
+              id="filter-date"
+              bind:value={filters.range}
+              onchange={() => applyFilters()}
+              class="h-8 rounded-lg py-0 bg-bg-primary"
+            >
+              <option value="today">Today</option>
+              <option value="this_week">This week</option>
+              <option value="last_week">Last week</option>
+              <option value="this_month">This month</option>
+              <option value="all">All dates</option>
+            </SelectInput>
+          </div>
+          <label class="sr-only" for="filter-project">Project</label>
+          <div class="grow basis-[calc(50%-0.5rem)] @3xl:grow-0 @3xl:basis-44">
+            <SelectInput
+              id="filter-project"
+              bind:value={filters.project_id}
+              onchange={() => applyFilters()}
+              class="h-8 rounded-lg py-0 bg-bg-primary"
+            >
+              <option value="">All projects</option>
+              {#each projects as project}
+                <option value={project.id}>{project.name}</option>
+              {/each}
+            </SelectInput>
+          </div>
+        {/if}
+        <div class="relative flex-1 min-w-40 {selecting ? '@3xl:hidden' : ''}">
           <Search
             class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted"
             aria-hidden="true"
@@ -467,7 +475,11 @@
       </div>
     {/if}
 
-    <div class="flex items-center gap-2 ml-auto">
+    <div
+      class="flex items-center gap-2 ml-auto {view === 'calendar'
+        ? '@max-3xl:w-full'
+        : ''}"
+    >
       {#if view === "calendar"}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger>
@@ -475,7 +487,7 @@
               <button
                 {...props}
                 type="button"
-                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-sm font-medium hover:bg-bg-tertiary transition-colors"
+                class="inline-flex @max-3xl:flex-1 items-center justify-between gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-base md:text-sm font-medium hover:bg-bg-tertiary transition-colors"
               >
                 {dayCount} days
                 <ChevronDown class="size-4 text-fg-muted" aria-hidden="true" />
@@ -514,10 +526,13 @@
             option.key
               ? 'bg-bg-tertiary text-fg-primary'
               : 'text-fg-muted hover:text-fg-primary'}"
+            title={option.label}
             onclick={() => switchView(option.key as "list" | "calendar")}
           >
             <option.icon class="size-4" aria-hidden="true" />
-            {option.label}
+            <span class={view === option.key ? "" : "@max-md:sr-only"}
+              >{option.label}</span
+            >
           </button>
         {/each}
       </div>
