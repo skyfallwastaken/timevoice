@@ -40,7 +40,8 @@
   --color-accent-orange: #d9985c;
 
   /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
 
   /* Animation timing - following spec */
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -153,8 +154,9 @@ body {
   border-radius: 2px;
 }
 
-/* The command palette's search box sits in a bordered group; don't double up the ring */
-[data-slot="command-input"]:focus-visible {
+/* Borderless text fields that are the focus of their bar; a ring would box them in */
+[data-slot="command-input"]:focus-visible,
+#timer-description:focus-visible {
   box-shadow: none;
 }
 

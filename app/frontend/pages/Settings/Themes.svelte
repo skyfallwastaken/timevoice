@@ -113,7 +113,7 @@
                 </div>
                 <div class="flex-1 p-2 space-y-2 min-w-0">
                   <div
-                    class="flex items-center gap-1.5 rounded-md bg-bg-secondary border border-bg-tertiary px-2 py-1.5"
+                    class="flex items-center gap-1.5 rounded-[4px] bg-bg-secondary border border-bg-tertiary px-2 py-1.5"
                   >
                     <span class="text-xs font-semibold text-fg-primary">Aa</span
                     >
