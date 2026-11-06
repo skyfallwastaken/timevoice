@@ -77,6 +77,13 @@ jobs:
         with:
           bundler-cache: true
 
+      # Controller tests render full pages, which builds the Vite assets.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install JS dependencies
+        run: bun install --frozen-lockfile
+
       - name: Run tests
         env:
           RAILS_ENV: test
