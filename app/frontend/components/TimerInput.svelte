@@ -25,6 +25,7 @@
   import { toggleSelectedTag } from "../lib/time-entry-form";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import * as Command from "$lib/components/ui/command/index.js";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
   import { cn } from "$lib/utils.js";
 
   let { runningEntry, projects = [], tags = [] } = $props();
@@ -494,11 +495,11 @@
         : "What are you working on?"}
       disabled={isRunning}
       onkeydown={handleDescriptionKeydown}
-      class="flex-1 min-w-0 md:min-w-64 bg-transparent text-base md:text-lg font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-muted outline-none h-9 disabled:opacity-100"
+      class="flex-1 min-w-0 md:min-w-60 bg-transparent text-base md:text-lg font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-muted outline-none h-9 disabled:opacity-100"
       autocomplete="off"
     />
 
-    <div class="flex items-center gap-1.5 flex-wrap lg:ml-auto">
+    <div class="flex items-center gap-1.5 flex-wrap lg:ml-auto max-lg:w-full">
       <Popover.Root bind:open={showProjectDropdown}>
         <Popover.Trigger disabled={isRunning}>
           {#snippet child({ props })}
@@ -639,7 +640,11 @@
       <button
         type="button"
         disabled={isRunning}
-        class="{iconButton} {$form.billable ? 'text-bright-green' : ''}"
+        class={cn(
+          iconButton,
+          $form.billable &&
+            "bg-bright-green/15 text-bright-green hover:bg-bright-green/25 hover:text-bright-green",
+        )}
         aria-pressed={$form.billable}
         aria-label="Billable"
         title={$form.billable ? "Billable" : "Non-billable"}
@@ -894,28 +899,46 @@
         {/if}
 
         {#if !isRunning}
-          <div
-            class="flex items-center h-8 p-0.5 ml-1 rounded-lg bg-bg-primary border border-bg-tertiary"
-            role="radiogroup"
-            aria-label="Entry mode"
-          >
-            {#each modes as option (option.key)}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === option.key}
-                title={option.hint}
-                onclick={() => (mode = option.key)}
-                class="inline-flex items-center gap-1.5 h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {mode ===
-                option.key
-                  ? 'bg-bg-tertiary text-fg-primary'
-                  : 'text-fg-muted hover:text-fg-primary'}"
-              >
-                <option.icon class="size-4" aria-hidden="true" />
-                {option.label}
-              </button>
-            {/each}
-          </div>
+          <!-- Stacked like Toggl's switch: 44px tall, but -my-1 keeps the
+               bar's row at 36px. On phones it lies flat for bigger targets. -->
+          <Tooltip.Provider delayDuration={0}>
+            <div
+              class="flex flex-col w-8 h-11 -my-1 p-0.5 gap-0.5 ml-1 rounded-lg bg-bg-primary border border-bg-tertiary max-md:flex-row max-md:w-auto max-md:h-9 max-md:my-0"
+              role="radiogroup"
+              aria-label="Entry mode"
+            >
+              {#each modes as option (option.key)}
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    {#snippet child({ props })}
+                      <button
+                        {...props}
+                        type="button"
+                        role="radio"
+                        aria-checked={mode === option.key}
+                        aria-label={option.label}
+                        onclick={() => (mode = option.key)}
+                        class="flex-1 grid place-items-center rounded-[5px] max-md:w-[30px] transition-colors duration-150 {mode ===
+                        option.key
+                          ? 'bg-bright-purple/15 text-bright-purple'
+                          : 'text-fg-dim hover:text-fg-primary'}"
+                      >
+                        <option.icon class="size-3.5" aria-hidden="true" />
+                      </button>
+                    {/snippet}
+                  </Tooltip.Trigger>
+                  <Tooltip.Content
+                    side="left"
+                    sideOffset={6}
+                    class="flex-col items-start gap-0.5 max-w-56"
+                  >
+                    <span class="font-semibold">{option.label}</span>
+                    <span>{option.hint}</span>
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              {/each}
+            </div>
+          </Tooltip.Provider>
         {/if}
       </div>
     </div>
