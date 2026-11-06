@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HTMLSelectAttributes } from "svelte/elements";
+  import { cn } from "$lib/utils.js";
 
   interface Props extends HTMLSelectAttributes {
     value?: string | number;
@@ -33,7 +34,7 @@
 <select
   {disabled}
   bind:value
-  class="{baseClass} {toneClass} {className}"
+  class={cn(baseClass, toneClass, className)}
   {...rest}
 >
   {@render children?.()}

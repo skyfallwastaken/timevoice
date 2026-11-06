@@ -48,7 +48,9 @@ Rails.application.routes.draw do
 
   scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
     get "/timer", to: "dashboard#index"
-    get "/calendar", to: "dashboard#calendar"
+    get "/calendar", to: redirect { |params, request|
+      "/#{params[:workspace_id]}/timer?#{{ view: "calendar", week_start: request.params[:week_start].presence }.compact.to_query}"
+    }
     get "/reports", to: "reports#index"
     get "/invoices", to: "invoices#index"
     get "/settings", to: "settings#workspace"

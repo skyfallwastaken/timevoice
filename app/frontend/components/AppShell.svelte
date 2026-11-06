@@ -2,7 +2,6 @@
   import { page, Link, router } from "@inertiajs/svelte";
   import {
     Clock,
-    Calendar,
     FolderKanban,
     BarChart3,
     FileText,
@@ -40,7 +39,6 @@
 
   const navItems = [
     { href: routes.dashboard.index, icon: Clock, label: "Timer" },
-    { href: routes.dashboard.calendar, icon: Calendar, label: "Calendar" },
     { href: routes.clients.index, icon: Building2, label: "Clients" },
     { href: routes.projects.index, icon: FolderKanban, label: "Projects" },
     { href: routes.tags.index, icon: Tag, label: "Tags" },

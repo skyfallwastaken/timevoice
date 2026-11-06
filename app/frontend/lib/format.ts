@@ -122,6 +122,31 @@ export function formatDuration(seconds: number): string {
 }
 
 /**
+ * Format seconds as compact hours and minutes (e.g., "1h", "6h 15m", "45m")
+ */
+export function formatHours(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (seconds > 0 && seconds < 60) return "<1m";
+  if (hours && minutes) return `${hours}h ${minutes}m`;
+  return hours || !minutes ? `${hours}h` : `${minutes}m`;
+}
+
+/**
+ * Parse a typed duration ("1h 30m", "90m", "1:30", "45") into seconds.
+ * A bare number means minutes. Returns null for anything else.
+ */
+export function parseDuration(text: string): number | null {
+  const value = text.trim().toLowerCase();
+  const clock = value.match(/^(\d+):([0-5]\d)$/);
+  if (clock) return Number(clock[1]) * 3600 + Number(clock[2]) * 60;
+  if (/^\d+$/.test(value)) return Number(value) * 60;
+  const units = value.match(/^(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?$/);
+  if (!units || (!units[1] && !units[2])) return null;
+  return Number(units[1] ?? 0) * 3600 + Number(units[2] ?? 0) * 60;
+}
+
+/**
  * Format bytes to human readable format (e.g., "1.5 MB")
  */
 export function formatFileSize(bytes: number): string {

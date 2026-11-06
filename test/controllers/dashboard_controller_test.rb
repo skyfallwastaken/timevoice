@@ -32,11 +32,32 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get "/#{@workspace.hashid}/timer"
     assert_nil inertia_props["runningEntry"]
 
-    get "/#{@workspace.hashid}/calendar"
+    get "/#{@workspace.hashid}/timer", params: { view: "calendar" }
     assert_nil inertia_props["runningEntry"]
 
-    get "/#{other.hashid}/calendar"
+    get "/#{other.hashid}/timer", params: { view: "calendar" }
     assert_equal "Elsewhere", inertia_props.dig("runningEntry", "description")
+  end
+
+  test "the calendar view is remembered and shows the requested week" do
+    TimeEntry.create!(
+      user: @user, workspace: @workspace, description: "Week 45",
+      start_at: Time.utc(2026, 11, 4, 10), end_at: Time.utc(2026, 11, 4, 11)
+    )
+
+    get "/#{@workspace.hashid}/calendar", params: { week_start: "2026-11-05" }
+    assert_redirected_to "/#{@workspace.hashid}/timer?view=calendar&week_start=2026-11-05"
+
+    get "/#{@workspace.hashid}/timer", params: { view: "calendar", week_start: "2026-11-05" }
+    assert_equal "2026-11-02", inertia_props["weekStart"]
+    assert_equal [ "Week 45" ], inertia_props["entries"].pluck("description")
+
+    get "/#{@workspace.hashid}/timer"
+    assert_equal "calendar", inertia_props["view"]
+
+    get "/#{@workspace.hashid}/timer", params: { view: "list" }
+    get "/#{@workspace.hashid}/timer"
+    assert_equal "list", inertia_props["view"]
   end
 
   test "the Amp widget script loads only for admins" do

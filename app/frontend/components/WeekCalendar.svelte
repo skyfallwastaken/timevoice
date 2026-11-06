@@ -1,37 +1,195 @@
 <script lang="ts">
-  import {
-    ChevronLeft,
-    ChevronRight,
-    Calendar as CalendarIcon,
-    Clock,
-  } from "lucide-svelte";
-  import { router, useForm, page } from "@inertiajs/svelte";
-  import IconButton from "./IconButton.svelte";
+  import { DollarSign, Timer } from "lucide-svelte";
+  import { useForm, page } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
   import Button from "./Button.svelte";
   import ChipButton from "./ChipButton.svelte";
   import TextInput from "./TextInput.svelte";
   import type { TimeEntry, Project, Tag } from "../types";
-  import { toDateString } from "../lib/format";
+  import { formatHours, toDateString } from "../lib/format";
   import { routes } from "../lib/routes";
   import { toggleSelectedTag } from "../lib/time-entry-form";
 
+  type RunningEntry = {
+    id: number;
+    description: string | null;
+    start_at: string;
+    billable: boolean;
+    project: TimeEntry["project"];
+  };
+
   interface Props {
     entries?: TimeEntry[];
+    runningEntry?: RunningEntry | null;
     projects?: Project[];
     tags?: Tag[];
-    currentWeek: { start: string; end: string };
+    weekStart: string;
+    dayCount?: number;
     onEntryClick?: (entry: TimeEntry) => void;
   }
 
   let {
     entries = [],
+    runningEntry = null,
     projects = [],
     tags = [],
-    currentWeek,
+    weekStart,
+    dayCount = 7,
     onEntryClick,
   }: Props = $props();
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+
+  const HOUR = 52;
+  const DAY_MINUTES = 24 * 60;
+  const pxPerMinute = HOUR / 60;
+
+  let now = $state(new Date());
+  $effect(() => {
+    const interval = setInterval(() => (now = new Date()), 30_000);
+    return () => clearInterval(interval);
+  });
+
+  let days = $derived.by(() => {
+    const start = new Date(`${weekStart}T00:00:00`);
+    return Array.from({ length: dayCount }, (_, i) => {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      return day;
+    });
+  });
+  let todayKey = $derived(toDateString(now));
+  let columns = $derived(`4rem repeat(${dayCount}, minmax(0, 1fr))`);
+
+  type Block = {
+    entry: TimeEntry;
+    running: boolean;
+    start: number;
+    end: number;
+    lane: number;
+    lanes: number;
+  };
+
+  // The running timer is drawn as a block that grows until now.
+  let allEntries = $derived.by(() => {
+    const list = entries.map((entry) => ({ entry, running: false }));
+    if (runningEntry) {
+      list.push({
+        entry: {
+          ...runningEntry,
+          end_at: now.toISOString(),
+          formattedDuration: "",
+          tags: [],
+        },
+        running: true,
+      });
+    }
+    return list;
+  });
+
+  const minutesIntoDay = (date: Date) =>
+    date.getHours() * 60 + date.getMinutes();
+
+  // Overlapping entries share the column width, like a calendar app.
+  function layoutDay(day: Date): Block[] {
+    const key = toDateString(day);
+    const items = allEntries
+      .filter(({ entry }) => toDateString(new Date(entry.start_at)) === key)
+      .map(({ entry, running }) => {
+        const start = new Date(entry.start_at);
+        const end = entry.end_at
+          ? new Date(entry.end_at)
+          : new Date(start.getTime() + (entry.duration_seconds ?? 0) * 1000);
+        const from = minutesIntoDay(start);
+        const minutes = (end.getTime() - start.getTime()) / 60_000;
+        return {
+          entry,
+          running,
+          start: from,
+          end: Math.min(DAY_MINUTES, from + Math.max(minutes, 25)),
+          lane: 0,
+          lanes: 1,
+        };
+      })
+      .sort((a, b) => a.start - b.start || b.end - a.end);
+
+    let cluster: Block[] = [];
+    let laneEnds: number[] = [];
+    let clusterEnd = -1;
+    const flush = () => {
+      for (const block of cluster) block.lanes = laneEnds.length;
+      cluster = [];
+      laneEnds = [];
+    };
+    for (const block of items) {
+      if (block.start >= clusterEnd) flush();
+      let lane = laneEnds.findIndex((end) => end <= block.start);
+      if (lane === -1) lane = laneEnds.push(block.end) - 1;
+      else laneEnds[lane] = block.end;
+      block.lane = lane;
+      cluster.push(block);
+      clusterEnd = Math.max(clusterEnd, block.end);
+    }
+    flush();
+    return items;
+  }
+
+  let blocksByDay = $derived(days.map(layoutDay));
+
+  // Completed time only, so the totals match the Logged bar.
+  function dayTotal(blocks: Block[]) {
+    return blocks.reduce(
+      (sum, { entry, running }) =>
+        running ? sum : sum + (entry.duration_seconds ?? 0),
+      0,
+    );
+  }
+
+  // Pick black or white text, whichever contrasts more with the fill.
+  function textOn(hex: string) {
+    const channel = (offset: number) => {
+      const c = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance =
+      0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+    return (luminance + 0.05) / 0.05 > 1.05 / (luminance + 0.05)
+      ? "#000000"
+      : "#ffffff";
+  }
+
+  function hourLabel(hour: number) {
+    const suffix = hour < 12 ? "AM" : "PM";
+    return `${hour % 12 || 12} ${suffix}`;
+  }
+
+  // Start scrolled to the first tracked hour of the week, or 8 AM, with
+  // today's column in view.
+  let scroller: HTMLDivElement | null = $state(null);
+  let scrolledWeek = "";
+  $effect(() => {
+    if (!scroller || scrolledWeek === weekStart) return;
+    scrolledWeek = weekStart;
+    const firstHour = Math.min(
+      8,
+      ...entries.map((e) => new Date(e.start_at).getHours()),
+    );
+    scroller.scrollTop = Math.max(0, (firstHour - 1) * HOUR - 12);
+    const today = scroller.querySelector<HTMLElement>("[data-today]");
+    if (today && today.offsetLeft + today.offsetWidth > scroller.clientWidth) {
+      scroller.scrollLeft = today.offsetLeft - 64;
+    }
+  });
+
+  // Drag on an empty part of a day to add an entry for that time.
+  let drag = $state<{ day: Date; from: number; to: number } | null>(null);
+  let showQuickEdit = $state(false);
+  let descriptionInput: HTMLInputElement | null = $state(null);
+  $effect(() => {
+    if (showQuickEdit && descriptionInput) {
+      const input = descriptionInput;
+      setTimeout(() => input.focus(), 50);
+    }
+  });
 
   let form = useForm({
     description: "",
@@ -42,361 +200,281 @@
     end_at: null as string | null,
   });
 
-  const STORAGE_KEY = "calendar-show-all-hours";
-  let showAllHours = $state(
-    typeof localStorage !== "undefined" &&
-      localStorage.getItem(STORAGE_KEY) === "true",
-  );
-  let startHour = $derived(showAllHours ? 0 : 6);
-  let endHour = $derived(showAllHours ? 23 : 22);
-  let hourHeight = 60;
-
-  function toggleShowAllHours() {
-    showAllHours = !showAllHours;
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, String(showAllHours));
-    }
-  }
-  let isDragging = $state(false);
-  let dragStart = $state(null as { hour: number; minute: number } | null);
-  let dragCurrent = $state(null as { hour: number; minute: number } | null);
-  let dragDay = $state(null as Date | null);
-  let showQuickEdit = $state(false);
-
-  function getWeekDays(weekStart: string) {
-    const start = new Date(`${weekStart}T00:00:00`);
-    const weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(start);
-      day.setDate(start.getDate() + i);
-      weekDays.push(day);
-    }
-    return weekDays;
+  function minuteAt(event: PointerEvent, column: HTMLElement) {
+    const y = event.clientY - column.getBoundingClientRect().top;
+    const minute = Math.round(y / pxPerMinute / 15) * 15;
+    return Math.max(0, Math.min(DAY_MINUTES, minute));
   }
 
-  function goToWeek(offsetWeeks: number) {
-    const start = new Date(`${currentWeek.start}T00:00:00`);
-    start.setDate(start.getDate() + offsetWeeks * 7);
-
-    router.get(
-      routes.dashboard.calendar(workspaceId),
-      { week_start: toDateString(start) },
-      { preserveScroll: true, preserveState: true },
-    );
+  let dragColumn: HTMLElement | null = null;
+  function startDrag(event: PointerEvent, day: Date) {
+    if (event.button !== 0 || event.pointerType === "touch") return;
+    dragColumn = event.currentTarget as HTMLElement;
+    const minute = Math.floor(minuteAt(event, dragColumn) / 15) * 15;
+    drag = { day, from: minute, to: minute };
   }
 
-  let days = $derived(getWeekDays(currentWeek.start));
+  function moveDrag(event: PointerEvent) {
+    if (drag && dragColumn && !showQuickEdit)
+      drag.to = minuteAt(event, dragColumn);
+  }
 
-  function formatDayHeader(date: Date) {
-    return {
-      dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
-      dayNum: date.getDate(),
+  function endDrag() {
+    if (!drag || showQuickEdit) return;
+    let from = Math.min(drag.from, drag.to);
+    let to = Math.max(drag.from, drag.to);
+    if (to - from < 15) to = Math.min(DAY_MINUTES, from + 30);
+    drag.from = from;
+    drag.to = to;
+    const at = (minute: number) => {
+      const date = new Date(drag!.day);
+      date.setHours(0, minute, 0, 0);
+      return date.toISOString();
     };
-  }
-
-  function formatHour(hour: number) {
-    if (hour === 0) return "12 AM";
-    if (hour === 12) return "12 PM";
-    if (hour < 12) return `${hour} AM`;
-    return `${hour - 12} PM`;
-  }
-
-  function getEntriesForDay(date: Date) {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    return entries.filter((entry) => {
-      const entryStart = new Date(entry.start_at);
-      return entryStart >= startOfDay && entryStart <= endOfDay;
-    });
-  }
-
-  function getEntryStyle(entry: TimeEntry) {
-    const start = new Date(entry.start_at);
-    const startMinutes = start.getHours() * 60 + start.getMinutes();
-    const minutesFromStart = startMinutes - startHour * 60;
-    const top = (minutesFromStart / 60) * hourHeight;
-
-    let duration = entry.duration_seconds;
-    if (!duration && entry.end_at) {
-      const end = new Date(entry.end_at);
-      duration = (end.getTime() - start.getTime()) / 1000;
-    }
-    const height = ((duration || 3600) / 3600) * hourHeight;
-
-    return `top: ${top}px; height: ${Math.max(height, 20)}px;`;
-  }
-
-  function getDayTotal(date: Date) {
-    const dayEntries = getEntriesForDay(date);
-    let totalSeconds = 0;
-    dayEntries.forEach((entry) => {
-      if (entry.duration_seconds) {
-        totalSeconds += entry.duration_seconds;
-      } else if (entry.end_at) {
-        const start = new Date(entry.start_at);
-        const end = new Date(entry.end_at);
-        totalSeconds += (end.getTime() - start.getTime()) / 1000;
-      }
-    });
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  }
-
-  function handleMouseDown(day: Date, event: MouseEvent) {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const y = event.clientY - rect.top;
-    const minutes = (y / hourHeight) * 60 + startHour * 60;
-    const hour = Math.floor(minutes / 60);
-    const minute = Math.floor((minutes % 60) / 15) * 15;
-
-    isDragging = true;
-    dragStart = { hour, minute };
-    dragCurrent = { hour, minute };
-    dragDay = day;
-  }
-
-  function handleMouseMove(event: MouseEvent) {
-    if (!isDragging || !dragDay) return;
-
-    const dayColumn = document.querySelector(
-      `[data-day="${dragDay.toISOString()}"]`,
-    );
-    if (!dayColumn) return;
-
-    const rect = dayColumn.getBoundingClientRect();
-    const y = event.clientY - rect.top;
-    const minutes = (y / hourHeight) * 60 + startHour * 60;
-    const hour = Math.floor(minutes / 60);
-    const minute = Math.floor((minutes % 60) / 15) * 15;
-
-    dragCurrent = {
-      hour: Math.max(startHour, Math.min(endHour, hour)),
-      minute,
-    };
-  }
-
-  function handleMouseUp() {
-    if (!isDragging || !dragStart || !dragCurrent || !dragDay) return;
-
-    let startMinutes = dragStart.hour * 60 + dragStart.minute;
-    let endMinutes = dragCurrent.hour * 60 + dragCurrent.minute;
-
-    if (startMinutes > endMinutes) {
-      [startMinutes, endMinutes] = [endMinutes, startMinutes];
-    }
-
-    if (endMinutes - startMinutes < 15) {
-      endMinutes = startMinutes + 15;
-    }
-
-    const startHour = Math.floor(startMinutes / 60);
-    const startMinute = startMinutes % 60;
-    const endHour = Math.floor(endMinutes / 60);
-    const endMinute = endMinutes % 60;
-
-    const startDate = new Date(dragDay);
-    startDate.setHours(startHour, startMinute, 0, 0);
-
-    const endDate = new Date(dragDay);
-    endDate.setHours(endHour, endMinute, 0, 0);
-
-    $form.start_at = startDate.toISOString();
-    $form.end_at = endDate.toISOString();
+    $form.start_at = at(from);
+    $form.end_at = at(to);
     $form.description = "";
     $form.project_id = null;
+    $form.tag_ids = [];
     $form.billable = false;
-
+    dragColumn = null;
     showQuickEdit = true;
-    isDragging = false;
-    dragStart = null;
-    dragCurrent = null;
-    dragDay = null;
   }
+
+  let dragRange = $derived(
+    drag
+      ? { from: Math.min(drag.from, drag.to), to: Math.max(drag.from, drag.to) }
+      : null,
+  );
 
   function saveQuickEntry() {
     if (!$form.description.trim()) return;
-
     $form
-      .transform((data) => ({
-        time_entry: {
-          description: data.description,
-          project_id: data.project_id,
-          tag_ids: data.tag_ids,
-          billable: data.billable,
-          start_at: data.start_at,
-          end_at: data.end_at,
-        },
-      }))
+      .transform((data) => ({ time_entry: data }))
       .post(routes.timeEntries.create(workspaceId), {
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
-          showQuickEdit = false;
+          closeQuickEdit();
           $form.reset();
         },
       });
   }
 
-  function getDragStyle() {
-    if (!dragStart || !dragCurrent || !dragDay) return "";
-
-    let startMinutes = dragStart.hour * 60 + dragStart.minute;
-    let endMinutes = dragCurrent.hour * 60 + dragCurrent.minute;
-
-    if (startMinutes > endMinutes) {
-      [startMinutes, endMinutes] = [endMinutes, startMinutes];
-    }
-
-    const top = ((startMinutes - startHour * 60) / 60) * hourHeight;
-    const height = ((endMinutes - startMinutes) / 60) * hourHeight;
-
-    return `top: ${top}px; height: ${height}px;`;
+  // The dashed placeholder stays while the new entry's details are filled in.
+  function closeQuickEdit() {
+    showQuickEdit = false;
+    drag = null;
   }
+
+  const clock = (minute: number) => {
+    const date = new Date(0, 0, 1, 0, minute);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
 
   function formatTimeRange() {
     if (!$form.start_at || !$form.end_at) return "";
-    const start = new Date($form.start_at);
-    const end = new Date($form.end_at);
-    return `${start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+    const time = (iso: string) =>
+      new Date(iso).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    const day = new Date($form.start_at).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+    return `${day}, ${time($form.start_at)} – ${time($form.end_at)}`;
   }
 
   function selectProject(project: { id: number; billable_default: boolean }) {
     $form.project_id = project.id;
     if (project.billable_default) $form.billable = true;
   }
-
-  function toggleTag(tagId: number) {
-    $form.tag_ids = toggleSelectedTag($form.tag_ids, tagId);
-  }
 </script>
 
-<svelte:window onmousemove={handleMouseMove} onmouseup={handleMouseUp} />
+<svelte:window
+  onpointermove={moveDrag}
+  onpointerup={endDrag}
+  onpointercancel={() => !showQuickEdit && (drag = null)}
+/>
 
-<div class="flex flex-col h-full">
-  <div
-    class="flex items-center justify-between p-4 border-b border-bg-tertiary bg-bg-secondary"
-  >
-    <div class="flex items-center gap-3">
-      <CalendarIcon class="w-6 h-6 text-bright-green" />
-      <h2 class="text-2xl font-semibold">Week Calendar</h2>
-    </div>
-    <div class="flex items-center gap-2">
-      <ChipButton
-        type="button"
-        aria-pressed={showAllHours}
-        selected={showAllHours}
-        class={showAllHours
-          ? "border-bright-green text-bright-green"
-          : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
-        onclick={toggleShowAllHours}
-      >
-        <Clock class="w-4 h-4" />
-        <span>{showAllHours ? "Show 6am - 10pm" : "Show 24 hours"}</span>
-      </ChipButton>
-      <IconButton
-        type="button"
-        aria-label="Previous week"
-        onclick={() => goToWeek(-1)}
-      >
-        <ChevronLeft class="w-5 h-5" />
-      </IconButton>
-      <span
-        class="px-4 py-2 bg-bg-primary border border-bg-tertiary rounded-[10px] text-sm font-medium min-w-50 text-center"
-      >
-        {currentWeek.start} - {currentWeek.end}
-      </span>
-      <IconButton
-        type="button"
-        aria-label="Next week"
-        onclick={() => goToWeek(1)}
-      >
-        <ChevronRight class="w-5 h-5" />
-      </IconButton>
-    </div>
-  </div>
-
-  <div class="flex-1 overflow-auto">
-    <div class="min-w-200 p-4">
-      <div class="grid grid-cols-8 gap-1 mb-2">
-        <div class="w-16"></div>
-        {#each days as day}
-          {@const header = formatDayHeader(day)}
-          <div class="text-center py-2">
-            <div class="text-sm text-fg-muted">{header.dayName}</div>
-            <div class="text-lg font-semibold">{header.dayNum}</div>
-            <div class="text-xs text-fg-muted mt-1">{getDayTotal(day)}</div>
-          </div>
-        {/each}
-      </div>
-
-      <div class="grid grid-cols-8 gap-1 relative">
-        <div class="w-16 flex flex-col">
-          {#each Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i) as hour}
-            <div
-              class="text-xs text-fg-muted text-right pr-2"
-              style="height: {hourHeight}px; line-height: {hourHeight}px;"
-            >
-              {formatHour(hour)}
-            </div>
-          {/each}
-        </div>
-
-        {#each days as day}
-          <div
-            class="relative border-l border-bg-tertiary bg-bg-primary/50"
-            data-day={day.toISOString()}
-            style="height: {(endHour - startHour + 1) * hourHeight}px;"
-            onmousedown={(e) => handleMouseDown(day, e)}
-            role="button"
-            tabindex="0"
-            aria-label="Day {day.toDateString()}"
+<div bind:this={scroller} class="h-full overflow-auto">
+  <div style="min-width: calc(4rem + {dayCount} * 6.5rem)">
+    <div
+      class="sticky top-0 z-30 grid bg-bg-primary border-b border-bg-tertiary"
+      style="grid-template-columns: {columns}"
+    >
+      <div class="sticky left-0 z-10 bg-bg-primary"></div>
+      {#each days as day, i (day.getTime())}
+        {@const isToday = toDateString(day) === todayKey}
+        {@const total = dayTotal(blocksByDay[i])}
+        <div
+          class="flex items-center gap-1.5 h-14 px-2 border-l border-bg-tertiary min-w-0"
+        >
+          <span
+            class="grid place-items-center size-9 shrink-0 rounded-full text-xl font-medium font-tabular {isToday
+              ? 'bg-bright-purple text-bg-primary'
+              : 'text-fg-primary'}">{day.getDate()}</span
           >
-            {#each Array.from({ length: endHour - startHour }, (_, i) => i) as _}
-              <div
-                class="border-b border-bg-tertiary/30"
-                style="height: {hourHeight}px;"
-              ></div>
-            {/each}
-
-            {#each getEntriesForDay(day) as entry}
-              <button
-                type="button"
-                class="absolute left-1 right-1 rounded-md px-2 py-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 transition-all duration-200 text-left"
-                style="{getEntryStyle(
-                  entry,
-                )} background-color: color-mix(in oklab, {entry.project
-                  ?.color ||
-                  '#b16286'} 20%, var(--color-bg-secondary)); border-left: 3px solid {entry
-                  .project?.color || '#b16286'};"
-                title="{entry.description ||
-                  'No description'} ({entry.formattedDuration})"
-                onmousedown={(e) => e.stopPropagation()}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  onEntryClick?.(entry);
-                }}
-              >
-                <div class="font-medium truncate text-fg-primary">
-                  {entry.description || "No description"}
-                </div>
-                <div class="text-fg-primary/90 truncate">
-                  {entry.formattedDuration}
-                </div>
-              </button>
-            {/each}
-
-            {#if isDragging && dragDay?.toDateString() === day.toDateString()}
-              <div
-                class="absolute left-1 right-1 rounded-md bg-bright-blue/30 border-2 border-bright-blue border-dashed pointer-events-none"
-                style={getDragStyle()}
-              ></div>
-            {/if}
+          <div class="min-w-0 leading-tight">
+            <div
+              class="text-sm font-medium {isToday
+                ? 'text-bright-purple'
+                : 'text-fg-secondary'}"
+            >
+              {day.toLocaleDateString("en-US", { weekday: "short" })}
+            </div>
+            <div
+              class="text-xs font-tabular whitespace-nowrap {total
+                ? 'text-bright-purple'
+                : 'text-fg-dim'}"
+            >
+              {total ? formatHours(total) : "–"}
+            </div>
           </div>
+        </div>
+      {/each}
+    </div>
+
+    <div class="grid" style="grid-template-columns: {columns}">
+      <div
+        class="sticky left-0 z-20 bg-bg-primary"
+        style="height: {24 * HOUR}px"
+        aria-hidden="true"
+      >
+        {#each Array.from({ length: 23 }, (_, i) => i + 1) as hour}
+          <span
+            class="absolute right-2 -translate-y-1/2 text-xs text-fg-muted font-tabular whitespace-nowrap"
+            style="top: {hour * HOUR}px">{hourLabel(hour)}</span
+          >
         {/each}
       </div>
+
+      {#each days as day, i (day.getTime())}
+        {@const isToday = toDateString(day) === todayKey}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="relative border-l border-bg-tertiary select-none {isToday
+            ? 'bg-bright-purple/[0.03]'
+            : ''}"
+          style="height: {24 *
+            HOUR}px; background-image: repeating-linear-gradient(to bottom, transparent 0 {HOUR -
+            1}px, var(--color-bg-tertiary) {HOUR - 1}px {HOUR}px);"
+          data-today={isToday || undefined}
+          onpointerdown={(e) => startDrag(e, day)}
+        >
+          {#each blocksByDay[i] as block (block.running ? "running" : block.entry.id)}
+            {@const { entry } = block}
+            {@const color = entry.project?.color}
+            {@const height = (block.end - block.start) * pxPerMinute - 2}
+            {@const seconds = block.running
+              ? (now.getTime() - new Date(entry.start_at).getTime()) / 1000
+              : (entry.duration_seconds ?? 0)}
+            <button
+              type="button"
+              class="absolute flex flex-col gap-px overflow-hidden rounded-md px-2 text-left text-xs cursor-pointer transition-[filter] duration-150 hover:brightness-110 {height <
+              40
+                ? 'py-px'
+                : 'py-1.5'} {color
+                ? ''
+                : 'bg-bg-secondary ring-1 ring-inset ring-bg-quaternary text-fg-primary'} {block.running
+                ? 'ring-2 ring-inset ring-white/50'
+                : ''}"
+              style="top: {block.start * pxPerMinute +
+                1}px; height: {height}px; left: calc({(block.lane /
+                block.lanes) *
+                100}% + 3px); width: calc({100 / block.lanes}% - 6px); {color
+                ? `background-color: ${color}; color: ${textOn(color)};`
+                : ''}"
+              title="{entry.project
+                ? `${entry.project.name}: `
+                : ''}{entry.description || 'No description'} ({formatHours(
+                seconds,
+              )})"
+              onpointerdown={(e) => e.stopPropagation()}
+              onclick={() => !block.running && onEntryClick?.(entry)}
+            >
+              {#if height < 18}
+                <!-- Too short for text; the title carries the details. -->
+              {:else if height < 40}
+                <span class="truncate font-semibold">
+                  {entry.project?.name ?? entry.description ?? "No description"}
+                  {#if entry.project && entry.description}
+                    <span class="font-normal">· {entry.description}</span>
+                  {/if}
+                </span>
+              {:else}
+                <span class="flex items-baseline justify-between gap-2">
+                  <span class="truncate font-semibold"
+                    >{entry.project?.name ??
+                      entry.description ??
+                      "No description"}</span
+                  >
+                  {#if height < 64}
+                    <span class="shrink-0 font-medium font-tabular"
+                      >{formatHours(seconds)}</span
+                    >
+                  {/if}
+                </span>
+                {#if entry.project && entry.description}
+                  <span class={height >= 90 ? "line-clamp-2" : "truncate"}
+                    >{entry.description}</span
+                  >
+                {/if}
+                {#if height >= 64}
+                  <span
+                    class="mt-auto flex items-center justify-between gap-2 font-medium font-tabular"
+                  >
+                    <span class="flex items-center gap-1">
+                      {#if block.running}
+                        <span
+                          class="size-1.5 rounded-full bg-current animate-pulse"
+                        ></span>
+                      {:else}
+                        <Timer class="size-3" aria-hidden="true" />
+                      {/if}
+                      {formatHours(seconds)}
+                    </span>
+                    {#if entry.billable}
+                      <DollarSign class="size-3" aria-label="Billable" />
+                    {/if}
+                  </span>
+                {/if}
+              {/if}
+            </button>
+          {/each}
+
+          {#if dragRange && drag?.day.getTime() === day.getTime()}
+            <div
+              class="absolute inset-x-[3px] overflow-hidden rounded-md border-2 border-dashed border-bright-purple bg-bright-purple/15 px-1.5 py-0.5 text-xs font-medium text-bright-purple font-tabular pointer-events-none"
+              style="top: {dragRange.from * pxPerMinute}px; height: {Math.max(
+                dragRange.to - dragRange.from,
+                15,
+              ) * pxPerMinute}px;"
+            >
+              {clock(dragRange.from)} – {clock(
+                Math.max(dragRange.to, dragRange.from + 15),
+              )}
+            </div>
+          {/if}
+
+          {#if isToday}
+            <div
+              class="absolute inset-x-0 z-10 h-0.5 bg-bright-red pointer-events-none"
+              style="top: {minutesIntoDay(now) * pxPerMinute}px"
+              aria-hidden="true"
+            >
+              <span
+                class="absolute -left-1 -top-[3px] size-2 rounded-full bg-bright-red"
+              ></span>
+            </div>
+          {/if}
+        </div>
+      {/each}
     </div>
   </div>
 </div>
@@ -404,7 +482,7 @@
 <Modal
   open={showQuickEdit}
   title="New Time Entry"
-  onclose={() => (showQuickEdit = false)}
+  onclose={closeQuickEdit}
   maxWidth="max-w-md"
 >
   <p class="text-fg-muted text-sm">{formatTimeRange()}</p>
@@ -418,31 +496,35 @@
       type="text"
       placeholder="What did you work on?"
       bind:value={$form.description}
+      bind:inputRef={descriptionInput}
       tone="blue"
+      onkeydown={(e: KeyboardEvent) => e.key === "Enter" && saveQuickEntry()}
     />
   </div>
 
-  <div>
-    <span class="block text-sm font-medium mb-2">Project</span>
-    <div class="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
-      {#each projects as project}
-        <button
-          type="button"
-          onclick={() => selectProject(project)}
-          class="p-2 rounded-lg border text-xs text-left transition-colors duration-150 {$form.project_id ===
-          project.id
-            ? 'border-bright-blue bg-bright-blue/20'
-            : 'border-bg-tertiary hover:border-fg-muted'}"
-        >
-          <span
-            class="block w-3 h-3 rounded-full mb-1"
-            style="background-color: {project.color}"
-          ></span>
-          <span class="truncate block">{project.name}</span>
-        </button>
-      {/each}
+  {#if projects.length > 0}
+    <div>
+      <span class="block text-sm font-medium mb-2">Project</span>
+      <div class="flex flex-wrap gap-2">
+        {#each projects as project}
+          <ChipButton
+            type="button"
+            selected={$form.project_id === project.id}
+            class={$form.project_id === project.id
+              ? "border-bright-purple text-fg-primary"
+              : "text-fg-muted hover:text-fg-primary"}
+            onclick={() => selectProject(project)}
+          >
+            <span
+              class="size-2 rounded-full"
+              style="background-color: {project.color}"
+            ></span>
+            {project.name}
+          </ChipButton>
+        {/each}
+      </div>
     </div>
-  </div>
+  {/if}
 
   {#if tags.length > 0}
     <div>
@@ -453,9 +535,10 @@
             type="button"
             selected={$form.tag_ids.includes(tag.id)}
             class={$form.tag_ids.includes(tag.id)
-              ? "border-bright-green text-bright-green"
+              ? "border-bright-purple text-fg-primary"
               : "text-fg-muted hover:text-fg-primary"}
-            onclick={() => toggleTag(tag.id)}
+            onclick={() =>
+              ($form.tag_ids = toggleSelectedTag($form.tag_ids, tag.id))}
           >
             {tag.name}
           </ChipButton>
@@ -464,34 +547,31 @@
     </div>
   {/if}
 
-  <div class="flex items-center justify-between">
-    <ChipButton
-      type="button"
-      selected={$form.billable}
-      class={$form.billable
-        ? "border-bright-green text-bright-green"
-        : "border-bg-tertiary text-fg-muted hover:text-fg-primary"}
-      onclick={() => ($form.billable = !$form.billable)}
-    >
-      <span>Billable</span>
-    </ChipButton>
-
-    <div class="flex gap-2">
-      <Button
+  {#snippet footer()}
+    <div class="flex items-center justify-between">
+      <ChipButton
         type="button"
-        variant="secondary"
-        onclick={() => (showQuickEdit = false)}
+        selected={$form.billable}
+        class="h-9 {$form.billable
+          ? 'border-bright-green text-bright-green'
+          : 'text-fg-muted hover:text-fg-primary'}"
+        onclick={() => ($form.billable = !$form.billable)}
       >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        tone="blue"
-        onclick={saveQuickEntry}
-        disabled={!$form.description.trim()}
-      >
-        Save Entry
-      </Button>
+        <DollarSign class="size-4" aria-hidden="true" /> Billable
+      </ChipButton>
+      <div class="flex gap-2">
+        <Button type="button" variant="secondary" onclick={closeQuickEdit}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          tone="purple"
+          onclick={saveQuickEntry}
+          disabled={!$form.description.trim() || $form.processing}
+        >
+          Add entry
+        </Button>
+      </div>
     </div>
-  </div>
+  {/snippet}
 </Modal>

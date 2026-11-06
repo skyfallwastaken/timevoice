@@ -1,7 +1,8 @@
 <script lang="ts">
   import TimerInput from "../../components/TimerInput.svelte";
+  import WeekCalendar from "../../components/WeekCalendar.svelte";
   import Flash from "../../components/Flash.svelte";
-  import { page, router } from "@inertiajs/svelte";
+  import { page, router, Link } from "@inertiajs/svelte";
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { routes } from "../../lib/routes";
@@ -23,8 +24,13 @@
     Paperclip,
     X,
     ListChecks,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    CalendarDays,
+    List,
   } from "lucide-svelte";
-  import { formatDuration, toDateString } from "../../lib/format";
+  import { formatDuration, formatHours, toDateString } from "../../lib/format";
   import type { Project, Tag, TimeEntry } from "../../types";
 
   let projects = $derived(($page.props.projects as Project[]) || []);
@@ -32,12 +38,9 @@
   let recentEntries = $derived(
     ($page.props.recentEntries as TimeEntry[]) || [],
   );
-  let totals = $derived(
-    ($page.props.totals as { today: number; week: number }) || {
-      today: 0,
-      week: 0,
-    },
-  );
+  let view = $derived(($page.props.view as "list" | "calendar") || "list");
+  let calendarEntries = $derived(($page.props.entries as TimeEntry[]) || []);
+  let weekStart = $derived(($page.props.weekStart as string) || "");
   let hasEntries = $derived(!!$page.props.hasEntries);
   let entryLimit = $derived(($page.props.entryLimit as number) || 0);
 
@@ -71,6 +74,92 @@
       run();
     }
   }
+
+  function visit(params: Record<string, string | undefined>) {
+    router.get(routes.dashboard.index(workspaceId), params, {
+      preserveState: true,
+      preserveScroll: true,
+    });
+  }
+
+  const switchView = (next: "list" | "calendar") =>
+    next !== view && visit({ view: next });
+
+  function shiftWeek(weeks: number) {
+    const start = new Date(`${weekStart}T00:00:00`);
+    start.setDate(start.getDate() + weeks * 7);
+    visit({ view: "calendar", week_start: toDateString(start) });
+  }
+
+  const DAY_COUNT_KEY = "calendar-day-count";
+  let dayCount = $state(
+    typeof localStorage !== "undefined" &&
+      localStorage.getItem(DAY_COUNT_KEY) === "5"
+      ? 5
+      : 7,
+  );
+  function setDayCount(count: number) {
+    dayCount = count;
+    localStorage.setItem(DAY_COUNT_KEY, String(count));
+  }
+
+  // ISO week number, as in "This week · W45".
+  function isoWeek(date: Date) {
+    const d = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  }
+
+  let weekLabel = $derived.by(() => {
+    if (!weekStart) return "";
+    const start = new Date(`${weekStart}T00:00:00`);
+    const thisWeek = new Date();
+    thisWeek.setHours(0, 0, 0, 0);
+    thisWeek.setDate(thisWeek.getDate() - ((thisWeek.getDay() + 6) % 7));
+    const weeksAway = Math.round(
+      (start.getTime() - thisWeek.getTime()) / (7 * 86400000),
+    );
+    if (weeksAway === 0) return "This week";
+    if (weeksAway === -1) return "Last week";
+    const end = new Date(start);
+    end.setDate(start.getDate() + dayCount - 1);
+    const short = (date: Date) =>
+      date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${short(start)} – ${short(end)}`;
+  });
+
+  // What the Logged bar sums: the visible calendar days, or the listed entries.
+  let loggedEntries = $derived.by(() => {
+    if (view === "list") return recentEntries;
+    const end = new Date(`${weekStart}T00:00:00`);
+    end.setDate(end.getDate() + dayCount);
+    return calendarEntries.filter((e) => new Date(e.start_at) < end);
+  });
+
+  let loggedByProject = $derived.by(() => {
+    const byProject = new Map<
+      string,
+      { key: string; name: string; color: string | null; seconds: number }
+    >();
+    for (const entry of loggedEntries) {
+      const key = String(entry.project?.id ?? "none");
+      const row = byProject.get(key) ?? {
+        key,
+        name: entry.project?.name ?? "No project",
+        color: entry.project?.color ?? null,
+        seconds: 0,
+      };
+      row.seconds += entry.duration_seconds ?? 0;
+      byProject.set(key, row);
+    }
+    return [...byProject.values()].sort((a, b) => b.seconds - a.seconds);
+  });
+  let loggedTotal = $derived(
+    loggedByProject.reduce((sum, row) => sum + row.seconds, 0),
+  );
 
   const rangeLabels: Record<string, string> = {
     today: "today",
@@ -254,323 +343,458 @@
 
 <TimerInput runningEntry={$page.props.runningEntry} {projects} {tags} />
 
-<div class="flex-1 overflow-auto">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-8">
-    <div
-      class="sticky top-0 z-10 bg-bg-primary pt-4 sm:pt-6 pb-3"
-      role="toolbar"
-      aria-label={selecting ? "Selected entries" : "Filter entries"}
-    >
-      {#if selecting}
-        <div
-          class="h-10 flex items-center gap-1 px-2 rounded-[10px] bg-bg-secondary border border-bright-purple/40"
+<div class="shrink-0 bg-bg-secondary border-b border-bg-tertiary">
+  <div
+    class="flex flex-wrap items-center gap-2 px-4 md:px-6 py-2"
+    role="toolbar"
+    aria-label={view === "calendar"
+      ? "Calendar"
+      : selecting
+        ? "Selected entries"
+        : "Filter entries"}
+  >
+    {#if view === "calendar"}
+      <div
+        class="flex items-center h-8 rounded-lg border border-bg-tertiary bg-bg-primary"
+      >
+        <button
+          type="button"
+          class="grid place-items-center w-8 h-full rounded-l-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
+          aria-label="Previous week"
+          onclick={() => shiftWeek(-1)}
         >
-          <span class="px-2 font-medium" aria-live="polite">
-            {selected.size}
-            {selected.size === 1 ? "item" : "items"} selected
-          </span>
-          <span class="w-px h-5 bg-bg-tertiary mx-1" aria-hidden="true"></span>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm hover:bg-bg-tertiary transition-colors"
-            onclick={() => (showBulkEdit = true)}
+          <ChevronLeft class="size-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="flex items-center justify-center gap-2 h-full w-52 px-3 border-x border-bg-tertiary text-sm font-medium font-tabular hover:bg-bg-tertiary transition-colors"
+          title="Go to this week"
+          onclick={() => visit({ view: "calendar" })}
+        >
+          <CalendarDays class="size-4 text-fg-muted" aria-hidden="true" />
+          {weekLabel}
+          <span class="text-fg-muted font-normal"
+            >· W{isoWeek(new Date(`${weekStart}T00:00:00`))}</span
           >
-            <Pencil class="w-4 h-4" aria-hidden="true" /> Edit
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
-            onclick={() => (showBulkDelete = true)}
-          >
-            <Trash2 class="w-4 h-4" aria-hidden="true" /> Delete
-          </button>
-          <button
-            type="button"
-            class="ml-auto p-1.5 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
-            aria-label="Clear selection"
-            title="Clear selection (Esc)"
-            onclick={clearSelection}
-          >
-            <X class="w-4 h-4" aria-hidden="true" />
-          </button>
-        </div>
-      {:else}
-        <div class="flex flex-wrap items-center gap-2">
-          <label class="sr-only" for="filter-date">Date range</label>
-          <div class="w-36">
-            <SelectInput
-              id="filter-date"
-              bind:value={filters.range}
-              onchange={() => applyFilters()}
-              class="h-10 py-0 bg-bg-secondary"
-            >
-              <option value="today">Today</option>
-              <option value="this_week">This week</option>
-              <option value="last_week">Last week</option>
-              <option value="this_month">This month</option>
-              <option value="all">All dates</option>
-            </SelectInput>
-          </div>
-          <label class="sr-only" for="filter-project">Project</label>
-          <div class="w-44">
-            <SelectInput
-              id="filter-project"
-              bind:value={filters.project_id}
-              onchange={() => applyFilters()}
-              class="h-10 py-0 bg-bg-secondary"
-            >
-              <option value="">All projects</option>
-              {#each projects as project}
-                <option value={project.id}>{project.name}</option>
-              {/each}
-            </SelectInput>
-          </div>
-          <div class="relative flex-1 min-w-40">
-            <Search
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted"
-              aria-hidden="true"
-            />
-            <label class="sr-only" for="entry-search">Search entries</label>
-            <input
-              id="entry-search"
-              bind:value={filters.q}
-              oninput={() => applyFilters({ debounce: true })}
-              placeholder="Search entries..."
-              class="w-full h-10 pl-9 pr-3 rounded-[10px] bg-bg-secondary border border-bg-tertiary text-fg-primary placeholder:text-fg-dim outline-none focus:border-bright-blue transition-colors"
-            />
-          </div>
-        </div>
-      {/if}
-    </div>
-
-    <div class="flex gap-6 text-xs uppercase tracking-wide text-fg-muted mb-4">
-      <span
-        >Today <span
-          class="ml-2 text-sm normal-case tracking-normal font-tabular text-fg-primary"
-          >{formatDuration(totals.today)}</span
-        ></span
-      >
-      <span
-        >Week total <span
-          class="ml-2 text-sm normal-case tracking-normal font-tabular text-fg-primary"
-          >{formatDuration(totals.week)}</span
-        ></span
-      >
-    </div>
-
-    <Flash flash={$page.props.flash} />
-
-    {#if !hasEntries}
-      <div
-        class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
-      >
-        <p class="text-fg-primary font-medium">No time tracked yet</p>
-        <p class="mt-1">
-          Type what you're working on above and press Enter to start the timer.
-        </p>
+        </button>
+        <button
+          type="button"
+          class="grid place-items-center w-8 h-full rounded-r-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
+          aria-label="Next week"
+          onclick={() => shiftWeek(1)}
+        >
+          <ChevronRight class="size-4" aria-hidden="true" />
+        </button>
       </div>
-    {:else if recentEntries.length === 0}
+    {:else if selecting}
       <div
-        class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
+        class="h-8 flex-1 flex items-center gap-1 px-1 rounded-lg bg-bg-primary border border-bright-purple/40"
       >
-        {#if filters.q || filters.project_id}
-          <p>No time entries match your filters.</p>
-        {:else}
-          <p>No time entries {rangeLabels[filters.range]}.</p>
-        {/if}
+        <span class="px-2 text-sm font-medium" aria-live="polite">
+          {selected.size}
+          {selected.size === 1 ? "item" : "items"} selected
+        </span>
+        <span class="w-px h-5 bg-bg-tertiary mx-1" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm hover:bg-bg-tertiary transition-colors"
+          onclick={() => (showBulkEdit = true)}
+        >
+          <Pencil class="w-4 h-4" aria-hidden="true" /> Edit
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
+          onclick={() => (showBulkDelete = true)}
+        >
+          <Trash2 class="w-4 h-4" aria-hidden="true" /> Delete
+        </button>
+        <button
+          type="button"
+          class="ml-auto grid place-items-center size-6 rounded-[5px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
+          aria-label="Clear selection"
+          title="Clear selection (Esc)"
+          onclick={clearSelection}
+        >
+          <X class="w-4 h-4" aria-hidden="true" />
+        </button>
       </div>
     {:else}
-      <div class="space-y-4">
-        {#each groups as group (group.key)}
-          {@const groupSelected = group.entries.filter((e) =>
-            selected.has(e.id),
-          ).length}
-          <section
-            class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
-            aria-label={dayLabel(group.key)}
+      <div class="flex flex-1 flex-wrap items-center gap-2">
+        <label class="sr-only" for="filter-date">Date range</label>
+        <div class="w-36">
+          <SelectInput
+            id="filter-date"
+            bind:value={filters.range}
+            onchange={() => applyFilters()}
+            class="h-8 rounded-lg py-0 bg-bg-primary"
           >
-            <header
-              class="group flex items-center gap-3 px-4 h-11 border-b border-bg-tertiary"
-            >
-              <Checkbox
-                class="{groupSelected > 0 ? '' : checkboxReveal} {selecting
-                  ? 'opacity-100'
-                  : ''}"
-                aria-label="Select all entries for {dayLabel(group.key)}"
-                checked={groupSelected === group.entries.length}
-                indeterminate={groupSelected > 0 &&
-                  groupSelected < group.entries.length}
-                onCheckedChange={(value) =>
-                  setGroupSelected(group.entries, value)}
-              />
-              <h3 class="text-sm font-semibold">{dayLabel(group.key)}</h3>
-              <span class="ml-auto font-tabular text-fg-muted text-sm"
-                >{formatDuration(group.seconds)}</span
+            <option value="today">Today</option>
+            <option value="this_week">This week</option>
+            <option value="last_week">Last week</option>
+            <option value="this_month">This month</option>
+            <option value="all">All dates</option>
+          </SelectInput>
+        </div>
+        <label class="sr-only" for="filter-project">Project</label>
+        <div class="w-44">
+          <SelectInput
+            id="filter-project"
+            bind:value={filters.project_id}
+            onchange={() => applyFilters()}
+            class="h-8 rounded-lg py-0 bg-bg-primary"
+          >
+            <option value="">All projects</option>
+            {#each projects as project}
+              <option value={project.id}>{project.name}</option>
+            {/each}
+          </SelectInput>
+        </div>
+        <div class="relative flex-1 min-w-40">
+          <Search
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-muted"
+            aria-hidden="true"
+          />
+          <label class="sr-only" for="entry-search">Search entries</label>
+          <input
+            id="entry-search"
+            bind:value={filters.q}
+            oninput={() => applyFilters({ debounce: true })}
+            placeholder="Search entries..."
+            class="w-full h-8 pl-9 pr-3 rounded-lg bg-bg-primary border border-bg-tertiary text-base md:text-sm text-fg-primary placeholder:text-fg-dim outline-none focus:border-bright-blue transition-colors"
+          />
+        </div>
+      </div>
+    {/if}
+
+    <div class="flex items-center gap-2 ml-auto">
+      {#if view === "calendar"}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            {#snippet child({ props })}
+              <button
+                {...props}
+                type="button"
+                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-sm font-medium hover:bg-bg-tertiary transition-colors"
               >
-              <span class="w-0 sm:w-14" aria-hidden="true"></span>
-            </header>
-
-            <ul class="divide-y divide-bg-tertiary">
-              {#each group.entries as entry (entry.id)}
-                {@const isSelected = selected.has(entry.id)}
-                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-                <li
-                  class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150 {isSelected
-                    ? 'bg-bright-purple/10'
-                    : 'hover:bg-bg-tertiary/40'}"
-                  onclick={(e) => handleRowClick(e, entry)}
-                >
-                  <Checkbox
-                    class={isSelected || selecting ? "" : checkboxReveal}
-                    aria-label="Select {entry.description || 'entry'}"
-                    bind:checked={
-                      () => isSelected,
-                      (value) => setEntrySelected(entry.id, value, shiftHeld)
-                    }
-                    onpointerdown={(e) => (shiftHeld = e.shiftKey)}
-                    onkeydown={(e) => (shiftHeld = e.shiftKey)}
-                  />
-
-                  <div
-                    class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5"
-                  >
-                    <button
-                      type="button"
-                      class="min-w-0 truncate text-left {entry.description
-                        ? 'text-fg-primary'
-                        : 'text-fg-dim'}"
-                      onclick={(e) => {
-                        if (selecting) handleRowClick(e, entry);
-                        else openEdit(entry);
-                      }}
-                    >
-                      {entry.description || "Add description"}
-                    </button>
-                    {#if entry.project}
-                      <span
-                        class="flex items-center gap-1.5 text-sm text-fg-secondary min-w-0 shrink-0"
-                      >
-                        <span
-                          class="w-2 h-2 rounded-full shrink-0"
-                          style="background-color: {entry.project.color}"
-                          aria-hidden="true"
-                        ></span>
-                        <span class="truncate">{entry.project.name}</span>
-                      </span>
-                    {/if}
-                    {#if entry.tags.length > 0}
-                      <span class="hidden md:flex items-center gap-1 shrink-0">
-                        {#each entry.tags as tag (tag.id)}
-                          <span
-                            class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs font-medium text-fg-secondary"
-                            >{tag.name}</span
-                          >
-                        {/each}
-                      </span>
-                    {/if}
-                  </div>
-
-                  {#if entry.files?.length}
-                    <Paperclip
-                      class="hidden sm:block w-4 h-4 text-fg-muted shrink-0"
-                      aria-label="{entry.files.length} attachments"
-                    />
-                  {/if}
-                  <DollarSign
-                    class="hidden sm:block w-4 h-4 shrink-0 {entry.billable
-                      ? 'text-bright-green'
-                      : 'text-fg-dim/40'}"
-                    aria-label={entry.billable ? "Billable" : "Non-billable"}
-                  />
-                  <span
-                    class="hidden sm:block w-40 text-right text-sm text-fg-muted font-tabular whitespace-nowrap"
-                  >
-                    {clockTime(entry.start_at)} – {entry.end_at
-                      ? clockTime(entry.end_at)
-                      : "now"}
-                  </span>
-                  <span
-                    class="font-tabular font-medium w-[4.5rem] text-right shrink-0"
-                    >{formatDuration(entry.duration_seconds ?? 0)}</span
-                  >
-
-                  <div class="flex items-center shrink-0">
-                    <IconButton
-                      size="sm"
-                      class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                      aria-label="Continue {entry.description || 'entry'}"
-                      title="Continue this entry"
-                      onclick={() => continueEntry(entry)}
-                    >
-                      <Play class="w-4 h-4 fill-current" aria-hidden="true" />
-                    </IconButton>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger>
-                        {#snippet child({ props })}
-                          <IconButton
-                            {...props}
-                            size="sm"
-                            class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
-                            aria-label="More actions"
-                          >
-                            <EllipsisVertical
-                              class="w-4 h-4"
-                              aria-hidden="true"
-                            />
-                          </IconButton>
-                        {/snippet}
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content align="end" class="min-w-40">
-                        <DropdownMenu.Item
-                          class="px-3 py-2 gap-2"
-                          onSelect={() => openEdit(entry)}
-                        >
-                          <Pencil aria-hidden="true" /> Edit
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          class="px-3 py-2 gap-2"
-                          onSelect={() => continueEntry(entry)}
-                        >
-                          <Play aria-hidden="true" /> Continue
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          class="px-3 py-2 gap-2"
-                          onSelect={() => duplicateEntry(entry)}
-                        >
-                          <Copy aria-hidden="true" /> Duplicate
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          class="px-3 py-2 gap-2"
-                          onSelect={() => setEntrySelected(entry.id, true)}
-                        >
-                          <ListChecks aria-hidden="true" /> Select
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Separator />
-                        <DropdownMenu.Item
-                          variant="destructive"
-                          class="px-3 py-2 gap-2"
-                          onSelect={() => openDeleteModal(entry)}
-                        >
-                          <Trash2 aria-hidden="true" /> Delete
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </div>
-                </li>
-              {/each}
-            </ul>
-          </section>
+                {dayCount} days
+                <ChevronDown class="size-4 text-fg-muted" aria-hidden="true" />
+              </button>
+            {/snippet}
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end" class="min-w-44">
+            <DropdownMenu.RadioGroup
+              value={String(dayCount)}
+              onValueChange={(value) => setDayCount(Number(value))}
+            >
+              <DropdownMenu.RadioItem
+                value="5"
+                class="px-2 py-1.5 rounded-[5px]"
+                >5 days (Mon – Fri)</DropdownMenu.RadioItem
+              >
+              <DropdownMenu.RadioItem
+                value="7"
+                class="px-2 py-1.5 rounded-[5px]">7 days</DropdownMenu.RadioItem
+              >
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      {/if}
+      <div
+        class="flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+        role="radiogroup"
+        aria-label="View"
+      >
+        {#each [{ key: "calendar", label: "Calendar", icon: CalendarDays }, { key: "list", label: "List", icon: List }] as option (option.key)}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={view === option.key}
+            class="inline-flex items-center gap-1.5 h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {view ===
+            option.key
+              ? 'bg-bg-tertiary text-fg-primary'
+              : 'text-fg-muted hover:text-fg-primary'}"
+            onclick={() => switchView(option.key as "list" | "calendar")}
+          >
+            <option.icon class="size-4" aria-hidden="true" />
+            {option.label}
+          </button>
         {/each}
       </div>
-      {#if recentEntries.length >= entryLimit}
-        <p class="mt-4 text-center text-sm text-fg-muted">
-          Showing the latest {entryLimit} entries. Narrow the date range to see older
-          ones.
-        </p>
-      {/if}
-    {/if}
+    </div>
+  </div>
+
+  <div
+    class="flex items-center gap-3 h-9 px-4 md:px-6 border-t border-bg-tertiary text-sm"
+  >
+    <span class="text-fg-muted shrink-0">Logged</span>
+    <div
+      class="flex flex-1 gap-0.5 h-1.5 rounded-full overflow-hidden bg-bg-tertiary"
+      role="img"
+      aria-label={loggedByProject
+        .map((row) => `${row.name} ${formatHours(row.seconds)}`)
+        .join(", ") || "Nothing logged"}
+    >
+      {#each loggedByProject as row (row.key)}
+        <div
+          class="h-full"
+          style="flex: {row.seconds} 1 0; background-color: {row.color ??
+            'var(--color-fg-dim)'}"
+          title="{row.name}: {formatHours(row.seconds)}"
+        ></div>
+      {/each}
+    </div>
+    <span class="font-medium font-tabular shrink-0"
+      >{formatHours(loggedTotal)}</span
+    >
+    <Link
+      href={routes.reports.index(workspaceId)}
+      class="hidden sm:inline-flex items-center gap-0.5 shrink-0 text-fg-muted hover:text-fg-primary transition-colors"
+    >
+      View reports <ChevronRight class="size-3.5" aria-hidden="true" />
+    </Link>
   </div>
 </div>
+
+{#if view === "calendar"}
+  <div class="flex-1 min-h-0 flex flex-col">
+    {#if $page.props.flash?.notice || $page.props.flash?.alert}
+      <div class="px-4 md:px-6 pt-3 -mb-1">
+        <Flash flash={$page.props.flash} />
+      </div>
+    {/if}
+    <div class="flex-1 min-h-0">
+      <WeekCalendar
+        entries={calendarEntries}
+        runningEntry={$page.props.runningEntry}
+        {projects}
+        {tags}
+        {weekStart}
+        {dayCount}
+        onEntryClick={openEdit}
+      />
+    </div>
+  </div>
+{:else}
+  <div class="flex-1 overflow-auto">
+    <div class="px-4 md:px-6 py-4">
+      <Flash flash={$page.props.flash} />
+
+      {#if !hasEntries}
+        <div
+          class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
+        >
+          <p class="text-fg-primary font-medium">No time tracked yet</p>
+          <p class="mt-1">
+            Type what you're working on above and press Enter to start the
+            timer.
+          </p>
+        </div>
+      {:else if recentEntries.length === 0}
+        <div
+          class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
+        >
+          {#if filters.q || filters.project_id}
+            <p>No time entries match your filters.</p>
+          {:else}
+            <p>No time entries {rangeLabels[filters.range]}.</p>
+          {/if}
+        </div>
+      {:else}
+        <div class="space-y-4">
+          {#each groups as group (group.key)}
+            {@const groupSelected = group.entries.filter((e) =>
+              selected.has(e.id),
+            ).length}
+            <section
+              class="bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden"
+              aria-label={dayLabel(group.key)}
+            >
+              <header
+                class="group flex items-center gap-3 px-4 h-11 border-b border-bg-tertiary"
+              >
+                <Checkbox
+                  class="{groupSelected > 0 ? '' : checkboxReveal} {selecting
+                    ? 'opacity-100'
+                    : ''}"
+                  aria-label="Select all entries for {dayLabel(group.key)}"
+                  checked={groupSelected === group.entries.length}
+                  indeterminate={groupSelected > 0 &&
+                    groupSelected < group.entries.length}
+                  onCheckedChange={(value) =>
+                    setGroupSelected(group.entries, value)}
+                />
+                <h3 class="text-sm font-semibold">{dayLabel(group.key)}</h3>
+                <span class="ml-auto font-tabular text-fg-muted text-sm"
+                  >{formatDuration(group.seconds)}</span
+                >
+                <span class="w-0 sm:w-14" aria-hidden="true"></span>
+              </header>
+
+              <ul class="divide-y divide-bg-tertiary">
+                {#each group.entries as entry (entry.id)}
+                  {@const isSelected = selected.has(entry.id)}
+                  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+                  <li
+                    class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150 {isSelected
+                      ? 'bg-bright-purple/10'
+                      : 'hover:bg-bg-tertiary/40'}"
+                    onclick={(e) => handleRowClick(e, entry)}
+                  >
+                    <Checkbox
+                      class={isSelected || selecting ? "" : checkboxReveal}
+                      aria-label="Select {entry.description || 'entry'}"
+                      bind:checked={
+                        () => isSelected,
+                        (value) => setEntrySelected(entry.id, value, shiftHeld)
+                      }
+                      onpointerdown={(e) => (shiftHeld = e.shiftKey)}
+                      onkeydown={(e) => (shiftHeld = e.shiftKey)}
+                    />
+
+                    <div
+                      class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5"
+                    >
+                      <button
+                        type="button"
+                        class="min-w-0 truncate text-left {entry.description
+                          ? 'text-fg-primary'
+                          : 'text-fg-dim'}"
+                        onclick={(e) => {
+                          if (selecting) handleRowClick(e, entry);
+                          else openEdit(entry);
+                        }}
+                      >
+                        {entry.description || "Add description"}
+                      </button>
+                      {#if entry.project}
+                        <span
+                          class="flex items-center gap-1.5 text-sm text-fg-secondary min-w-0 shrink-0"
+                        >
+                          <span
+                            class="w-2 h-2 rounded-full shrink-0"
+                            style="background-color: {entry.project.color}"
+                            aria-hidden="true"
+                          ></span>
+                          <span class="truncate">{entry.project.name}</span>
+                        </span>
+                      {/if}
+                      {#if entry.tags.length > 0}
+                        <span
+                          class="hidden md:flex items-center gap-1 shrink-0"
+                        >
+                          {#each entry.tags as tag (tag.id)}
+                            <span
+                              class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs font-medium text-fg-secondary"
+                              >{tag.name}</span
+                            >
+                          {/each}
+                        </span>
+                      {/if}
+                    </div>
+
+                    {#if entry.files?.length}
+                      <Paperclip
+                        class="hidden sm:block w-4 h-4 text-fg-muted shrink-0"
+                        aria-label="{entry.files.length} attachments"
+                      />
+                    {/if}
+                    <DollarSign
+                      class="hidden sm:block w-4 h-4 shrink-0 {entry.billable
+                        ? 'text-bright-green'
+                        : 'text-fg-dim/40'}"
+                      aria-label={entry.billable ? "Billable" : "Non-billable"}
+                    />
+                    <span
+                      class="hidden sm:block w-40 text-right text-sm text-fg-muted font-tabular whitespace-nowrap"
+                    >
+                      {clockTime(entry.start_at)} – {entry.end_at
+                        ? clockTime(entry.end_at)
+                        : "now"}
+                    </span>
+                    <span
+                      class="font-tabular font-medium w-[4.5rem] text-right shrink-0"
+                      >{formatDuration(entry.duration_seconds ?? 0)}</span
+                    >
+
+                    <div class="flex items-center shrink-0">
+                      <IconButton
+                        size="sm"
+                        class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        aria-label="Continue {entry.description || 'entry'}"
+                        title="Continue this entry"
+                        onclick={() => continueEntry(entry)}
+                      >
+                        <Play class="w-4 h-4 fill-current" aria-hidden="true" />
+                      </IconButton>
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger>
+                          {#snippet child({ props })}
+                            <IconButton
+                              {...props}
+                              size="sm"
+                              class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
+                              aria-label="More actions"
+                            >
+                              <EllipsisVertical
+                                class="w-4 h-4"
+                                aria-hidden="true"
+                              />
+                            </IconButton>
+                          {/snippet}
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="end" class="min-w-40">
+                          <DropdownMenu.Item
+                            class="px-3 py-2 gap-2"
+                            onSelect={() => openEdit(entry)}
+                          >
+                            <Pencil aria-hidden="true" /> Edit
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            class="px-3 py-2 gap-2"
+                            onSelect={() => continueEntry(entry)}
+                          >
+                            <Play aria-hidden="true" /> Continue
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            class="px-3 py-2 gap-2"
+                            onSelect={() => duplicateEntry(entry)}
+                          >
+                            <Copy aria-hidden="true" /> Duplicate
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            class="px-3 py-2 gap-2"
+                            onSelect={() => setEntrySelected(entry.id, true)}
+                          >
+                            <ListChecks aria-hidden="true" /> Select
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Separator />
+                          <DropdownMenu.Item
+                            variant="destructive"
+                            class="px-3 py-2 gap-2"
+                            onSelect={() => openDeleteModal(entry)}
+                          >
+                            <Trash2 aria-hidden="true" /> Delete
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Root>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            </section>
+          {/each}
+        </div>
+        {#if recentEntries.length >= entryLimit}
+          <p class="mt-4 text-center text-sm text-fg-muted">
+            Showing the latest {entryLimit} entries. Narrow the date range to see
+            older ones.
+          </p>
+        {/if}
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <TimeEntryEditModal
   entry={editingEntry}

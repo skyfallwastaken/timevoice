@@ -1,7 +1,6 @@
 export const routes = {
   dashboard: {
     index: (workspaceId: string) => `/${workspaceId}/timer`,
-    calendar: (workspaceId: string) => `/${workspaceId}/calendar`,
   },
 
   clients: {
