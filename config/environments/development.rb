@@ -9,6 +9,9 @@ Rails.application.configure do
 
   config.server_timing = true
 
+  # Amp orb portals serve the dev server from *.onamp.dev.
+  config.hosts << ".onamp.dev"
+
   if Rails.root.join("tmp/caching-dev.txt").exist?
     config.action_controller.perform_caching = true
     config.action_controller.enable_fragment_cache_logging = true
