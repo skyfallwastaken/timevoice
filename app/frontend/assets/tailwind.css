@@ -55,6 +55,10 @@
 /* shadcn-svelte's dark: styles follow the active theme's mode. */
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
+/* shadcn-svelte's data-open:/data-closed: animations key off bits-ui's data-state. */
+@custom-variant data-open (&:where([data-state="open"]));
+@custom-variant data-closed (&:where([data-state="closed"]));
+
 /* shadcn-svelte tokens, mapped onto the theme palette above */
 @theme inline {
   --color-background: var(--color-bg-primary);

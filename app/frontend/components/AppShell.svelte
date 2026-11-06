@@ -176,6 +176,15 @@
       <p class="text-sm text-fg-muted truncate">{user?.email}</p>
     </div>
   </div>
+  <button
+    type="button"
+    onclick={signOut}
+    class="w-full flex items-center gap-2 px-3 py-2 mt-2 text-sm font-medium text-fg-muted hover:text-bright-red transition-colors duration-150 rounded-[10px] focus-visible:ring-2 focus-visible:ring-bright-blue"
+    aria-label="Sign out {user?.name}"
+  >
+    <LogOut class="w-4 h-4" aria-hidden="true" />
+    <span>Sign out</span>
+  </button>
 {/snippet}
 
 <svelte:window onkeydown={handleKeydown} />
@@ -209,9 +218,7 @@
         <p class="text-xs text-fg-muted truncate">{user?.name || ""}</p>
       </div>
 
-      <IconButton tone="danger" onclick={signOut} aria-label="Sign out">
-        <LogOut class="w-5 h-5" aria-hidden="true" />
-      </IconButton>
+      <div class="w-9 shrink-0" aria-hidden="true"></div>
     </div>
   </header>
 
@@ -402,15 +409,6 @@
 
     <div class="p-4 border-t border-bg-tertiary">
       {@render userProfile()}
-      <button
-        type="button"
-        onclick={signOut}
-        class="w-full flex items-center gap-2 px-3 py-2 mt-2 text-sm font-medium text-fg-muted hover:text-bright-red transition-colors duration-150 rounded-[10px] focus-visible:ring-2 focus-visible:ring-bright-blue"
-        aria-label="Sign out {user?.name}"
-      >
-        <LogOut class="w-4 h-4" aria-hidden="true" />
-        <span>Sign out</span>
-      </button>
     </div>
   </aside>
 

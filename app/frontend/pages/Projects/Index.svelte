@@ -35,7 +35,7 @@
     name: "",
     client_id: "",
     color: ($page.props.colors as string[])?.[0] ?? "",
-    billable_default: false,
+    billable_default: true,
   });
 
   let editForm = useForm({
