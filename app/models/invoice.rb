@@ -84,7 +84,9 @@ class Invoice < ApplicationRecord
         ).tap(&:validate!)
       end
 
-      InvoiceLine.insert_all!(lines.map { |line| line.attributes.except("id", "created_at", "updated_at") })
+      lines.each_slice(1000) do |batch|
+        InvoiceLine.insert_all!(batch.map { |line| line.attributes.except("id", "created_at", "updated_at") })
+      end
       invoice.update!(total_cents: lines.sum(&:amount_cents))
       invoice
     end

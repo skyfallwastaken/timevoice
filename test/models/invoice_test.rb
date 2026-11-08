@@ -148,7 +148,7 @@ class InvoiceTest < ActiveSupport::TestCase
 
     start = Time.zone.parse("2026-08-03 09:00")
     TimeEntry.create!(user: users(:one), workspace: workspace, project: project, description: "Fine", start_at: start, end_at: start + 1.hour, billable: true)
-    TimeEntry.create!(user: users(:one), workspace: workspace, project: project, start_at: start + 2.hours, billable: true).stop!(at: start + 3.hours)
+    TimeEntry.create!(user: users(:one), workspace: workspace, project: project, start_at: start + 2.hours, billable: true).update_columns(end_at: start + 3.hours, duration_seconds: 3600)
 
     assert_no_difference -> { Invoice.count } do
       assert_no_difference -> { InvoiceLine.count } do

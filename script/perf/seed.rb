@@ -7,8 +7,9 @@ abort "refusing to seed production" if Rails.env.production?
 srand(42)
 
 ActiveRecord::Base.transaction do
-  [ InvoiceLine, Invoice, TimeEntryTag, TimeEntry, Tag, Project, Client, InvoiceSetting,
-    Invite, Membership, Workspace, User ].each(&:delete_all)
+  User.update_all(last_used_workspace_id: nil)
+  [ InvoiceLine, Invoice, TimeEntryTag, TimeEntry, Tag, Project, Client, InvoiceSetting, Invite, Membership,
+    Doorkeeper::AccessGrant, Doorkeeper::AccessToken, OauthApplication, Workspace, User ].each(&:delete_all)
 end
 
 now = Time.current

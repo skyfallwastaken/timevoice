@@ -7,6 +7,7 @@ require "json"
 
 label = ARGV[0] || "run"
 runs = (ARGV[1] || 15).to_i
+abort "runs must be positive" unless runs.positive?
 Rails.logger.level = :warn
 ActiveRecord::Base.logger = nil
 # Inertia's devtools record and redact every response in development only.
