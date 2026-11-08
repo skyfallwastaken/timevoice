@@ -1,14 +1,18 @@
 import { LaunchType, OAuth, getPreferenceValues, launchCommand } from "@raycast/api";
 import { OAuthService, getAccessToken } from "@raycast/utils";
+import { createHash } from "node:crypto";
 
 // The public (PKCE) OAuth application registered on timevoice.mahadk.com.
 const TIMEVOICE_CLIENT_ID = "dizWuONAZf9JSgIlfkrTg90w-CJfiqcQGRwrzglsiks";
 
 const { clientId, baseUrl: rawBaseUrl, workspaceId: preferredWorkspaceId } = getPreferenceValues<Preferences>();
 export const baseUrl = (rawBaseUrl || "https://timevoice.mahadk.com").replace(/\/+$/, "");
+const effectiveClientId = clientId || TIMEVOICE_CLIENT_ID;
 
 const client = new OAuth.PKCEClient({
   redirectMethod: OAuth.RedirectMethod.Web,
+  // One saved login per server and app, so changing either never sends an old token to a new server.
+  providerId: `timevoice-${createHash("sha256").update(`${baseUrl}\n${effectiveClientId}`).digest("hex").slice(0, 16)}`,
   providerName: "Timevoice",
   providerIcon: "icon.png",
   description: "Connect your Timevoice account to track time from Raycast.",
@@ -16,7 +20,7 @@ const client = new OAuth.PKCEClient({
 
 export const timevoice = new OAuthService({
   client,
-  clientId: clientId || TIMEVOICE_CLIENT_ID,
+  clientId: effectiveClientId,
   scope: "read time_entries",
   authorizeUrl: `${baseUrl}/oauth/authorize`,
   tokenUrl: `${baseUrl}/oauth/token`,
@@ -81,10 +85,15 @@ let workspaceId: Promise<string> | undefined;
 export function getWorkspaceId(): Promise<string> {
   if (preferredWorkspaceId) return Promise.resolve(preferredWorkspaceId);
 
-  workspaceId ??= request<{ id: string }[]>("/workspaces").then((workspaces) => {
-    if (!workspaces[0]) throw new Error("Your Timevoice account has no workspace.");
-    return workspaces[0].id;
-  });
+  workspaceId ??= request<{ id: string }[]>("/workspaces")
+    .then((workspaces) => {
+      if (!workspaces[0]) throw new Error("Your Timevoice account has no workspace.");
+      return workspaces[0].id;
+    })
+    .catch((error) => {
+      workspaceId = undefined;
+      throw error;
+    });
   return workspaceId;
 }
 
@@ -98,13 +107,14 @@ function daysAgo(days: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-// Without `days`, lists every entry: API v1 has no "running" filter, and a timer can run for any length of time.
-export function listEntries(days?: number): Promise<TimeEntry[]> {
-  return workspaceRequest(days === undefined ? "/time_entries" : `/time_entries?start_date=${daysAgo(days)}`);
+export function listEntries(days: number): Promise<TimeEntry[]> {
+  return workspaceRequest(`/time_entries?start_date=${daysAgo(days)}`);
 }
 
+// A timer can run for any length of time, so this has no date bound. Servers without the
+// `running` filter return every entry, which the local filter still handles.
 export async function getRunningEntries(): Promise<TimeEntry[]> {
-  return (await listEntries()).filter((entry) => !entry.ended_at);
+  return (await workspaceRequest<TimeEntry[]>("/time_entries?running=true")).filter((entry) => !entry.ended_at);
 }
 
 export function listProjects(): Promise<Project[]> {
