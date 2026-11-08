@@ -29,6 +29,10 @@ class TimeEntryPolicy < ApplicationPolicy
     update?
   end
 
+  def file?
+    show?
+  end
+
   def remove_file?
     update?
   end

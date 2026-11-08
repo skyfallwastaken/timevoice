@@ -2,6 +2,8 @@
   import {
     Clock,
     DollarSign,
+    Download,
+    ExternalLink,
     Folder,
     Hash,
     Paperclip,
@@ -15,7 +17,7 @@
   import { toast } from "svelte-sonner";
   import Button from "./Button.svelte";
   import DatePicker from "./DatePicker.svelte";
-  import type { Project, Tag, TimeEntry } from "../types";
+  import type { AttachedFile, Project, Tag, TimeEntry } from "../types";
   import { formatFileSize, formatHours } from "../lib/format";
   import { routes } from "../lib/routes";
   import {
@@ -71,6 +73,10 @@
   let showTagPicker = $state(false);
   let files = $state<File[]>([]);
   let saving = $state(false);
+  // Kept after closing so the preview doesn't empty while it fades out.
+  let previewFile = $state<AttachedFile | null>(null);
+  let previewOpen = $state(false);
+  let previewFailed = $state(false);
 
   // A running entry has no end yet; it stops from the timer, not from here.
   let running = $derived(!!entry && !entry.end_at);
@@ -128,6 +134,12 @@
       return;
     }
     files = [...files, ...picked];
+  }
+
+  function openPreview(file: AttachedFile) {
+    previewFile = file;
+    previewFailed = false;
+    previewOpen = true;
   }
 
   function removeAttachedFile(blobId: number) {
@@ -456,12 +468,19 @@
           <div class="flex flex-wrap items-center gap-1 min-w-0 py-1">
             {#each entry?.files ?? [] as file (file.blob_id)}
               <span
-                class="inline-flex items-center gap-1 h-7 pl-2 pr-0.5 rounded-md bg-bg-tertiary text-xs font-medium"
+                class="inline-flex items-center h-7 pr-0.5 rounded-md bg-bg-tertiary text-xs font-medium"
               >
-                <span class="truncate max-w-32">{file.filename}</span>
-                <span class="text-fg-muted"
-                  >{formatFileSize(file.byte_size)}</span
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 h-full min-w-0 pl-2 pr-1 rounded-l-md hover:text-bright-blue transition-colors"
+                  title="Preview {file.filename}"
+                  onclick={() => openPreview(file)}
                 >
+                  <span class="truncate max-w-32">{file.filename}</span>
+                  <span class="text-fg-muted"
+                    >{formatFileSize(file.byte_size)}</span
+                  >
+                </button>
                 <button
                   type="button"
                   class="grid place-items-center size-6 rounded text-fg-muted hover:text-bright-red transition-colors"
@@ -522,7 +541,103 @@
         Save
       </Button>
     </div>
+    <!-- Inside the editor so it stacks above it. -->
+    {@render preview()}
   {/if}
+{/snippet}
+
+{#snippet preview()}
+  <Dialog.Root bind:open={previewOpen}>
+    <Dialog.Content
+      showCloseButton={false}
+      class="w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden"
+    >
+      {#if previewFile && entry}
+        {@const file = previewFile}
+        {@const url = routes.timeEntries.file(
+          workspaceId,
+          entry.id,
+          file.blob_id,
+        )}
+        {@const type = file.content_type ?? ""}
+        <div
+          class="flex items-center gap-0.5 pl-4 pr-2 py-2 border-b border-bg-tertiary shrink-0"
+        >
+          <div class="min-w-0 mr-auto">
+            <Dialog.Title class="truncate font-semibold leading-6"
+              >{file.filename}</Dialog.Title
+            >
+            <p class="text-xs text-fg-muted">
+              {formatFileSize(file.byte_size)}
+            </p>
+          </div>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener"
+            class={headerButton}
+            aria-label="Open in new tab"
+            title="Open in new tab"
+          >
+            <ExternalLink class="size-4" aria-hidden="true" />
+          </a>
+          <a
+            href={routes.timeEntries.file(
+              workspaceId,
+              entry.id,
+              file.blob_id,
+              true,
+            )}
+            class={headerButton}
+            aria-label="Download"
+            title="Download"
+          >
+            <Download class="size-4" aria-hidden="true" />
+          </a>
+          <Dialog.Close class={headerButton} aria-label="Close">
+            <X class="size-4" aria-hidden="true" />
+          </Dialog.Close>
+        </div>
+        <div
+          class="grid place-items-center min-h-0 overflow-auto bg-bg-primary"
+        >
+          {#if previewFailed}
+            {@render noPreview(file, entry)}
+          {:else if type.startsWith("image/")}
+            <img
+              src={url}
+              alt={file.filename}
+              class="max-w-full max-h-[75vh] object-contain"
+              onerror={() => (previewFailed = true)}
+            />
+          {:else if type === "application/pdf"}
+            <iframe src={url} title={file.filename} class="w-full h-[75vh]"
+            ></iframe>
+          {:else if type.startsWith("video/")}
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video src={url} controls class="max-w-full max-h-[75vh]"></video>
+          {:else if type.startsWith("audio/")}
+            <audio src={url} controls class="w-full max-w-md my-8 mx-4"></audio>
+          {:else}
+            {@render noPreview(file, entry)}
+          {/if}
+        </div>
+      {/if}
+    </Dialog.Content>
+  </Dialog.Root>
+{/snippet}
+
+{#snippet noPreview(file: AttachedFile, entry: TimeEntry)}
+  <div class="flex flex-col items-center gap-3 px-4 py-10 text-fg-muted">
+    <p>No preview available for this file.</p>
+    <a
+      href={routes.timeEntries.file(workspaceId, entry.id, file.blob_id, true)}
+      class="inline-flex items-center gap-2 h-8 px-3 rounded-[10px] bg-bg-tertiary text-fg-primary font-medium hover:bg-bg-quaternary transition-colors duration-150"
+    >
+      <Download class="size-4" aria-hidden="true" />
+      Download
+    </a>
+  </div>
 {/snippet}
 
 {#if modal}

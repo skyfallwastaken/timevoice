@@ -37,6 +37,8 @@ export const routes = {
       `/${workspaceId}/time_entries/${id}`,
     stop: (workspaceId: string, id: number) =>
       `/${workspaceId}/time_entries/${id}/stop`,
+    file: (workspaceId: string, id: number, blobId: number, download = false) =>
+      `/${workspaceId}/time_entries/${id}/file?blob_id=${blobId}${download ? "&disposition=attachment" : ""}`,
     removeFile: (workspaceId: string, id: number) =>
       `/${workspaceId}/time_entries/${id}/remove_file`,
     bulkUpdate: (workspaceId: string) =>

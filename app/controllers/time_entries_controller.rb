@@ -1,13 +1,14 @@
 class TimeEntriesController < ApplicationController
   include TagAssignable
+  include ActiveStorage::SetCurrent
 
   rate_limit to: 30, within: 1.minute, only: [ :create, :stop ], with: -> {
     redirect_back fallback_location: root_path, alert: "Too many time entry actions. Please wait a minute."
   }
 
-  before_action :set_time_entry, only: [ :update, :destroy, :remove_file ]
+  before_action :set_time_entry, only: [ :update, :destroy, :file, :remove_file ]
   before_action :set_running_time_entry, only: [ :stop ]
-  before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop, :remove_file ]
+  before_action :authorize_time_entry, only: [ :create, :update, :destroy, :stop, :file, :remove_file ]
   before_action :set_selected_time_entries, only: [ :bulk_update, :bulk_destroy ]
 
   def create
@@ -81,6 +82,13 @@ class TimeEntriesController < ApplicationController
     end
 
     redirect_back(fallback_location: root_path, notice: "Timer stopped!")
+  end
+
+  # Redirects to a storage URL that expires, so only the entry's owner keeps access.
+  def file
+    file = @time_entry.files.find_by!(blob_id: params[:blob_id])
+    disposition = params[:disposition] == "attachment" ? :attachment : :inline
+    redirect_to file.url(disposition: disposition), allow_other_host: true
   end
 
   def remove_file

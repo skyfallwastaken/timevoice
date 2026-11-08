@@ -76,6 +76,7 @@ Rails.application.routes.draw do
       member do
         patch :stop
         put :stop
+        get :file
         delete :remove_file
       end
     end

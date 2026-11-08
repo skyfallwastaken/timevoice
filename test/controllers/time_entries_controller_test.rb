@@ -54,6 +54,29 @@ class TimeEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "first.txt", "second.txt" ], entry.reload.files.map { |f| f.filename.to_s }.sort
   end
 
+  test "an entry's files open inline or download, only for the entry's owner" do
+    entry = time_entries(:one)
+    entry.files.attach(io: StringIO.new("png bytes"), filename: "shot.png", content_type: "image/png")
+    blob_id = entry.files.first.blob_id
+
+    get "/#{@workspace.hashid}/time_entries/#{entry.id}/file", params: { blob_id: blob_id }
+    follow_redirect!
+    assert_equal "png bytes", response.body
+    assert_match(/\Ainline; filename="shot.png"/, response.headers["Content-Disposition"])
+
+    get "/#{@workspace.hashid}/time_entries/#{entry.id}/file", params: { blob_id: blob_id, disposition: "attachment" }
+    follow_redirect!
+    assert_match(/\Aattachment; filename="shot.png"/, response.headers["Content-Disposition"])
+
+    other = time_entries(:two)
+    other.files.attach(io: StringIO.new("secret"), filename: "secret.png", content_type: "image/png")
+    get "/#{@workspace.hashid}/time_entries/#{other.id}/file", params: { blob_id: other.files.first.blob_id }
+    assert_response :not_found
+
+    get "/#{@workspace.hashid}/time_entries/#{entry.id}/file", params: { blob_id: other.files.first.blob_id }
+    assert_response :not_found
+  end
+
   test "bulk update changes only the selected entries of the current user and adds tags" do
     tagged = time_entries(:one)
     extra_tag = Tag.create!(workspace: @workspace, name: "Extra")
