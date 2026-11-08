@@ -126,6 +126,39 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_nil Invoice.generate_from_time_entries(workspace, client, nil, nil, 10_000, user)
   end
 
+  test "generate_from_time_entries copies each entry into a validated line, or creates nothing" do
+    workspace = workspaces(:one)
+    project = Project.create!(workspace: workspace, client: clients(:one), name: "Line Copy", color: "#458588")
+    entries = [ 90, 45 ].each_with_index.map do |minutes, i|
+      start = Time.zone.parse("2026-08-0#{i + 1} 09:00")
+      TimeEntry.create!(user: users(:one), workspace: workspace, project: project, description: "Task #{i}",
+        start_at: start, end_at: start + minutes.minutes, billable: true)
+    end
+
+    invoice = Invoice.generate_from_time_entries(workspace, clients(:one), Date.new(2026, 8, 1), Date.new(2026, 8, 2), 10_000, users(:one))
+
+    assert_equal 2, invoice.invoice_lines.size
+    lines = invoice.invoice_lines.order(:time_entry_id).map { |line| line.slice(:time_entry_id, :description, :qty_hours, :rate_cents, :amount_cents).symbolize_keys }
+    assert_equal [
+      { time_entry_id: entries[0].id, description: "Task 0", qty_hours: 1.5, rate_cents: 10_000, amount_cents: 15_000 },
+      { time_entry_id: entries[1].id, description: "Task 1", qty_hours: 0.75, rate_cents: 10_000, amount_cents: 7_500 }
+    ], lines
+    assert_equal 22_500, invoice.reload.total_cents
+    assert invoice.invoice_lines.all? { |line| line.created_at.present? && line.updated_at.present? }
+
+    start = Time.zone.parse("2026-08-03 09:00")
+    TimeEntry.create!(user: users(:one), workspace: workspace, project: project, description: "Fine", start_at: start, end_at: start + 1.hour, billable: true)
+    TimeEntry.create!(user: users(:one), workspace: workspace, project: project, start_at: start + 2.hours, billable: true).update_columns(end_at: start + 3.hours, duration_seconds: 3600)
+
+    assert_no_difference -> { Invoice.count } do
+      assert_no_difference -> { InvoiceLine.count } do
+        assert_raises(ActiveRecord::RecordInvalid) do
+          Invoice.generate_from_time_entries(workspace, clients(:one), Date.new(2026, 8, 3), Date.new(2026, 8, 3), 10_000, users(:one))
+        end
+      end
+    end
+  end
+
   test "issuing a draft sets the issue date to the day it is issued" do
     invoice = invoices(:one)
 

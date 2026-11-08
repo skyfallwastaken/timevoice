@@ -9,10 +9,11 @@ module Api
 
       def index
         invoices = current_workspace.invoices
-          .includes(:client, :invoice_lines)
+          .includes(:client)
           .order(created_at: :desc)
+        line_counts = current_workspace.invoices.joins(:invoice_lines).group(:id).count
 
-        render json: invoices.map { |invoice| serialize_invoice(invoice) }
+        render json: invoices.map { |invoice| serialize_invoice(invoice, line_count: line_counts.fetch(invoice.id, 0)) }
       end
 
       def show
@@ -90,7 +91,7 @@ module Api
         rate
       end
 
-      def serialize_invoice(invoice, include_lines: false)
+      def serialize_invoice(invoice, include_lines: false, line_count: invoice.invoice_lines.load.size)
         client = invoice.client
         json = {
           id: invoice.hashid,
@@ -102,7 +103,7 @@ module Api
           period_end: invoice.period_end,
           issued_on: invoice.issued_on,
           notes: invoice.notes,
-          line_count: invoice.invoice_lines.size,
+          line_count: line_count,
           client: { id: Client.encode_id(client.id), name: client.name, email: client.email, billing_address: client.billing_address }
         }
 

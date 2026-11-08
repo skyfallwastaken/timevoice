@@ -11,6 +11,24 @@ export function parseRate(value: string): number {
   return Number.isFinite(num) ? Math.round(num * 100) : 0;
 }
 
+// toLocaleDateString builds a new Intl formatter on every call (~0.1 ms), which
+// adds up to hundreds of milliseconds on long lists, so reuse one per format.
+export function dateFormatter(
+  options: Intl.DateTimeFormatOptions,
+): (date: Date) => string {
+  const formatter = new Intl.DateTimeFormat("en-US", options);
+  return (date) =>
+    Number.isNaN(date.getTime()) ? "Invalid Date" : formatter.format(date);
+}
+
+const longDate = dateFormatter({
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const shortDate = dateFormatter({ month: "short", day: "numeric" });
+const shortTime = dateFormatter({ hour: "2-digit", minute: "2-digit" });
+
 /**
  * Parse a YYYY-MM-DD date as local midnight (not UTC, which can shift the day)
  */
@@ -29,11 +47,7 @@ export function formatDate(dateStr: string): string {
  * Format an ISO timestamp or Date as a local date (e.g., "Nov 4, 2026")
  */
 export function formatTimestamp(timestamp: string | Date): string {
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return longDate(new Date(timestamp));
 }
 
 /**
@@ -97,19 +111,14 @@ export function getLastMonthRange(): { start: Date; end: Date } {
  * Format a date to short format (e.g., "Jan 15")
  */
 export function formatShortDate(dateString: string | Date): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return shortDate(new Date(dateString));
 }
 
 /**
  * Format a time to 12-hour format (e.g., "02:30 PM")
  */
 export function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return shortTime(new Date(dateString));
 }
 
 /**

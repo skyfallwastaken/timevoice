@@ -138,6 +138,14 @@
     }
   }
 
+  // An instant visit waits for its page component before it renders, so load
+  // the sidebar pages' chunks up front.
+  $effect(() => {
+    for (const item of navItems) {
+      router.resolveComponent(item.component).catch(() => {});
+    }
+  });
+
   // Refill the cache on load, on switching workspace, and every minute.
   $effect(() => {
     const hrefs = navItems.map((item) => item.href(currentWorkspaceHashid));

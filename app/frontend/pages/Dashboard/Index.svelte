@@ -32,6 +32,7 @@
     SearchX,
   } from "@lucide/svelte";
   import {
+    dateFormatter,
     formatDuration,
     formatHours,
     parseLocalDate,
@@ -292,19 +293,24 @@
     if (key === toDateString(today)) return "Today";
     if (key === toDateString(yesterday)) return "Yesterday";
     const date = parseLocalDate(key);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      ...(date.getFullYear() !== today.getFullYear() && { year: "numeric" }),
-    });
+    return date.getFullYear() !== today.getFullYear()
+      ? dayInOtherYear(date)
+      : dayInThisYear(date);
   }
+  const dayInThisYear = dateFormatter({
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const dayInOtherYear = dateFormatter({
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
-  const clockTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+  const clock = dateFormatter({ hour: "numeric", minute: "2-digit" });
+  const clockTime = (iso: string) => clock(new Date(iso));
 
   // Selection
   const selected = new SvelteSet<number>();

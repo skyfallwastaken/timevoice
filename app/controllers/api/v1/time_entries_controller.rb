@@ -96,7 +96,11 @@ module Api
           attrs[:project] = src[:project_id].present? ? find_referenced!(current_workspace.projects, :project_id, src[:project_id]) : nil
         end
         if src.key?(:tag_ids)
-          attrs[:tags] = Array(src[:tag_ids]).uniq.map { |hashid| find_referenced!(current_workspace.tags, :tag_ids, hashid) }
+          ids = Array(src[:tag_ids]).uniq.index_with { |hashid| Tag.decode_id(hashid.to_s) }
+          tags = current_workspace.tags.where(id: ids.values.compact).index_by(&:id)
+          attrs[:tags] = ids.map do |hashid, id|
+            tags[id] || raise(InvalidParameter, "tag_ids #{hashid.to_s.inspect} does not exist in this workspace")
+          end.uniq
         end
         attrs
       end
@@ -118,12 +122,17 @@ module Api
           duration_seconds: time_entry.duration,
           billable: time_entry.billable,
           project: time_entry.project && {
-            id: Project.encode_id(time_entry.project.id),
+            id: encoded_id(Project, time_entry.project.id),
             name: time_entry.project.name,
             color: time_entry.project.color
           },
-          tags: time_entry.tags.map { |tag| { id: Tag.encode_id(tag.id), name: tag.name, color: nil } }
+          tags: time_entry.tags.map { |tag| { id: encoded_id(Tag, tag.id), name: tag.name, color: nil } }
         }
+      end
+
+      # Hashid encoding is slow, and long lists repeat the same projects and tags.
+      def encoded_id(model, id)
+        (@encoded_ids ||= {})[[ model, id ]] ||= model.encode_id(id)
       end
     end
   end

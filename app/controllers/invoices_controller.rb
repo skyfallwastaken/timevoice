@@ -16,14 +16,15 @@ class InvoicesController < ApplicationController
 
   def index
     @invoices = current_workspace.invoices
-      .includes(:client, :invoice_lines)
+      .includes(:client)
       .order(created_at: :desc)
+    line_counts = InvoiceLine.where(invoice_id: current_workspace.invoices.select(:id)).group(:invoice_id).count
 
     @clients = current_workspace.clients.order(:name)
 
     @unbilled_entries = policy_scope(TimeEntry)
       .unbilled
-      .includes(:tags, project: :client)
+      .includes(project: :client)
       .order(start_at: :desc)
 
     @invoice_settings = current_workspace.invoice_setting || InvoiceSetting.new(
@@ -36,25 +37,21 @@ class InvoicesController < ApplicationController
         invoice.as_json(
           only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
           methods: [ :hashid ],
-          include: {
-            client: { only: [ :id, :name ] },
-            invoice_lines: { only: [ :id, :description, :qty_hours, :amount_cents ] }
-          }
+          include: { client: { only: [ :id, :name ] } }
         ).merge(
           total_amount: invoice.formatted_total,
-          line_count: invoice.invoice_lines.size
+          line_count: line_counts[invoice.id] || 0
         )
       },
       clients: @clients.as_json(only: [ :id, :name, :billing_address ]),
-       unbilledEntries: @unbilled_entries.map { |entry|
-         entry.as_json(
-           only: [ :id, :description, :duration_seconds, :billable, :start_at ],
-           include: {
-             project: { only: [ :id, :name, :color, :client_id ], include: { client: { only: [ :id, :name ] } } },
-             tags: { only: [ :id, :name ] }
-           }
-         ).merge(hours: entry.duration_hours)
-       },
+      unbilledEntries: @unbilled_entries.map { |entry|
+        entry.as_json(
+          only: [ :id, :description, :duration_seconds, :billable, :start_at ],
+          include: {
+            project: { only: [ :id, :name, :color, :client_id ], include: { client: { only: [ :id, :name ] } } }
+          }
+        ).merge(hours: entry.duration_hours)
+      },
       invoiceSettings: {
         billable_rate_cents: @invoice_settings.billable_rate_cents,
         sender_name: @invoice_settings.sender_name,

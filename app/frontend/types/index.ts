@@ -132,5 +132,4 @@ export type UnbilledEntry = {
     client_id: number | null;
     client: { id: number; name: string } | null;
   } | null;
-  tags: Tag[];
 };

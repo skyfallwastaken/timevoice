@@ -92,6 +92,22 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "entries list their own tags" do
+    design = @workspace.tags.create!(name: "design")
+    review = @workspace.tags.create!(name: "review")
+    tagged = TimeEntry.create!(user: @user, workspace: @workspace, description: "Tagged", start_at: Time.utc(2026, 11, 4, 10), end_at: Time.utc(2026, 11, 4, 11))
+    tagged.tags = [ review, design ]
+    TimeEntry.create!(user: @user, workspace: @workspace, description: "Untagged", start_at: Time.utc(2026, 11, 4, 12), end_at: Time.utc(2026, 11, 4, 13))
+
+    get "/#{@workspace.hashid}/timer", params: { range: "all" }
+    tags = inertia_props["recentEntries"].to_h { |entry| [ entry["description"], entry["tags"] ] }
+    assert_equal [ { "id" => review.id, "name" => "review" }, { "id" => design.id, "name" => "design" } ], tags["Tagged"]
+    assert_equal [], tags["Untagged"]
+
+    get "/#{@workspace.hashid}/timer", params: { view: "calendar", week_start: "2026-11-02" }
+    assert_equal [ [ "review", "design" ], [] ], inertia_props["entries"].map { |entry| entry["tags"].pluck("name") }
+  end
+
   test "the calendar view is remembered and shows the requested week" do
     TimeEntry.create!(
       user: @user, workspace: @workspace, description: "Week 45",
