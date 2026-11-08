@@ -10,7 +10,8 @@
     title: string;
     itemName: string;
     warningMessage: string;
-    onConfirm: () => void;
+    /** Receives the typed confirmation text when `confirmText` is set. */
+    onConfirm: (typed: string) => void;
     onClose: () => void;
     actionVerb?: string;
     confirmLabel?: string;
@@ -41,7 +42,7 @@
   function confirmFromInput(event: KeyboardEvent) {
     if (event.key !== "Enter" || !confirmed) return;
     event.preventDefault();
-    onConfirm();
+    onConfirm(typed);
     open = false;
   }
 
@@ -111,7 +112,7 @@
           <Button variant="ghost" {...props}>Cancel</Button>
         {/snippet}
       </AlertDialogPrimitive.Cancel>
-      <AlertDialogPrimitive.Action onclick={onConfirm}>
+      <AlertDialogPrimitive.Action onclick={() => onConfirm(typed)}>
         {#snippet child({ props })}
           <Button tone="red" {...props} disabled={!confirmed}
             >{shown.confirmLabel}</Button

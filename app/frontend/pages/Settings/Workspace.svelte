@@ -101,9 +101,9 @@
       });
   }
 
-  function confirmDeleteWorkspace() {
+  function confirmDeleteWorkspace(typedName: string) {
     router.delete(routes.settings.deleteWorkspace(workspaceId), {
-      data: { confirm_name: workspace.name },
+      data: { confirm_name: typedName },
     });
     showDeleteModal = false;
   }
