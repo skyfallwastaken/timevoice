@@ -5,6 +5,7 @@ module Api
     class ProjectsController < BaseController
       before_action :require_workspace!
       before_action :set_project, only: [ :show, :update, :destroy ]
+      before_action -> { require_scope! :projects }, only: [ :create, :update, :destroy ]
 
       def index
         projects = current_workspace.projects.includes(:client).order(:name)
@@ -17,33 +18,24 @@ module Api
       end
 
       def create
-        require_scope!(:projects)
-        return if performed?
-
         project = current_workspace.projects.build(project_attrs)
 
         if project.save
           render json: serialize_project(project), status: :created
         else
-          render json: { error: "unprocessable_entity", message: project.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(project)
         end
       end
 
       def update
-        require_scope!(:projects)
-        return if performed?
-
         if @project.update(project_attrs)
           render json: serialize_project(@project)
         else
-          render json: { error: "unprocessable_entity", message: @project.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@project)
         end
       end
 
       def destroy
-        require_scope!(:projects)
-        return if performed?
-
         @project.destroy
         head :no_content
       end
@@ -51,8 +43,7 @@ module Api
       private
 
       def set_project
-        project_id = Project.decode_id(params[:id])
-        @project = current_workspace.projects.find_by!(id: project_id)
+        @project = current_workspace.projects.find_by_hashid!(params[:id])
       end
 
       def project_attrs

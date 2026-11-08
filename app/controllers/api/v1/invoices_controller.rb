@@ -51,7 +51,7 @@ module Api
         if @invoice.update(attrs)
           render json: serialize_invoice(@invoice, include_lines: true)
         else
-          render json: { error: "unprocessable_entity", message: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@invoice)
         end
       end
 

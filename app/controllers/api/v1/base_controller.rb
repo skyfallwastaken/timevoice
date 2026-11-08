@@ -77,7 +77,11 @@ module Api
       end
 
       def unprocessable_entity(exception)
-        render json: { error: "unprocessable_entity", message: exception.record.errors.full_messages.join(", ") }, status: :unprocessable_entity
+        render_validation_error(exception.record)
+      end
+
+      def render_validation_error(record)
+        render json: { error: "unprocessable_entity", message: record.errors.full_messages.join(", ") }, status: :unprocessable_entity
       end
     end
   end

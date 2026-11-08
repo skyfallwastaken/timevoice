@@ -6,6 +6,7 @@ module Api
       before_action :require_workspace!
       before_action :set_time_entry, only: [ :show, :update, :destroy ]
       before_action :set_running_time_entry, only: [ :stop ]
+      before_action -> { require_scope! :time_entries }, only: [ :create, :update, :destroy, :start, :stop ]
 
       def index
         time_entries = current_user.time_entries
@@ -35,56 +36,41 @@ module Api
       end
 
       def create
-        require_scope!(:time_entries)
-        return if performed?
-
         time_entry = current_user.time_entries.build(time_entry_attrs)
         time_entry.workspace = current_workspace
 
         if time_entry.save_stopping_running_entries
           render json: serialize_time_entry(time_entry), status: :created
         else
-          render json: { error: "unprocessable_entity", message: time_entry.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(time_entry)
         end
       end
 
       def update
-        require_scope!(:time_entries)
-        return if performed?
-
         if @time_entry.update(time_entry_attrs)
           render json: serialize_time_entry(@time_entry)
         else
-          render json: { error: "unprocessable_entity", message: @time_entry.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@time_entry)
         end
       end
 
       def destroy
-        require_scope!(:time_entries)
-        return if performed?
-
         @time_entry.destroy
         head :no_content
       end
 
       def start
-        require_scope!(:time_entries)
-        return if performed?
-
         time_entry = current_user.time_entries.build(time_entry_attrs.merge(start_at: Time.current, end_at: nil))
         time_entry.workspace = current_workspace
 
         if time_entry.save_stopping_running_entries
           render json: serialize_time_entry(time_entry), status: :created
         else
-          render json: { error: "unprocessable_entity", message: time_entry.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(time_entry)
         end
       end
 
       def stop
-        require_scope!(:time_entries)
-        return if performed?
-
         @time_entry.stop!
         render json: serialize_time_entry(@time_entry)
       end
@@ -92,13 +78,11 @@ module Api
       private
 
       def set_time_entry
-        time_entry_id = TimeEntry.decode_id(params[:id])
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).find_by!(id: time_entry_id)
+        @time_entry = current_user.time_entries.where(workspace: current_workspace).find_by_hashid!(params[:id])
       end
 
       def set_running_time_entry
-        time_entry_id = TimeEntry.decode_id(params[:id])
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by!(id: time_entry_id)
+        @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by_hashid!(params[:id])
       end
 
       # Accepts the documented field names (started_at/ended_at, hashid
