@@ -9,8 +9,7 @@
   import SelectInput from "../../components/SelectInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page } from "@inertiajs/svelte";
-  import { useForm } from "@inertiajs/svelte";
+  import { page, router, useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import {
     FolderKanban,
@@ -58,31 +57,65 @@
     editForm.reset();
   }
 
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name);
+
+  const withFormFields = (
+    project: Project,
+    form: typeof createForm,
+  ): Project => {
+    const client = clients.find((c) => String(c.id) === form.client_id);
+    return {
+      ...project,
+      name: form.name,
+      color: form.color,
+      billable_default: form.billable_default,
+      client: client && { id: client.id, name: client.name },
+    };
+  };
+
   function handleCreate() {
     if (!workspaceId) return;
-    createForm.post(routes.projects.create(workspaceId), {
-      onSuccess: () => {
-        createForm.reset();
-        createForm.color = colors[0] ?? "";
-      },
-    });
+    createForm
+      .optimistic<{ projects: Project[] }>((props) => ({
+        projects: [
+          ...props.projects,
+          withFormFields({ id: -Date.now() } as Project, createForm),
+        ].sort(byName),
+      }))
+      .post(routes.projects.create(workspaceId), {
+        onSuccess: () => {
+          createForm.reset();
+          createForm.color = colors[0] ?? "";
+        },
+      });
   }
 
   function handleUpdate(projectId: number) {
     if (!workspaceId) return;
-    editForm.patch(routes.projects.update(workspaceId, projectId), {
-      onSuccess: () => {
-        editingId = null;
-        editForm.reset();
-      },
-    });
+    editingId = null;
+    editForm
+      .optimistic<{ projects: Project[] }>((props) => ({
+        projects: props.projects
+          .map((p) => (p.id === projectId ? withFormFields(p, editForm) : p))
+          .sort(byName),
+      }))
+      .patch(routes.projects.update(workspaceId, projectId), {
+        onSuccess: () => editForm.reset(),
+        onError: () => (editingId = projectId),
+      });
   }
 
   let projectToDelete: Project | null = $state(null);
 
   function confirmDelete() {
     if (projectToDelete && workspaceId) {
-      editForm.delete(routes.projects.delete(workspaceId, projectToDelete.id));
+      const { id } = projectToDelete;
+      router
+        .optimistic<{ projects: Project[] }>((props) => ({
+          projects: props.projects.filter((p) => p.id !== id),
+        }))
+        .delete(routes.projects.delete(workspaceId, id));
     }
     projectToDelete = null;
   }

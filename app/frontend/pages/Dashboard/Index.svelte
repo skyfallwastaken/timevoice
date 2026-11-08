@@ -279,11 +279,21 @@
     showDeleteModal = false;
   }
 
+  // Drops entries from both views at once; Inertia restores them if the delete fails.
+  const withoutEntries =
+    (ids: number[]) =>
+    (props: { recentEntries?: TimeEntry[]; entries?: TimeEntry[] }) => ({
+      recentEntries: props.recentEntries?.filter((e) => !ids.includes(e.id)),
+      entries: props.entries?.filter((e) => !ids.includes(e.id)),
+    });
+
   function confirmDeleteEntry() {
     if (!entryToDelete || !workspaceId) return;
-    router.delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
-      preserveScroll: true,
-    });
+    router
+      .optimistic(withoutEntries([entryToDelete.id]))
+      .delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
+        preserveScroll: true,
+      });
     if (editingEntry?.id === entryToDelete.id) closeEdit();
     closeDeleteModal();
   }
@@ -314,11 +324,14 @@
     createFrom(entry, { start_at: entry.start_at, end_at: entry.end_at! });
 
   function confirmBulkDelete() {
-    router.delete(routes.timeEntries.bulkDestroy(workspaceId), {
-      data: { ids: [...selected] },
-      preserveScroll: true,
-      onSuccess: clearSelection,
-    });
+    const ids = [...selected];
+    router
+      .optimistic(withoutEntries(ids))
+      .delete(routes.timeEntries.bulkDestroy(workspaceId), {
+        data: { ids },
+        preserveScroll: true,
+        onSuccess: clearSelection,
+      });
     showBulkDelete = false;
   }
 

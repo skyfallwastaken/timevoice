@@ -8,8 +8,7 @@
   import TextArea from "../../components/TextArea.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page } from "@inertiajs/svelte";
-  import { useForm } from "@inertiajs/svelte";
+  import { page, router, useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import {
     Users,
@@ -53,30 +52,64 @@
     editForm.reset();
   }
 
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name);
+
   function handleCreate() {
     if (!workspaceId) return;
-    createForm.post(routes.clients.create(workspaceId), {
-      onSuccess: () => {
-        createForm.reset();
-      },
-    });
+    createForm
+      .optimistic<{ clients: Client[] }>((props) => ({
+        clients: [
+          ...props.clients,
+          {
+            id: -Date.now(),
+            name: createForm.name,
+            email: createForm.email,
+            billing_address: createForm.billing_address,
+          },
+        ].sort(byName),
+      }))
+      .post(routes.clients.create(workspaceId), {
+        onSuccess: () => {
+          createForm.reset();
+        },
+      });
   }
 
   function handleUpdate(clientId: number) {
     if (!workspaceId) return;
-    editForm.patch(routes.clients.update(workspaceId, clientId), {
-      onSuccess: () => {
-        editingId = null;
-        editForm.reset();
-      },
-    });
+    editingId = null;
+    editForm
+      .optimistic<{ clients: Client[] }>((props) => ({
+        clients: props.clients
+          .map((c) =>
+            c.id === clientId
+              ? {
+                  ...c,
+                  name: editForm.name,
+                  email: editForm.email,
+                  billing_address: editForm.billing_address,
+                }
+              : c,
+          )
+          .sort(byName),
+      }))
+      .patch(routes.clients.update(workspaceId, clientId), {
+        onSuccess: () => editForm.reset(),
+        onError: () => (editingId = clientId),
+      });
   }
 
   let clientToDelete: Client | null = $state(null);
 
   function confirmDelete() {
     if (clientToDelete && workspaceId) {
-      editForm.delete(routes.clients.delete(workspaceId, clientToDelete.id));
+      const { id } = clientToDelete;
+      router
+        .optimistic<{ clients: Client[] }>((props) => ({
+          clients: props.clients.filter((c) => c.id !== id),
+        }))
+        .delete(routes.clients.delete(workspaceId, id));
     }
     clientToDelete = null;
   }

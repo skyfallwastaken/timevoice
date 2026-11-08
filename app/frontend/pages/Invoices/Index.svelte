@@ -186,11 +186,17 @@
   }
 
   function updateInvoiceStatus(invoiceHashid: string, status: string) {
-    router.patch(
-      routes.invoices.update(workspaceId, invoiceHashid),
-      { invoice: { status } },
-      { preserveScroll: true },
-    );
+    router
+      .optimistic<{ invoices: Invoice[] }>((props) => ({
+        invoices: props.invoices.map((i) =>
+          i.hashid === invoiceHashid ? { ...i, status } : i,
+        ),
+      }))
+      .patch(
+        routes.invoices.update(workspaceId, invoiceHashid),
+        { invoice: { status } },
+        { preserveScroll: true },
+      );
   }
 
   function openDeleteModal(invoice: Invoice) {

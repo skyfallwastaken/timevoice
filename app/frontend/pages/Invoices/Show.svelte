@@ -92,11 +92,15 @@
   }
 
   function updateInvoiceStatus(status: string) {
-    router.patch(
-      routes.invoices.update(workspaceId, invoice.hashid),
-      { invoice: { status } },
-      { preserveScroll: true },
-    );
+    router
+      .optimistic<{ invoice: Invoice }>((props) => ({
+        invoice: { ...props.invoice, status },
+      }))
+      .patch(
+        routes.invoices.update(workspaceId, invoice.hashid),
+        { invoice: { status } },
+        { preserveScroll: true },
+      );
   }
 
   function openEmailModal() {

@@ -22,6 +22,7 @@
   import Button from "./Button.svelte";
   import IconButton from "./IconButton.svelte";
   import { fly, fade } from "svelte/transition";
+  import { untrack } from "svelte";
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
   import { routes } from "../lib/routes";
@@ -38,14 +39,108 @@
   );
 
   const navItems = [
-    { href: routes.dashboard.index, icon: Clock, label: "Timer" },
-    { href: routes.clients.index, icon: Building2, label: "Clients" },
-    { href: routes.projects.index, icon: FolderKanban, label: "Projects" },
-    { href: routes.tags.index, icon: Tag, label: "Tags" },
-    { href: routes.reports.index, icon: BarChart3, label: "Reports" },
-    { href: routes.invoices.index, icon: FileText, label: "Invoices" },
-    { href: routes.settings.index, icon: Settings, label: "Settings" },
+    {
+      href: routes.dashboard.index,
+      icon: Clock,
+      label: "Timer",
+      component: "Dashboard/Index",
+    },
+    {
+      href: routes.clients.index,
+      icon: Building2,
+      label: "Clients",
+      component: "Clients/Index",
+    },
+    {
+      href: routes.projects.index,
+      icon: FolderKanban,
+      label: "Projects",
+      component: "Projects/Index",
+    },
+    {
+      href: routes.tags.index,
+      icon: Tag,
+      label: "Tags",
+      component: "Tags/Index",
+    },
+    {
+      href: routes.reports.index,
+      icon: BarChart3,
+      label: "Reports",
+      component: "Reports/Index",
+    },
+    {
+      href: routes.invoices.index,
+      icon: FileText,
+      label: "Invoices",
+      component: "Invoices/Index",
+    },
+    {
+      href: routes.settings.index,
+      icon: Settings,
+      label: "Settings",
+      component: "Settings/Workspace",
+    },
   ];
+
+  // The latest props of each sidebar page, by path. A nav link with cached
+  // props is an instant visit: it renders the page from the cache at once
+  // while the visit fetches fresh props. Pages without cached props yet use a
+  // regular visit.
+  const pageCache: Record<string, Record<string, unknown>> = $state({});
+  const pathOf = (url: string) => url.split("?")[0];
+
+  const instantPageProps =
+    (href: string) => (_: unknown, shared: Record<string, unknown>) => ({
+      ...pageCache[href],
+      ...shared,
+      flash: {},
+    });
+
+  // Fetches each sidebar page's props the way an Inertia visit would,
+  // without touching the current page or Inertia's prefetch cache.
+  function refreshPageCache(workspaceHashid: string) {
+    for (const item of navItems) {
+      const href = item.href(workspaceHashid);
+      if (href === pathOf(page.url)) {
+        pageCache[href] = page.props;
+        continue;
+      }
+      fetch(href, {
+        headers: {
+          "X-Inertia": "true",
+          "X-Inertia-Version": page.version ?? "",
+          Purpose: "prefetch",
+        },
+      })
+        .then((response) =>
+          response.ok && response.headers.has("X-Inertia")
+            ? response.json()
+            : null,
+        )
+        .then((fetched) => {
+          if (fetched?.props) pageCache[href] = fetched.props;
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Refill the cache on load, on switching workspace, and every minute.
+  $effect(() => {
+    const stopNavigate = router.on("navigate", (event) => {
+      pageCache[pathOf(event.detail.page.url)] = event.detail.page.props;
+    });
+    const workspaceHashid = currentWorkspaceHashid;
+    const refresh = () => untrack(() => refreshPageCache(workspaceHashid));
+    refresh();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 60_000);
+    return () => {
+      stopNavigate();
+      clearInterval(timer);
+    };
+  });
   const workspaces = $derived(page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);
@@ -143,7 +238,8 @@
       {@const isActive = page.url === href || page.url.startsWith(href + "/")}
       <Link
         {href}
-        prefetch
+        component={pageCache[href] ? item.component : undefined}
+        pageProps={instantPageProps(href)}
         {onclick}
         class="w-full relative flex items-center gap-2 px-3 py-2 rounded-[10px] transition-colors duration-150 {isActive
           ? 'text-bright-purple'
