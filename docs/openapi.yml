@@ -553,18 +553,27 @@ components:
                 type: string
                 example: unauthorized
     Forbidden:
-      description: The access token lacks the required scope
+      description: The access token lacks the required scope (`insufficient_scope`, with `error_description`), or your workspace role can't perform this action (`forbidden`, with `message`)
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: insufficient_scope
-              error_description:
-                type: string
-                example: "Required scope: invoices"
+            oneOf:
+              - type: object
+                properties:
+                  error:
+                    type: string
+                    const: insufficient_scope
+                  error_description:
+                    type: string
+                    example: "Required scope: invoices"
+              - type: object
+                properties:
+                  error:
+                    type: string
+                    const: forbidden
+                  message:
+                    type: string
+                    example: You are not authorized to perform this action
     NotFound:
       description: Resource not found
       content:
@@ -724,6 +733,8 @@ components:
           type: string
         email:
           type: string
+        billing_address:
+          type: [string, "null"]
       required:
         - name
 
