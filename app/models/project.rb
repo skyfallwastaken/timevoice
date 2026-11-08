@@ -22,6 +22,10 @@ class Project < ApplicationRecord
     client ? "#{client.name}: #{name}" : name
   end
 
+  def as_props
+    as_json(only: [ :id, :name, :color, :billable_default ], include: { client: { only: [ :id, :name ] } })
+  end
+
   private
 
   def client_in_workspace

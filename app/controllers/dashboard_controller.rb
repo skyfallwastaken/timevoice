@@ -12,12 +12,7 @@ class DashboardController < ApplicationController
 
     render inertia: "Dashboard/Index", props: {
       view: view,
-      projects: current_workspace.projects.includes(:client).order(:name).map { |project|
-        project.as_json(
-          only: [ :id, :name, :color, :billable_default ],
-          include: { client: { only: [ :id, :name ] } }
-        )
-      },
+      projects: current_workspace.projects.includes(:client).order(:name).map(&:as_props),
       tags: current_workspace.tags.order(:name).as_json(only: [ :id, :name ]),
       recentDescriptions: recent_descriptions
     }.merge(view == "calendar" ? calendar_props : list_props)
@@ -45,7 +40,7 @@ class DashboardController < ApplicationController
     entries = entries.where(TimeEntry.arel_table[:description].matches("%#{TimeEntry.sanitize_sql_like(filters[:q])}%")) if filters[:q]
 
     {
-      recentEntries: entries.map { |entry| entry_json(entry) },
+      recentEntries: entries.map { |entry| entry.as_props(with_files: true) },
       filters: filters,
       hasEntries: policy_scope(TimeEntry).completed.exists?,
       entryLimit: ENTRY_LIMIT
@@ -66,7 +61,7 @@ class DashboardController < ApplicationController
       .order(start_at: :asc)
 
     {
-      entries: entries.map { |entry| entry_json(entry) },
+      entries: entries.map { |entry| entry.as_props(with_files: true) },
       weekStart: week_start.to_s
     }
   end
@@ -98,26 +93,5 @@ class DashboardController < ApplicationController
     TimeEntry.where(id: latest_ids).eager_load(:tags).order(start_at: :desc).map { |entry|
       { description: entry.description, project_id: entry.project_id, tag_ids: entry.tags.map(&:id), billable: entry.billable }
     }
-  end
-
-  def entry_json(entry)
-    entry.as_json(
-      only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
-      include: {
-        project: { only: [ :id, :name, :color ] },
-        tags: { only: [ :id, :name ] }
-      }
-    ).merge(
-      formattedDuration: entry.formatted_duration,
-      files: entry.files.map { |file|
-        {
-          id: file.id,
-          blob_id: file.blob_id,
-          filename: file.filename.to_s,
-          byte_size: file.byte_size,
-          content_type: file.content_type
-        }
-      }
-    )
   end
 end

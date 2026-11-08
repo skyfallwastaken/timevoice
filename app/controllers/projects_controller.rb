@@ -11,12 +11,7 @@ class ProjectsController < ApplicationController
     @clients = current_workspace.clients.order(:name)
 
     render inertia: "Projects/Index", props: {
-      projects: @projects.map { |project|
-        project.as_json(
-          only: [ :id, :name, :color, :billable_default ],
-          include: { client: { only: [ :id, :name ] } }
-        )
-      },
+      projects: @projects.map(&:as_props),
       clients: @clients.as_json(only: [ :id, :name ]),
       colors: Project::GRUVBOX_COLORS
     }
