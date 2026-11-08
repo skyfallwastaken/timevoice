@@ -12,7 +12,10 @@
     Key,
     ExternalLink,
     Play,
+    Settings,
   } from "@lucide/svelte";
+  import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+  import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
   import ChipButton from "../../components/ChipButton.svelte";
   import EmptyState from "../../components/EmptyState.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -23,6 +26,7 @@
   import IconButton from "../../components/IconButton.svelte";
   import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
+  import { formatTimestamp } from "../../lib/format";
   import { routes } from "../../lib/routes";
 
   type OAuthApp = {
@@ -149,20 +153,29 @@
     }, 2000);
   }
 
-  function toggleScope(scope: string, form: typeof createForm) {
+  type AppForm = typeof createForm;
+
+  const appTypes = [
+    {
+      value: "public",
+      label: "Public (PKCE)",
+      description:
+        "For mobile apps, SPAs, or CLI tools. Uses PKCE for security.",
+    },
+    {
+      value: "confidential",
+      label: "Confidential",
+      description:
+        "For server-side apps that can securely store a client secret.",
+    },
+  ];
+
+  function toggleScope(scope: string, form: AppForm) {
     if (form.scopes.includes(scope)) {
       form.scopes = form.scopes.filter((s) => s !== scope);
     } else {
       form.scopes = [...form.scopes, scope];
     }
-  }
-
-  function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   }
 
   function generateCodeVerifier(): string {
@@ -204,12 +217,104 @@
   }
 </script>
 
-<PageLayout
-  title="Developer Settings"
-  icon={Code}
-  iconColor="text-bright-purple"
-  variant="narrow"
->
+{#snippet appFields(form: AppForm, idPrefix: string)}
+  <FormField
+    id="{idPrefix}-name"
+    label="Application Name"
+    required
+    error={form.errors.name}
+  >
+    {#snippet children({ describedBy })}
+      <TextInput
+        id="{idPrefix}-name"
+        tone="purple"
+        bind:value={form.name}
+        placeholder="My Awesome App"
+        aria-describedby={describedBy}
+      />
+    {/snippet}
+  </FormField>
+
+  <FormField
+    id="{idPrefix}-redirect"
+    label="Redirect URI"
+    error={form.errors.redirect_uri}
+    description="The callback URL where users will be redirected after authorization."
+    required
+  >
+    {#snippet children({ describedBy })}
+      <TextInput
+        id="{idPrefix}-redirect"
+        tone="purple"
+        bind:value={form.redirect_uri}
+        placeholder="https://myapp.com/oauth/callback"
+        aria-describedby={describedBy}
+      />
+    {/snippet}
+  </FormField>
+
+  <FormField
+    id="{idPrefix}-confidential"
+    label="Application Type"
+    description="Confidential apps can keep secrets secure (server-side). Public apps use PKCE instead (mobile/SPA)."
+  >
+    {#snippet children({ describedBy })}
+      <RadioGroup.Root
+        value={form.confidential ? "confidential" : "public"}
+        aria-label="Application Type"
+        onValueChange={(value) =>
+          (form.confidential = value === "confidential")}
+        aria-describedby={describedBy}
+      >
+        {#each appTypes as type (type.value)}
+          <label
+            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
+          >
+            <RadioGroup.Item value={type.value} class="mt-0.5" />
+            <div>
+              <span class="font-medium text-fg-primary">{type.label}</span>
+              <p class="text-sm text-fg-muted mt-0.5">{type.description}</p>
+            </div>
+          </label>
+        {/each}
+      </RadioGroup.Root>
+    {/snippet}
+  </FormField>
+
+  <FormField
+    id="{idPrefix}-scopes"
+    label="Scopes"
+    error={form.errors.scopes}
+    description="Select the permissions your application needs."
+  >
+    {#snippet children({ describedBy })}
+      <div
+        class="space-y-2"
+        role="group"
+        aria-label="Scopes"
+        aria-describedby={describedBy}
+      >
+        {#each Object.entries(scopes) as [scope, description]}
+          <label
+            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
+          >
+            <Checkbox
+              class="mt-0.5"
+              checked={form.scopes.includes(scope)}
+              onCheckedChange={() => toggleScope(scope, form)}
+            />
+            <div>
+              <span class="font-medium text-fg-primary">{scope}</span>
+              <p class="text-sm text-fg-muted mt-0.5">{description}</p>
+            </div>
+          </label>
+        {/each}
+      </div>
+    {/snippet}
+  </FormField>
+{/snippet}
+
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="developer" />
   </SectionCard>
@@ -221,12 +326,13 @@
         size="sm"
         aria-label="Create new OAuth application"
         type="button"
+        class="whitespace-nowrap"
         onclick={() => {
           createForm.reset().clearErrors();
           showCreateModal = true;
         }}
       >
-        <Plus class="w-4 h-4" aria-hidden="true" />
+        <Plus class="w-4 h-4 hidden sm:block" aria-hidden="true" />
         New App
       </Button>
     {/snippet}
@@ -250,7 +356,7 @@
               <div>
                 <h4 class="font-medium text-fg-primary">{app.name}</h4>
                 <p class="text-sm text-fg-muted mt-0.5">
-                  Created {formatDate(app.created_at)}
+                  Created {formatTimestamp(app.created_at)}
                   {#if app.confidential}
                     <span
                       class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-bright-blue/20 text-bright-blue rounded"
@@ -427,7 +533,6 @@
     </div>
   </SectionCard>
 
-  <!-- Create Modal -->
   <Modal
     bind:open={showCreateModal}
     title="Create OAuth Application"
@@ -436,113 +541,7 @@
       showCreateModal = false;
     }}
   >
-    <FormField
-      id="app-name"
-      label="Application Name"
-      required
-      error={createForm.errors.name}
-    >
-      {#snippet children({ describedBy })}
-        <TextInput
-          id="app-name"
-          tone="purple"
-          bind:value={createForm.name}
-          placeholder="My Awesome App"
-          aria-describedby={describedBy}
-        />
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="app-redirect"
-      label="Redirect URI"
-      error={createForm.errors.redirect_uri}
-      description="The callback URL where users will be redirected after authorization."
-      required
-    >
-      {#snippet children({ describedBy })}
-        <TextInput
-          id="app-redirect"
-          tone="purple"
-          bind:value={createForm.redirect_uri}
-          placeholder="https://myapp.com/oauth/callback"
-          aria-describedby={describedBy}
-        />
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="app-confidential"
-      label="Application Type"
-      description="Confidential apps can keep secrets secure (server-side). Public apps use PKCE instead (mobile/SPA)."
-    >
-      {#snippet children({ describedBy })}
-        <div class="space-y-2" role="group" aria-describedby={describedBy}>
-          <label
-            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-          >
-            <input
-              type="radio"
-              name="create-confidential"
-              checked={!createForm.confidential}
-              onchange={() => (createForm.confidential = false)}
-              class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-            />
-            <div>
-              <span class="font-medium text-fg-primary">Public (PKCE)</span>
-              <p class="text-sm text-fg-muted mt-0.5">
-                For mobile apps, SPAs, or CLI tools. Uses PKCE for security.
-              </p>
-            </div>
-          </label>
-          <label
-            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-          >
-            <input
-              type="radio"
-              name="create-confidential"
-              checked={createForm.confidential}
-              onchange={() => (createForm.confidential = true)}
-              class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-            />
-            <div>
-              <span class="font-medium text-fg-primary">Confidential</span>
-              <p class="text-sm text-fg-muted mt-0.5">
-                For server-side apps that can securely store a client secret.
-              </p>
-            </div>
-          </label>
-        </div>
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="app-scopes"
-      label="Scopes"
-      error={createForm.errors.scopes}
-      description="Select the permissions your application needs."
-    >
-      {#snippet children({ describedBy })}
-        <div class="space-y-2" role="group" aria-describedby={describedBy}>
-          {#each Object.entries(scopes) as [scope, description]}
-            <label
-              class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={createForm.scopes.includes(scope)}
-                onchange={() => toggleScope(scope, createForm)}
-                class="mt-0.5 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-              />
-              <div>
-                <span class="font-medium text-fg-primary">{scope}</span>
-                <p class="text-sm text-fg-muted mt-0.5">{description}</p>
-              </div>
-            </label>
-          {/each}
-        </div>
-      {/snippet}
-    </FormField>
+    {@render appFields(createForm, "app")}
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">
@@ -570,7 +569,6 @@
     {/snippet}
   </Modal>
 
-  <!-- Edit Modal -->
   <Modal
     bind:open={showEditModal}
     title="Edit OAuth Application"
@@ -579,111 +577,7 @@
       showEditModal = false;
     }}
   >
-    <FormField
-      id="edit-app-name"
-      label="Application Name"
-      required
-      error={editForm.errors.name}
-    >
-      {#snippet children({ describedBy })}
-        <TextInput
-          id="edit-app-name"
-          tone="purple"
-          bind:value={editForm.name}
-          aria-describedby={describedBy}
-        />
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="edit-app-redirect"
-      label="Redirect URI"
-      error={editForm.errors.redirect_uri}
-      description="The callback URL where users will be redirected after authorization."
-      required
-    >
-      {#snippet children({ describedBy })}
-        <TextInput
-          id="edit-app-redirect"
-          tone="purple"
-          bind:value={editForm.redirect_uri}
-          aria-describedby={describedBy}
-        />
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="edit-app-confidential"
-      label="Application Type"
-      description="Confidential apps can keep secrets secure (server-side). Public apps use PKCE instead (mobile/SPA)."
-    >
-      {#snippet children({ describedBy })}
-        <div class="space-y-2" role="group" aria-describedby={describedBy}>
-          <label
-            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-          >
-            <input
-              type="radio"
-              name="edit-confidential"
-              checked={!editForm.confidential}
-              onchange={() => (editForm.confidential = false)}
-              class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-            />
-            <div>
-              <span class="font-medium text-fg-primary">Public (PKCE)</span>
-              <p class="text-sm text-fg-muted mt-0.5">
-                For mobile apps, SPAs, or CLI tools. Uses PKCE for security.
-              </p>
-            </div>
-          </label>
-          <label
-            class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-          >
-            <input
-              type="radio"
-              name="edit-confidential"
-              checked={editForm.confidential}
-              onchange={() => (editForm.confidential = true)}
-              class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-            />
-            <div>
-              <span class="font-medium text-fg-primary">Confidential</span>
-              <p class="text-sm text-fg-muted mt-0.5">
-                For server-side apps that can securely store a client secret.
-              </p>
-            </div>
-          </label>
-        </div>
-      {/snippet}
-    </FormField>
-
-    <FormField
-      id="edit-app-scopes"
-      label="Scopes"
-      error={editForm.errors.scopes}
-      description="Select the permissions your application needs."
-    >
-      {#snippet children({ describedBy })}
-        <div class="space-y-2" role="group" aria-describedby={describedBy}>
-          {#each Object.entries(scopes) as [scope, description]}
-            <label
-              class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={editForm.scopes.includes(scope)}
-                onchange={() => toggleScope(scope, editForm)}
-                class="mt-0.5 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
-              />
-              <div>
-                <span class="font-medium text-fg-primary">{scope}</span>
-                <p class="text-sm text-fg-muted mt-0.5">{description}</p>
-              </div>
-            </label>
-          {/each}
-        </div>
-      {/snippet}
-    </FormField>
+    {@render appFields(editForm, "edit-app")}
 
     {#snippet footer()}
       <div class="flex items-center justify-end gap-2">

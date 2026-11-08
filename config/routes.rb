@@ -26,7 +26,7 @@ Rails.application.routes.draw do
   end
 
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
-  mount Scalar::UI, at: "/docs"
+  get "/docs", to: "docs#show"
 
   namespace :admin do
     mount MissionControl::Jobs::Engine, at: "/jobs"

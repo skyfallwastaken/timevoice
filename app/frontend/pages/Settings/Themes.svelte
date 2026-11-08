@@ -3,7 +3,7 @@
   import SectionCard from "../../components/SectionCard.svelte";
   import SettingsTabs from "../../components/SettingsTabs.svelte";
   import { page, router } from "@inertiajs/svelte";
-  import { Palette, Check } from "@lucide/svelte";
+  import { Settings, Check } from "@lucide/svelte";
   import { routes } from "../../lib/routes";
   import { applyTheme } from "../../lib/theme";
 
@@ -56,12 +56,7 @@
   }
 </script>
 
-<PageLayout
-  title="Themes"
-  icon={Palette}
-  iconColor="text-bright-purple"
-  variant="narrow"
->
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="themes" />
   </SectionCard>

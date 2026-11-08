@@ -132,12 +132,7 @@
   );
 </script>
 
-<PageLayout
-  title="Reports"
-  icon={BarChart3}
-  iconColor="text-bright-purple"
-  variant="wide"
->
+<PageLayout title="Reports" icon={BarChart3} iconColor="text-bright-purple">
   {#snippet headerActions()}
     <Button
       variant="secondary"

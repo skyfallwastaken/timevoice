@@ -29,15 +29,15 @@
       <span class="font-semibold text-lg">Timevoice</span>
     </a>
 
-    <nav class="flex items-center gap-4">
+    <nav class="flex items-center gap-2 sm:gap-4">
       <a
         href="/signin"
-        class="text-fg-muted hover:text-fg-primary transition-colors px-4 py-2"
+        class="whitespace-nowrap text-fg-muted hover:text-fg-primary transition-colors px-2 sm:px-4 py-2"
         >Sign in</a
       >
       <a
         href="/signin"
-        class="bg-bright-blue hover:bg-bright-blue/90 text-bg-primary font-medium px-4 py-2 rounded-lg transition-colors"
+        class="whitespace-nowrap bg-bright-blue hover:bg-bright-blue/90 text-bg-primary font-medium px-3 sm:px-4 py-2 rounded-lg transition-colors"
         >Get Started</a
       >
     </nav>

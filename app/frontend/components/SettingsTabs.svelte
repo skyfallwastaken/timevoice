@@ -17,11 +17,11 @@
   ] as const;
 </script>
 
-<div class="grid grid-cols-4">
+<div class="flex overflow-x-auto">
   {#each tabs as tab, index}
     <Link
       href={tab.href(workspaceId)}
-      class="px-2 sm:px-4 py-2 text-sm font-medium text-center truncate transition-colors duration-150 {active ===
+      class="flex-1 px-3 sm:px-4 py-2 text-sm font-medium text-center whitespace-nowrap transition-colors duration-150 {active ===
       tab.key
         ? 'bg-bg-tertiary text-fg-primary'
         : 'text-fg-secondary hover:bg-bg-tertiary'} {index < tabs.length - 1

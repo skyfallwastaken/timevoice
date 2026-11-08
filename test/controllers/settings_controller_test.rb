@@ -37,4 +37,19 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "daydream-dark", @user.reload.theme
     assert_equal "That theme isn't available.", flash[:alert]
   end
+
+  test "deleting a workspace requires its exact name" do
+    side = Workspace.create!(name: "Side Project", owner: @user)
+    side.memberships.create!(user: @user, role: :owner)
+
+    delete "/#{side.hashid}/settings/workspace"
+    assert Workspace.exists?(side.id)
+
+    delete "/#{side.hashid}/settings/workspace", params: { confirm_name: "side project" }
+    assert Workspace.exists?(side.id)
+    assert_equal "Type the workspace name to confirm deleting it.", flash[:alert]
+
+    delete "/#{side.hashid}/settings/workspace", params: { confirm_name: "Side Project" }
+    assert_not Workspace.exists?(side.id)
+  end
 end

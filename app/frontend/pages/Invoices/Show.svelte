@@ -157,7 +157,6 @@
   title={`Invoice #${invoice.invoice_number}`}
   icon={FileText}
   iconColor="text-bright-purple"
-  variant="wide"
 >
   {#snippet headerActions()}
     <div class="flex flex-wrap items-center sm:justify-end gap-2">

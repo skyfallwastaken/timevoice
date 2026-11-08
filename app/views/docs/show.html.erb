@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title><%= @scalar.page_title %></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --scalar-custom-header-height: 48px;
+      }
+      body {
+        margin: 0;
+        background: #131613;
+      }
+      .docs-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        height: var(--scalar-custom-header-height);
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        background: #1b1f1b;
+        border-bottom: 1px solid #2f372f;
+        font:
+          500 14px/1 -apple-system,
+          BlinkMacSystemFont,
+          "Inter",
+          system-ui,
+          sans-serif;
+        color: #9ca49c;
+      }
+      .docs-header a {
+        color: #e1e7e0;
+        text-decoration: none;
+        padding: 6px 10px;
+        margin-left: -10px;
+        border-radius: 8px;
+      }
+      .docs-header a:hover {
+        background: #2f372f;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="docs-header">
+      <a href="<%= root_path %>">&larr; Back to Timevoice</a>
+      <span aria-hidden="true">/</span>
+      <span>API Reference</span>
+    </header>
+
+    <div id="app"></div>
+
+    <script src="<%= @scalar.library_url %>"></script>
+    <script>
+      Scalar.createApiReference("#app", <%= raw @scalar.configuration_to_json %>)
+    </script>
+  </body>
+</html>

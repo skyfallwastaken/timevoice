@@ -101,8 +101,10 @@
       });
   }
 
-  function confirmDeleteWorkspace() {
-    router.delete(routes.settings.deleteWorkspace(workspaceId));
+  function confirmDeleteWorkspace(typedName: string) {
+    router.delete(routes.settings.deleteWorkspace(workspaceId), {
+      data: { confirm_name: typedName },
+    });
     showDeleteModal = false;
   }
 
@@ -185,12 +187,7 @@
   }
 </script>
 
-<PageLayout
-  title="Workspace Settings"
-  icon={Settings}
-  iconColor="text-bright-blue"
-  variant="narrow"
->
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="workspace" />
   </SectionCard>
@@ -475,6 +472,7 @@
     bind:open={showDeleteModal}
     title="Delete Workspace"
     itemName={workspace?.name || "this workspace"}
+    confirmText={workspace?.name}
     warningMessage="This action cannot be undone. All data including time entries, projects, clients, and invoices will be permanently deleted."
     onConfirm={confirmDeleteWorkspace}
     onClose={() => (showDeleteModal = false)}

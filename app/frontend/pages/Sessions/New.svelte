@@ -3,7 +3,7 @@
 </script>
 
 <script lang="ts">
-  import { page } from "@inertiajs/svelte";
+  import { inertia, page } from "@inertiajs/svelte";
   import Flash from "../../components/Flash.svelte";
   import { routes } from "../../lib/routes";
 
@@ -22,11 +22,14 @@
 >
   <div class="max-w-md flex flex-col items-center gap-10">
     <div class="flex flex-col items-center gap-4">
-      <div
-        class="p-4 w-12 h-12 rounded-[10px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center text-xl font-semibold"
+      <a
+        href="/home"
+        use:inertia
+        aria-label="Timevoice home"
+        class="p-4 w-12 h-12 rounded-[10px] border border-bg-tertiary bg-bg-secondary flex items-center justify-center text-xl font-semibold transition-colors duration-150 hover:border-bg-quaternary"
       >
         T
-      </div>
+      </a>
       <h1
         class="text-2xl font-semibold tracking-tight text-center text-fg-primary"
       >

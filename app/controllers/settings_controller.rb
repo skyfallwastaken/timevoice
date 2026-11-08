@@ -46,6 +46,11 @@ class SettingsController < ApplicationController
     @workspace = current_workspace
     authorize @workspace, :destroy?
 
+    if params[:confirm_name] != @workspace.name
+      redirect_to settings_workspace_path, alert: "Type the workspace name to confirm deleting it."
+      return
+    end
+
     if current_user.workspaces.count <= 1
       redirect_to settings_workspace_path, alert: "You can't delete your only workspace."
       return
