@@ -29,3 +29,8 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    attributes:
+      invoice_line:
+        qty_hours: "Hours"
+        rate_cents: "Rate"
