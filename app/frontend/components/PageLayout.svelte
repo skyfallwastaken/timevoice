@@ -3,7 +3,6 @@
     title: string;
     icon?: any;
     iconColor?: string;
-    variant?: "wide" | "narrow";
     children: import("svelte").Snippet;
     headerActions?: import("svelte").Snippet;
   }
@@ -12,16 +11,13 @@
     title,
     icon: IconComponent,
     iconColor = "text-bright-blue",
-    variant = "narrow",
     children,
     headerActions,
   }: Props = $props();
 </script>
 
 <div class="flex-1 p-4 sm:p-6 overflow-auto">
-  <div
-    class="{variant === 'wide' ? 'max-w-6xl' : 'max-w-4xl'} mx-auto space-y-6"
-  >
+  <div class="max-w-5xl mx-auto space-y-6">
     <div
       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
     >

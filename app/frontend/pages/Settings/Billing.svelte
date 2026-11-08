@@ -2,7 +2,7 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import { page, Link } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
-  import { DollarSign } from "@lucide/svelte";
+  import { DollarSign, Settings } from "@lucide/svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -40,12 +40,7 @@
   }
 </script>
 
-<PageLayout
-  title="Billing Settings"
-  icon={DollarSign}
-  iconColor="text-bright-purple"
-  variant="narrow"
->
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="billing" />
   </SectionCard>

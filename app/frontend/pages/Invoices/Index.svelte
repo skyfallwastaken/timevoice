@@ -231,12 +231,7 @@
   }
 </script>
 
-<PageLayout
-  title="Invoices"
-  icon={FileText}
-  iconColor="text-bright-purple"
-  variant="wide"
->
+<PageLayout title="Invoices" icon={FileText} iconColor="text-bright-purple">
   {#snippet headerActions()}
     <Button tone="purple" onclick={() => (showCreateForm = !showCreateForm)}>
       <Plus class="w-4 h-4" />

@@ -12,6 +12,7 @@
     Key,
     ExternalLink,
     Play,
+    Settings,
   } from "@lucide/svelte";
   import ChipButton from "../../components/ChipButton.svelte";
   import EmptyState from "../../components/EmptyState.svelte";
@@ -204,12 +205,7 @@
   }
 </script>
 
-<PageLayout
-  title="Developer Settings"
-  icon={Code}
-  iconColor="text-bright-purple"
-  variant="narrow"
->
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="developer" />
   </SectionCard>

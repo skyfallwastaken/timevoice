@@ -122,12 +122,7 @@
   }
 </script>
 
-<PageLayout
-  title="Clients"
-  icon={Users}
-  iconColor="text-bright-blue"
-  variant="narrow"
->
+<PageLayout title="Clients" icon={Users} iconColor="text-bright-blue">
   <SectionCard
     title="Create New Client"
     icon={Plus}

@@ -91,12 +91,7 @@
   }
 </script>
 
-<PageLayout
-  title="Tags"
-  icon={Tag}
-  iconColor="text-bright-yellow"
-  variant="narrow"
->
+<PageLayout title="Tags" icon={Tag} iconColor="text-bright-yellow">
   <SectionCard
     title="Create New Tag"
     icon={Plus}

@@ -129,12 +129,7 @@
   }
 </script>
 
-<PageLayout
-  title="Projects"
-  icon={FolderKanban}
-  iconColor="text-bright-green"
-  variant="narrow"
->
+<PageLayout title="Projects" icon={FolderKanban} iconColor="text-bright-green">
   <SectionCard
     title="Create New Project"
     icon={Plus}

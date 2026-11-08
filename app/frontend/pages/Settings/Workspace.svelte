@@ -185,12 +185,7 @@
   }
 </script>
 
-<PageLayout
-  title="Workspace Settings"
-  icon={Settings}
-  iconColor="text-bright-blue"
-  variant="narrow"
->
+<PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="workspace" />
   </SectionCard>
