@@ -56,11 +56,11 @@ module Api
       end
 
       def client_attrs
-        api_params(:client, :name, :billing_address)
+        api_params(:client, :name, :billing_address, :email)
       end
 
       def serialize_client(client)
-        { id: Client.encode_id(client.id), name: client.name, billing_address: client.billing_address }
+        { id: Client.encode_id(client.id), name: client.name, email: client.email, billing_address: client.billing_address }
       end
     end
   end

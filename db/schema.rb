@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_11_05_223502) do
+ActiveRecord::Schema[8.2].define(version: 2026_11_08_134712) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -45,6 +45,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_11_05_223502) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.string "email"
     t.index ["workspace_id", "name"], name: "index_clients_on_workspace_id_and_name", unique: true
     t.index ["workspace_id"], name: "index_clients_on_workspace_id"
   end

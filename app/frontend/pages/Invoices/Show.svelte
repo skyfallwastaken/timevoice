@@ -50,6 +50,7 @@
       id: number;
       name: string;
       billing_address: string | null;
+      email: string | null;
     };
     lines: InvoiceLine[];
   };
@@ -99,7 +100,7 @@
   }
 
   function openEmailModal() {
-    emailRecipients = "";
+    emailRecipients = invoice.client.email || "";
     emailMessage = "";
     ccSelf = false;
     turnstileToken = "";
