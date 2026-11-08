@@ -383,10 +383,21 @@
 
   type StopOptions = { keepForm?: boolean; endAt?: Date; onDone?: () => void };
 
-  // A description typed just before stopping is saved first.
+  // Pending edits are saved first. If that fails, a manual stop keeps the
+  // timer running so the typed description isn't lost; a finished countdown
+  // still stops, keeping its description in the form.
   function stopTimer(options: StopOptions = {}) {
     if (!runningEntry) return;
-    saveDescription(() => sendStop(options));
+    saveDescription((saved) => {
+      if (saved || options.keepForm) {
+        sendStop(options);
+      } else {
+        finishing = false;
+        toast.error(
+          "Couldn't save your changes, so the timer is still running.",
+        );
+      }
+    });
   }
 
   function sendStop({ keepForm = false, endAt, onDone }: StopOptions) {
@@ -454,32 +465,66 @@
 
   // The running timer saves each change as it's made. The description saves
   // after a pause in typing, on Enter, or when the field loses focus. Saves
-  // run in the background so they don't cancel, or get cancelled by, a visit.
+  // run in the background so they don't cancel, or get cancelled by, a visit,
+  // and one at a time: changes made while one is in flight are merged into
+  // the next, so an older request can't overwrite a newer change.
   let descriptionSave: ReturnType<typeof setTimeout> | undefined;
+  let saveInFlight = false;
+  let pendingFields: Partial<RecentDescription> = {};
+  let saveFailed = false;
+  let afterSaves: ((saved: boolean) => void)[] = [];
 
   function saveRunning(
     fields: Partial<RecentDescription>,
-    onFinish?: () => void,
+    onSaved?: (saved: boolean) => void,
   ) {
-    if (!runningEntry) return onFinish?.();
+    pendingFields = { ...pendingFields, ...fields };
+    if (onSaved) afterSaves.push(onSaved);
+    if (!saveInFlight) sendPendingFields();
+  }
+
+  function sendPendingFields() {
+    const { tag_ids, ...fields } = pendingFields;
+    pendingFields = {};
+    if (!runningEntry || (!tag_ids && !Object.keys(fields).length)) {
+      const callbacks = afterSaves;
+      const saved = !saveFailed;
+      afterSaves = [];
+      saveFailed = false;
+      callbacks.forEach((callback) => callback(saved));
+      return;
+    }
+    saveInFlight = true;
+    let saved = false;
     router.patch(
       routes.timeEntries.update(workspaceId, runningEntry.id),
-      { time_entry: fields },
+      {
+        time_entry: {
+          ...fields,
+          // An empty list leaves the tags unchanged; [""] clears them.
+          ...(tag_ids && { tag_ids: tag_ids.length ? tag_ids : [""] }),
+        },
+      },
       {
         async: true,
         preserveScroll: true,
         preserveState: true,
-        onFinish: () => onFinish?.(),
+        onSuccess: () => (saved = true),
+        onFinish: () => {
+          saveInFlight = false;
+          if (!saved) saveFailed = true;
+          sendPendingFields();
+        },
       },
     );
   }
 
-  function saveDescription(onFinish?: () => void) {
+  function saveDescription(onSaved?: (saved: boolean) => void) {
     clearTimeout(descriptionSave);
     descriptionSave = undefined;
-    if (!runningEntry || form.description === (runningEntry.description ?? ""))
-      return onFinish?.();
-    saveRunning({ description: form.description }, onFinish);
+    const changed =
+      !!runningEntry && form.description !== (runningEntry.description ?? "");
+    saveRunning(changed ? { description: form.description } : {}, onSaved);
   }
 
   $effect(() => () => {

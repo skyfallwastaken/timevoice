@@ -203,9 +203,9 @@
       : "",
   );
   $effect(() => {
-    if (!runningEntry) return;
-    document.title = `${[runningElapsed, runningEntry.description].filter(Boolean).join(" · ")} – Timevoice`;
-    return () => (document.title = "Timevoice");
+    document.title = runningEntry
+      ? `${[runningElapsed, runningEntry.description].filter(Boolean).join(" · ")} – Timevoice`
+      : "Timevoice";
   });
 
   let stopping = $state(false);

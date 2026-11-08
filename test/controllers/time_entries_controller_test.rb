@@ -37,6 +37,10 @@ class TimeEntriesControllerTest < ActionDispatch::IntegrationTest
     entry.reload
     assert entry.running?
     assert_equal [ "", projects(:one).id, true, [ tags(:one).id ] ], [ entry.description, entry.project_id, entry.billable, entry.tag_ids ]
+
+    patch "/#{@workspace.hashid}/time_entries/#{entry.id}", params: { time_entry: { tag_ids: [ "" ] } }, as: :json
+    assert_empty entry.reload.tags
+    assert entry.running?
   end
 
   test "attaching a file to an entry keeps its other attachments and adds the file once" do

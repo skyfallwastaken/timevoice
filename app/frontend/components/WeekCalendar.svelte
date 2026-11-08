@@ -174,7 +174,7 @@
   });
 
   // Start scrolled to the first tracked hour of the week, or 8 AM, with
-  // today's column in view at the left edge.
+  // today's column at the left edge, or the week's first day otherwise.
   let scroller: HTMLDivElement | null = $state(null);
   let scrolledWeek = "";
   $effect(() => {
@@ -186,9 +186,8 @@
     );
     scroller.scrollTop = Math.max(0, (firstHour - 1) * HOUR - 12);
     const today = scroller.querySelector<HTMLElement>("[data-today]");
-    if (today && columnWidth) {
-      scroller.scrollLeft = Number(today.dataset.dayIndex) * columnWidth;
-    }
+    scroller.scrollLeft =
+      today && columnWidth ? Number(today.dataset.dayIndex) * columnWidth : 0;
   });
 
   // Drag on an empty part of a day to select a time for a new entry, or click
