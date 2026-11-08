@@ -846,9 +846,9 @@ components:
           format: date
           description: Last day of the period (inclusive)
         rate_cents:
-          type: integer
+          type: [integer, "null"]
           minimum: 0
-          description: Hourly rate in cents. Defaults to the workspace's billable rate.
+          description: Hourly rate in cents. Omit it or send null to use the workspace's billable rate.
       required:
         - client_id
         - period_start
