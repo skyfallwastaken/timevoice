@@ -53,10 +53,7 @@ class InvoicesController < ApplicationController
              project: { only: [ :id, :name, :color, :client_id ], include: { client: { only: [ :id, :name ] } } },
              tags: { only: [ :id, :name ] }
            }
-         ).merge(
-           formattedDuration: entry.formatted_duration,
-           hours: entry.duration_hours
-         )
+         ).merge(hours: entry.duration_hours)
        },
       invoiceSettings: {
         billable_rate_cents: @invoice_settings.billable_rate_cents,

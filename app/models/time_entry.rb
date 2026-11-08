@@ -2,7 +2,6 @@ class TimeEntry < ApplicationRecord
   extend Hashidable::ClassMethods
 
   SECONDS_PER_HOUR = 3600
-  SECONDS_PER_MINUTE = 60
   MIN_BILLABLE_SECONDS = 36
 
   belongs_to :user
@@ -61,20 +60,6 @@ class TimeEntry < ApplicationRecord
     update_columns(end_at: ended, duration_seconds: (ended - start_at).to_i, updated_at: Time.current)
   end
 
-  def formatted_duration
-    return nil if duration.nil?
-
-    hours = duration / SECONDS_PER_HOUR
-    minutes = (duration % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
-    seconds = duration % SECONDS_PER_MINUTE
-
-    if hours > 0
-      "#{hours}:#{minutes.to_s.rjust(2, '0')}:#{seconds.to_s.rjust(2, '0')}"
-    else
-      "#{minutes}:#{seconds.to_s.rjust(2, '0')}"
-    end
-  end
-
   def as_props(with_files: false)
     props = as_json(
       only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
@@ -82,7 +67,7 @@ class TimeEntry < ApplicationRecord
         project: { only: [ :id, :name, :color ] },
         tags: { only: [ :id, :name ] }
       }
-    ).merge(formattedDuration: formatted_duration)
+    )
     return props unless with_files
 
     props.merge(

@@ -19,7 +19,13 @@
     ChevronRight,
     ChevronUp,
   } from "@lucide/svelte";
-  import { formatHours, formatShortDate, toDateString } from "../../lib/format";
+  import {
+    formatDuration,
+    formatHours,
+    formatShortDate,
+    parseLocalDate,
+    toDateString,
+  } from "../../lib/format";
   import { routes } from "../../lib/routes";
   import type { TimeEntry, Project } from "../../types";
 
@@ -79,7 +85,6 @@
   );
   let showFilters = $state(!!page.props.projectId);
 
-  const parseDate = (value: string) => new Date(`${value}T00:00:00`);
   const addDays = (date: Date, days: number) =>
     new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
   const monthRange = (year: number, month: number, months: number) => ({
@@ -89,12 +94,15 @@
 
   let range = $derived.by(() => {
     const dates = page.props.dateRange as { start: string; end: string };
-    return { start: parseDate(dates.start), end: parseDate(dates.end) };
+    return {
+      start: parseLocalDate(dates.start),
+      end: parseLocalDate(dates.end),
+    };
   });
 
   const initialRange = page.props.dateRange as { start: string; end: string };
-  let startDate = $state<Date | null>(parseDate(initialRange.start));
-  let endDate = $state<Date | null>(parseDate(initialRange.end));
+  let startDate = $state<Date | null>(parseLocalDate(initialRange.start));
+  let endDate = $state<Date | null>(parseLocalDate(initialRange.end));
 
   // Weeks start on Monday, like Rails' beginning_of_week and the Timer page.
   function thisWeek(): DateRange {
@@ -157,7 +165,7 @@
     if (toDateString(start) === toDateString(end)) return withYear(start);
     const startLabel =
       start.getFullYear() === end.getFullYear()
-        ? formatShortDate(`${toDateString(start)}T00:00:00`)
+        ? formatShortDate(start)
         : withYear(start);
     return `${startLabel} – ${withYear(end)}`;
   }
@@ -235,7 +243,7 @@
   }
 
   function formatDayOfWeek(dateStr: string): string {
-    return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
+    return parseLocalDate(dateStr).toLocaleDateString("en-US", {
       weekday: "short",
     });
   }
@@ -244,12 +252,12 @@
 
   function bucketLabel(dateStr: string): string {
     if (totals.bucket === "month") {
-      return parseDate(dateStr).toLocaleDateString("en-US", {
+      return parseLocalDate(dateStr).toLocaleDateString("en-US", {
         month: "short",
         year: "numeric",
       });
     }
-    const short = formatShortDate(`${dateStr}T00:00:00`);
+    const short = formatShortDate(parseLocalDate(dateStr));
     return totals.bucket === "week" ? `Week of ${short}` : short;
   }
 
@@ -484,22 +492,22 @@
                 {#if i % labelEvery === 0}
                   {totals.bucket === "month"
                     ? bucketLabel(date)
-                    : formatShortDate(`${date}T00:00:00`)}
+                    : formatShortDate(parseLocalDate(date))}
                 {/if}
               {:else if totals.bucket === "day"}
                 <span class="hidden @min-[3rem]:inline"
                   >{formatDayOfWeek(date)}</span
                 >
-                {parseDate(date).getDate()}
+                {parseLocalDate(date).getDate()}
               {:else if totals.bucket === "week"}
                 <span class="hidden @min-[3rem]:inline"
-                  >{formatShortDate(`${date}T00:00:00`)}</span
+                  >{formatShortDate(parseLocalDate(date))}</span
                 >
                 <span class="@min-[3rem]:hidden"
-                  >{parseDate(date).getDate()}</span
+                  >{parseLocalDate(date).getDate()}</span
                 >
               {:else}
-                {parseDate(date).toLocaleDateString("en-US", {
+                {parseLocalDate(date).toLocaleDateString("en-US", {
                   month: "short",
                 })}
               {/if}
@@ -530,11 +538,11 @@
                     >{formatDayOfWeek(date)}</span
                   >
                   <span class="block text-lg font-semibold"
-                    >{parseDate(date).getDate()}</span
+                    >{parseLocalDate(date).getDate()}</span
                   >
                 </div>
                 <span class="text-fg-muted"
-                  >{formatShortDate(`${date}T00:00:00`)}</span
+                  >{formatShortDate(parseLocalDate(date))}</span
                 >
               </div>
             {:else}
@@ -659,7 +667,7 @@
               </div>
               <div class="text-right ml-4">
                 <p class="font-medium font-tabular">
-                  {entry.formattedDuration}
+                  {formatDuration(entry.duration_seconds ?? 0)}
                 </p>
                 <p class="text-sm text-fg-muted">
                   {formatShortDate(entry.start_at)}
