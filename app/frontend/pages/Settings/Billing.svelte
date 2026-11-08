@@ -121,7 +121,7 @@
       <FormField
         id="invoice-notes"
         label="Invoice Notes"
-        description="Printed under the totals on every invoice, e.g. payment terms or bank details. Markdown works; check Preview to see how it prints."
+        description="Printed under the totals on new invoices, e.g. payment terms or bank details. Markdown works; check Preview to see how it prints."
         error={$form.errors.notes}
       >
         {#snippet children({ describedBy })}
@@ -210,7 +210,8 @@
       </p>
       <p>
         <strong class="text-fg-primary">Invoice Notes:</strong>
-        Printed under the totals on every invoice PDF. Markdown works for
+        Copied onto each invoice when it is created, so changing them later doesn't
+        alter invoices you've already sent. Markdown works for
         <code class="text-fg-secondary">**bold**</code>,
         <code class="text-fg-secondary">*italic*</code>,
         <code class="text-fg-secondary">- lists</code> and

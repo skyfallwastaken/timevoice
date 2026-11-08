@@ -34,10 +34,10 @@ class InvoicePdfTest < ActiveSupport::TestCase
   private
 
   def notes_pdf_lines(notes)
-    setting = invoice_settings(:one)
-    setting.notes = notes
+    invoice = invoices(:one)
+    invoice.notes = notes
 
-    reader = PDF::Reader.new(StringIO.new(InvoicePdf.new(invoices(:one), setting).generate))
+    reader = PDF::Reader.new(StringIO.new(InvoicePdf.new(invoice, invoice_settings(:one)).generate))
     objects = reader.objects
     @links = reader.pages.flat_map { |page| Array(objects.deref(page.attributes[:Annots])) }
       .filter_map { |annot| objects.deref(objects.deref(annot)[:A])&.dig(:URI) }

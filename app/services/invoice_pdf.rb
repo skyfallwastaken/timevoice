@@ -219,7 +219,7 @@ class InvoicePdf
   end
 
   def build_notes_section
-    notes = sanitize_text(@invoice_setting&.notes)
+    notes = sanitize_text(@invoice.notes)
     return if notes.blank?
 
     @document.move_down 35
