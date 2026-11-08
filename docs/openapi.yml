@@ -119,6 +119,11 @@ paths:
             type: string
             format: date
           description: Filter entries up to this date
+        - name: running
+          in: query
+          schema:
+            type: boolean
+          description: When true, return only running entries (no `ended_at`), however long ago they started
       responses:
         "200":
           description: List of time entries

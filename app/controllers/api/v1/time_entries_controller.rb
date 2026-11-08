@@ -22,6 +22,7 @@ module Api
 
         time_entries = time_entries.where(start_at: start_date.beginning_of_day..) if start_date
         time_entries = time_entries.where(start_at: ..end_date.end_of_day) if end_date
+        time_entries = time_entries.running if ActiveModel::Type::Boolean.new.cast(params[:running])
 
         render json: time_entries.map { |time_entry| serialize_time_entry(time_entry) }
       end

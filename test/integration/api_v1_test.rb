@@ -70,7 +70,7 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_equal "Form encoded", response.parsed_body["name"]
   end
 
-  test "time entries can be filtered by date" do
+  test "time entries can be filtered by date and running state" do
     workspace_id = workspaces(:one).hashid
     api(:post, "/#{workspace_id}/time_entries", { description: "Before", started_at: "2026-06-11T23:30:00Z", ended_at: "2026-06-12T00:30:00Z" })
     api(:post, "/#{workspace_id}/time_entries", { description: "Inside", started_at: "2026-06-12T08:00:00Z", ended_at: "2026-06-12T09:00:00Z" })
@@ -80,6 +80,10 @@ class ApiV1Test < ActionDispatch::IntegrationTest
 
     api(:get, "/#{workspace_id}/time_entries?start_date=yesterday")
     assert_response :unprocessable_entity
+
+    api(:post, "/#{workspace_id}/time_entries", { description: "Long running", started_at: "2026-01-01T08:00:00Z" })
+    assert_equal [ "Long running" ], api(:get, "/#{workspace_id}/time_entries?running=true").pluck("description")
+    assert_equal 4, api(:get, "/#{workspace_id}/time_entries?running=false").size
   end
 
   test "clients store, return, update and clear their email" do
