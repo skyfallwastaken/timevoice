@@ -261,6 +261,7 @@
     {#snippet children({ describedBy })}
       <RadioGroup.Root
         value={form.confidential ? "confidential" : "public"}
+        aria-label="Application Type"
         onValueChange={(value) =>
           (form.confidential = value === "confidential")}
         aria-describedby={describedBy}
@@ -287,7 +288,12 @@
     description="Select the permissions your application needs."
   >
     {#snippet children({ describedBy })}
-      <div class="space-y-2" role="group" aria-describedby={describedBy}>
+      <div
+        class="space-y-2"
+        role="group"
+        aria-label="Scopes"
+        aria-describedby={describedBy}
+      >
         {#each Object.entries(scopes) as [scope, description]}
           <label
             class="flex items-start gap-3 p-3 bg-bg-primary rounded-lg cursor-pointer hover:bg-bg-tertiary/50 transition-colors"
