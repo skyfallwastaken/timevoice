@@ -1,94 +1,30 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
+  import EmptyState from "../../components/EmptyState.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page, router, useForm } from "@inertiajs/svelte";
+  import { page } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
-  import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "@lucide/svelte";
+  import { createInlineCrud } from "../../lib/inline-crud.svelte";
+  import { Tag, Plus, Edit2, Trash2, Hash } from "@lucide/svelte";
   import type { Tag as TagType } from "../../types";
-
-  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   let tags = $derived((page.props.tags as TagType[]) || []);
 
-  let editingId: number | null = $state(null);
-  let tagToDelete: TagType | null = $state(null);
-
-  let createForm = useForm({
-    name: "",
+  const crud = createInlineCrud<TagType, { name: string }>({
+    key: "tags",
+    routes: routes.tags,
+    createDefaults: { name: "" },
+    editDefaults: { name: "" },
+    toForm: (tagItem) => ({ name: tagItem.name }),
+    toRecord: (form, tagItem) => ({ ...tagItem, name: form.name }),
   });
-
-  let editForm = useForm({
-    name: "",
-  });
-
-  function startEditing(tagItem: TagType) {
-    editForm.clearErrors();
-    editingId = tagItem.id;
-    editForm.name = tagItem.name;
-  }
-
-  function cancelEditing() {
-    editingId = null;
-    editForm.reset();
-  }
-
-  const byName = (a: { name: string }, b: { name: string }) =>
-    a.name.localeCompare(b.name);
-
-  function handleCreate() {
-    if (!workspaceId) return;
-    createForm
-      .optimistic<{ tags: TagType[] }>((props) => ({
-        tags: [...props.tags, { id: -Date.now(), name: createForm.name }].sort(
-          byName,
-        ),
-      }))
-      .post(routes.tags.create(workspaceId), {
-        onSuccess: () => {
-          createForm.reset();
-        },
-      });
-  }
-
-  function handleUpdate(tagId: number) {
-    if (!workspaceId) return;
-    editingId = null;
-    let saved = false;
-    editForm
-      .optimistic<{ tags: TagType[] }>((props) => ({
-        tags: props.tags
-          .map((t) => (t.id === tagId ? { ...t, name: editForm.name } : t))
-          .sort(byName),
-      }))
-      .patch(routes.tags.update(workspaceId, tagId), {
-        onSuccess: () => {
-          saved = true;
-          if (editingId === null) editForm.reset();
-        },
-        // Reopen the row on any failure, unless another row is being edited.
-        onFinish: () => {
-          if (!saved && editingId === null) editingId = tagId;
-        },
-      });
-  }
-
-  function confirmDelete() {
-    if (tagToDelete && workspaceId) {
-      const { id } = tagToDelete;
-      router
-        .optimistic<{ tags: TagType[] }>((props) => ({
-          tags: props.tags.filter((t) => t.id !== id),
-        }))
-        .delete(routes.tags.delete(workspaceId, id));
-    }
-    tagToDelete = null;
-  }
+  const { createForm, editForm } = crud;
 </script>
 
 <PageLayout title="Tags" icon={Tag} iconColor="text-bright-yellow">
@@ -107,7 +43,7 @@
             bind:value={createForm.name}
             placeholder="Enter tag name..."
             onkeydown={(e) =>
-              e.key === "Enter" && createForm.name && handleCreate()}
+              e.key === "Enter" && createForm.name && crud.create()}
             aria-describedby={describedBy}
           />
         {/snippet}
@@ -116,7 +52,7 @@
       <div class="flex justify-end">
         <Button
           tone="yellow"
-          onclick={handleCreate}
+          onclick={crud.create}
           disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
@@ -128,19 +64,20 @@
 
   <SectionCard title={`All Tags (${tags.length})`}>
     {#if tags.length === 0}
-      <div class="p-8 text-center text-fg-muted">
-        <Hash class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>No tags yet. Create your first tag above!</p>
-      </div>
+      <EmptyState
+        icon={Hash}
+        title="No tags yet"
+        description="Create your first tag with the form above."
+      />
     {:else}
       <div class="divide-y divide-bg-tertiary">
         {#each tags as tagItem, i}
           {@const isLast = i === tags.length - 1}
-          {#if editingId === tagItem.id}
+          {#if crud.editingId === tagItem.id}
             <div
               class="p-4 {isLast
                 ? 'rounded-b-[10px]'
-                : ''} flex items-center gap-4"
+                : ''} flex items-start gap-2"
             >
               <div class="flex-1">
                 <FormField
@@ -154,25 +91,24 @@
                       id="edit-tag-{tagItem.id}"
                       tone="yellow"
                       bind:value={editForm.name}
+                      autofocus
+                      onkeydown={(e) => crud.editKeydown(e, tagItem.id)}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
                 </FormField>
               </div>
 
-              <div class="flex items-center gap-2">
-                <IconButton aria-label="Cancel editing" onclick={cancelEditing}>
-                  <X class="w-5 h-5" />
-                </IconButton>
-                <IconButton
-                  tone="success"
-                  aria-label="Save changes"
-                  onclick={() => handleUpdate(tagItem.id)}
-                  disabled={editForm.processing}
-                >
-                  <Check class="w-5 h-5" />
-                </IconButton>
-              </div>
+              <Button variant="ghost" onclick={crud.cancelEditing}
+                >Cancel</Button
+              >
+              <Button
+                tone="yellow"
+                onclick={() => crud.update(tagItem.id)}
+                disabled={editForm.processing}
+              >
+                Save
+              </Button>
             </div>
           {:else}
             <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
@@ -186,7 +122,7 @@
                 <IconButton
                   aria-label="Edit tag"
                   disabled={tagItem.id < 0}
-                  onclick={() => startEditing(tagItem)}
+                  onclick={() => crud.startEditing(tagItem)}
                 >
                   <Edit2 class="w-4 h-4" />
                 </IconButton>
@@ -194,7 +130,7 @@
                   tone="danger"
                   aria-label="Delete tag"
                   disabled={tagItem.id < 0}
-                  onclick={() => (tagToDelete = tagItem)}
+                  onclick={() => (crud.toDelete = tagItem)}
                 >
                   <Trash2 class="w-4 h-4" />
                 </IconButton>
@@ -207,11 +143,11 @@
   </SectionCard>
 
   <ConfirmDeleteModal
-    open={tagToDelete !== null}
+    open={crud.toDelete !== null}
     title="Delete Tag"
-    itemName={tagToDelete?.name || "this tag"}
+    itemName={crud.toDelete?.name || "this tag"}
     warningMessage="This action cannot be undone. This will remove the tag from all time entries."
-    onConfirm={confirmDelete}
-    onClose={() => (tagToDelete = null)}
+    onConfirm={crud.confirmDelete}
+    onClose={() => (crud.toDelete = null)}
   />
 </PageLayout>

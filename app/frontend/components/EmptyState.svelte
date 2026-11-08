@@ -35,8 +35,11 @@
   </p>
 
   {#if actionLabel && actionHref}
-    <Link href={actionHref}>
-      <Button tone="purple" size="md">{actionLabel}</Button>
+    <Link
+      href={actionHref}
+      class="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-[10px] text-sm font-medium bg-bright-purple hover:bg-accent-purple text-bg-primary transition-colors duration-150"
+    >
+      {actionLabel}
     </Link>
   {:else if actionLabel && onAction}
     <Button tone="purple" size="md" onclick={onAction}>{actionLabel}</Button>

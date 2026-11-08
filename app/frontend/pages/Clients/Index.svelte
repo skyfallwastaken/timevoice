@@ -1,6 +1,7 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
+  import EmptyState from "../../components/EmptyState.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -8,118 +9,28 @@
   import TextArea from "../../components/TextArea.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page, router, useForm } from "@inertiajs/svelte";
+  import { page } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
-  import {
-    Users,
-    Plus,
-    Edit2,
-    Trash2,
-    Check,
-    X,
-    Building2,
-  } from "@lucide/svelte";
+  import { createInlineCrud } from "../../lib/inline-crud.svelte";
+  import { Users, Plus, Edit2, Trash2, Building2 } from "@lucide/svelte";
   import type { Client } from "../../types";
-
-  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   let clients = $derived((page.props.clients as Client[]) || []);
 
-  let editingId: number | null = $state(null);
-
-  let createForm = useForm({
-    name: "",
-    email: "",
-    billing_address: "",
+  const blankClient = { name: "", email: "", billing_address: "" };
+  const crud = createInlineCrud<Client, typeof blankClient>({
+    key: "clients",
+    routes: routes.clients,
+    createDefaults: blankClient,
+    editDefaults: blankClient,
+    toForm: (client) => ({
+      name: client.name,
+      email: client.email || "",
+      billing_address: client.billing_address || "",
+    }),
+    toRecord: (form, client) => ({ ...client, ...form }),
   });
-
-  let editForm = useForm({
-    name: "",
-    email: "",
-    billing_address: "",
-  });
-
-  function startEditing(client: Client) {
-    editForm.clearErrors();
-    editingId = client.id;
-    editForm.name = client.name;
-    editForm.email = client.email || "";
-    editForm.billing_address = client.billing_address || "";
-  }
-
-  function cancelEditing() {
-    editingId = null;
-    editForm.reset();
-  }
-
-  const byName = (a: { name: string }, b: { name: string }) =>
-    a.name.localeCompare(b.name);
-
-  function handleCreate() {
-    if (!workspaceId) return;
-    createForm
-      .optimistic<{ clients: Client[] }>((props) => ({
-        clients: [
-          ...props.clients,
-          {
-            id: -Date.now(),
-            name: createForm.name,
-            email: createForm.email,
-            billing_address: createForm.billing_address,
-          },
-        ].sort(byName),
-      }))
-      .post(routes.clients.create(workspaceId), {
-        onSuccess: () => {
-          createForm.reset();
-        },
-      });
-  }
-
-  function handleUpdate(clientId: number) {
-    if (!workspaceId) return;
-    editingId = null;
-    let saved = false;
-    editForm
-      .optimistic<{ clients: Client[] }>((props) => ({
-        clients: props.clients
-          .map((c) =>
-            c.id === clientId
-              ? {
-                  ...c,
-                  name: editForm.name,
-                  email: editForm.email,
-                  billing_address: editForm.billing_address,
-                }
-              : c,
-          )
-          .sort(byName),
-      }))
-      .patch(routes.clients.update(workspaceId, clientId), {
-        onSuccess: () => {
-          saved = true;
-          if (editingId === null) editForm.reset();
-        },
-        // Reopen the row on any failure, unless another row is being edited.
-        onFinish: () => {
-          if (!saved && editingId === null) editingId = clientId;
-        },
-      });
-  }
-
-  let clientToDelete: Client | null = $state(null);
-
-  function confirmDelete() {
-    if (clientToDelete && workspaceId) {
-      const { id } = clientToDelete;
-      router
-        .optimistic<{ clients: Client[] }>((props) => ({
-          clients: props.clients.filter((c) => c.id !== id),
-        }))
-        .delete(routes.clients.delete(workspaceId, id));
-    }
-    clientToDelete = null;
-  }
+  const { createForm, editForm } = crud;
 </script>
 
 <PageLayout title="Clients" icon={Users} iconColor="text-bright-blue">
@@ -133,7 +44,7 @@
       class="space-y-4"
       onsubmit={(e) => {
         e.preventDefault();
-        if (createForm.name) handleCreate();
+        if (createForm.name) crud.create();
       }}
     >
       <FormField
@@ -203,15 +114,16 @@ Country"
 
   <SectionCard title={`All Clients (${clients.length})`}>
     {#if clients.length === 0}
-      <div class="p-8 text-center text-fg-muted">
-        <Building2 class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>No clients yet. Create your first client above!</p>
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="No clients yet"
+        description="Create your first client with the form above."
+      />
     {:else}
       <div class="divide-y divide-bg-tertiary">
         {#each clients as client, i}
           {@const isLast = i === clients.length - 1}
-          {#if editingId === client.id}
+          {#if crud.editingId === client.id}
             <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
               <FormField
                 id="edit-name-{client.id}"
@@ -222,6 +134,8 @@ Country"
                   <TextInput
                     id="edit-name-{client.id}"
                     tone="blue"
+                    autofocus
+                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     bind:value={editForm.name}
                     aria-describedby={describedBy}
                   />
@@ -239,6 +153,7 @@ Country"
                     id="edit-email-{client.id}"
                     tone="blue"
                     bind:value={editForm.email}
+                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     placeholder="billing@example.com"
                     aria-describedby={describedBy}
                   />
@@ -251,29 +166,24 @@ Country"
                     id="edit-address-{client.id}"
                     tone="blue"
                     bind:value={editForm.billing_address}
+                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     rows={3}
                     aria-describedby={describedBy}
                   />
                 {/snippet}
               </FormField>
 
-              <div class="flex justify-end">
-                <div class="flex items-center gap-2">
-                  <IconButton
-                    aria-label="Cancel editing"
-                    onclick={cancelEditing}
-                  >
-                    <X class="w-5 h-5" />
-                  </IconButton>
-                  <IconButton
-                    tone="primary"
-                    aria-label="Save changes"
-                    onclick={() => handleUpdate(client.id)}
-                    disabled={editForm.processing}
-                  >
-                    <Check class="w-5 h-5" />
-                  </IconButton>
-                </div>
+              <div class="flex justify-end gap-2">
+                <Button variant="ghost" onclick={crud.cancelEditing}>
+                  Cancel
+                </Button>
+                <Button
+                  tone="blue"
+                  onclick={() => crud.update(client.id)}
+                  disabled={editForm.processing}
+                >
+                  Save
+                </Button>
               </div>
             </div>
           {:else}
@@ -297,7 +207,7 @@ Country"
                 <IconButton
                   aria-label="Edit client"
                   disabled={client.id < 0}
-                  onclick={() => startEditing(client)}
+                  onclick={() => crud.startEditing(client)}
                 >
                   <Edit2 class="w-4 h-4" />
                 </IconButton>
@@ -305,7 +215,7 @@ Country"
                   tone="danger"
                   aria-label="Delete client"
                   disabled={client.id < 0}
-                  onclick={() => (clientToDelete = client)}
+                  onclick={() => (crud.toDelete = client)}
                 >
                   <Trash2 class="w-4 h-4" />
                 </IconButton>
@@ -318,11 +228,11 @@ Country"
   </SectionCard>
 
   <ConfirmDeleteModal
-    open={!!clientToDelete}
+    open={!!crud.toDelete}
     title="Delete Client"
-    itemName={clientToDelete?.name || "this client"}
+    itemName={crud.toDelete?.name || "this client"}
     warningMessage="This action cannot be undone. This will remove the client association from all projects."
-    onConfirm={confirmDelete}
-    onClose={() => (clientToDelete = null)}
+    onConfirm={crud.confirmDelete}
+    onClose={() => (crud.toDelete = null)}
   />
 </PageLayout>
