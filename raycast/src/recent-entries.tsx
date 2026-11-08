@@ -15,7 +15,15 @@ import {
 } from "./api";
 
 function RecentEntries() {
-  const { data: entries, isLoading, revalidate } = useCachedPromise(() => listEntries(14), [], { initialData: [] });
+  const {
+    data: entries,
+    isLoading,
+    revalidate,
+  } = useCachedPromise(
+    async () => (await listEntries(14)).filter((entry) => new Date(entry.started_at) <= new Date()),
+    [],
+    { initialData: [] },
+  );
   const { data: url } = useCachedPromise(timerUrl);
 
   async function run(title: string, doneTitle: string, action: () => Promise<unknown>) {
@@ -133,7 +141,9 @@ function groupByDay(entries: TimeEntry[]): [string, TimeEntry[]][] {
   const groups = new Map<string, TimeEntry[]>();
   for (const entry of entries) {
     const label = dayLabel(new Date(entry.started_at));
-    groups.set(label, [...(groups.get(label) ?? []), entry]);
+    const group = groups.get(label);
+    if (group) group.push(entry);
+    else groups.set(label, [entry]);
   }
   return [...groups];
 }

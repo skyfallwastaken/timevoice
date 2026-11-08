@@ -22,7 +22,6 @@ export function ProjectAndTagFields({
       <Form.Dropdown
         id="project_id"
         title="Project"
-        storeValue
         onChange={(id) => onProjectChange(projects.find((project) => project.id === id))}
       >
         <Form.Dropdown.Item value="" title="No project" />

@@ -30,4 +30,4 @@ npm run build  # type-checks and builds
 npx eslint src && npx prettier --check src
 ```
 
-The extension talks only to the public API v1 documented in `docs/openapi.yml`.
+The extension talks only to the public API v1 documented in [docs/openapi.yml](../docs/openapi.yml).

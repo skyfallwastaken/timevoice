@@ -95,17 +95,16 @@ async function workspaceRequest<T>(path: string, init?: RequestInit): Promise<T>
 function daysAgo(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString().slice(0, 10);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function listEntries(days: number): Promise<TimeEntry[]> {
-  return workspaceRequest(`/time_entries?start_date=${daysAgo(days)}`);
+// Without `days`, lists every entry: API v1 has no "running" filter, and a timer can run for any length of time.
+export function listEntries(days?: number): Promise<TimeEntry[]> {
+  return workspaceRequest(days === undefined ? "/time_entries" : `/time_entries?start_date=${daysAgo(days)}`);
 }
 
-// The API has no "running" filter, so look back far enough to catch any
-// timer someone could plausibly have left running.
-export async function getRunningEntry(): Promise<TimeEntry | undefined> {
-  return (await listEntries(7)).find((entry) => !entry.ended_at);
+export async function getRunningEntries(): Promise<TimeEntry[]> {
+  return (await listEntries()).filter((entry) => !entry.ended_at);
 }
 
 export function listProjects(): Promise<Project[]> {
@@ -122,8 +121,7 @@ export function stopEntry(id: string): Promise<TimeEntry> {
 
 // Matches the web app: starting a timer stops the one already running.
 export async function startTimer(input: EntryInput): Promise<TimeEntry> {
-  const running = (await listEntries(7)).filter((entry) => !entry.ended_at);
-  await Promise.all(running.map((entry) => stopEntry(entry.id)));
+  await Promise.all((await getRunningEntries()).map((entry) => stopEntry(entry.id)));
   return workspaceRequest("/time_entries/start", { method: "POST", body: JSON.stringify(input) });
 }
 

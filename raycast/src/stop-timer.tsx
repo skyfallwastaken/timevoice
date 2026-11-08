@@ -1,10 +1,10 @@
 import { showHUD } from "@raycast/api";
 import { showFailureToast, withAccessToken } from "@raycast/utils";
-import { formatDuration, getRunningEntry, refreshMenuBar, stopEntry, timevoice } from "./api";
+import { formatDuration, getRunningEntries, refreshMenuBar, stopEntry, timevoice } from "./api";
 
 async function stopTimer() {
   try {
-    const running = await getRunningEntry();
+    const [running] = await getRunningEntries();
     if (!running) {
       await showHUD("No timer is running");
       return;
