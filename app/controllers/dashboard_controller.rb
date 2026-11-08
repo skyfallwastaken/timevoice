@@ -32,7 +32,7 @@ class DashboardController < ApplicationController
 
     entries = policy_scope(TimeEntry)
       .completed
-      .includes(:project, :tags, files_attachments: :blob)
+      .includes(:project, files_attachments: :blob)
       .order(start_at: :desc)
       .limit(ENTRY_LIMIT)
     entries = entries.where(start_at: period) if period
@@ -40,7 +40,7 @@ class DashboardController < ApplicationController
     entries = entries.where(TimeEntry.arel_table[:description].matches("%#{TimeEntry.sanitize_sql_like(filters[:q])}%")) if filters[:q]
 
     {
-      recentEntries: entries.map { |entry| entry.as_props(with_files: true) },
+      recentEntries: entries_props(entries),
       filters: filters,
       hasEntries: policy_scope(TimeEntry).completed.exists?,
       entryLimit: ENTRY_LIMIT
@@ -57,11 +57,11 @@ class DashboardController < ApplicationController
     entries = policy_scope(TimeEntry)
       .completed
       .in_date_range(week_start, week_start + 6.days)
-      .includes(:project, :tags, files_attachments: :blob)
+      .includes(:project, files_attachments: :blob)
       .order(start_at: :asc)
 
     {
-      entries: entries.map { |entry| entry.as_props(with_files: true) },
+      entries: entries_props(entries),
       weekStart: week_start.to_s
     }
   end
@@ -93,5 +93,10 @@ class DashboardController < ApplicationController
     TimeEntry.where(id: latest_ids).eager_load(:tags).order(start_at: :desc).map { |entry|
       { description: entry.description, project_id: entry.project_id, tag_ids: entry.tags.map(&:id), billable: entry.billable }
     }
+  end
+
+  def entries_props(entries)
+    tags = TimeEntry.tags_json_by_entry_id(entries)
+    entries.map { |entry| entry.as_props(with_files: true, tags: tags.fetch(entry.id, [])) }
   end
 end

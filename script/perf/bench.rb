@@ -9,6 +9,8 @@ label = ARGV[0] || "run"
 runs = (ARGV[1] || 15).to_i
 Rails.logger.level = :warn
 ActiveRecord::Base.logger = nil
+# Inertia's devtools record and redact every response in development only.
+InertiaRails.configuration.devtools.enabled = false
 
 ws = Workspace.find_by!(name: "Acme Studio")
 invoice = ws.invoices.joins(:invoice_lines).group(:id).order(Arel.sql("count(invoice_lines.id) desc")).first
@@ -58,6 +60,7 @@ results = pages.to_h do |name, path|
     (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t) * 1000
   end.sort
   body = session.response.body
+  File.write(File.join(ENV["DUMP"], "#{name.parameterize}.json"), body) if ENV["DUMP"]
   sql = queries.reject(&:last).map(&:first)
   repeated = sql.map { |q| q.gsub(/\b\d+\b/, "?").gsub(/'[^']*'/, "?") }.tally.select { |_, c| c > 2 }
   [ name, {

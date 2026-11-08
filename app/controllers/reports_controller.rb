@@ -17,14 +17,15 @@ class ReportsController < ApplicationController
     @entries = policy_scope(TimeEntry)
       .completed
       .in_date_range(start_date, end_date)
-      .includes(:tags, project: :client)
+      .includes(project: :client)
       .order(start_at: :asc)
     @entries = @entries.where(project_id: params[:project_id]) if params[:project_id].present?
 
     @totals = calculate_totals(@entries, start_date..end_date)
+    tags = TimeEntry.tags_json_by_entry_id(@entries)
 
     render inertia: "Reports/Index", props: {
-      entries: @entries.map(&:as_props),
+      entries: @entries.map { |entry| entry.as_props(tags: tags.fetch(entry.id, [])) },
       totals: @totals,
       dateRange: {
         start: start_date.to_s,

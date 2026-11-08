@@ -60,14 +60,12 @@ class TimeEntry < ApplicationRecord
     update_columns(end_at: ended, duration_seconds: (ended - start_at).to_i, updated_at: Time.current)
   end
 
-  def as_props(with_files: false)
+  # Lists pass tags from tags_json_by_entry_id instead of loading each entry's.
+  def as_props(with_files: false, tags: nil)
     props = as_json(
       only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
-      include: {
-        project: { only: [ :id, :name, :color ] },
-        tags: { only: [ :id, :name ] }
-      }
-    )
+      include: { project: { only: [ :id, :name, :color ] } }
+    ).merge("tags" => tags || self.tags.as_json(only: [ :id, :name ]))
     return props unless with_files
 
     props.merge(
@@ -89,6 +87,15 @@ class TimeEntry < ApplicationRecord
 
   def tag_names
     tags.pluck(:name)
+  end
+
+  # Tags as JSON by entry id. Reading rows skips building a tags association
+  # on each entry, which costs more than the queries on long lists.
+  def self.tags_json_by_entry_id(entries)
+    TimeEntryTag.joins(:tag).where(time_entry_id: entries.map(&:id)).order(:id)
+      .pluck(:time_entry_id, "tags.id", "tags.name")
+      .group_by(&:first)
+      .transform_values { |rows| rows.map { |_, id, name| { "id" => id, "name" => name } } }
   end
 
   # Starting a timer stops the user's other running timer in the workspace.
