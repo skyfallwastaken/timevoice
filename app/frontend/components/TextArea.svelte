@@ -34,5 +34,4 @@
   {disabled}
   bind:value
   class="{baseClass} {toneClass} {className}"
-  {...rest}
-></textarea>
+  {...rest}></textarea>

@@ -8,7 +8,7 @@
   import TextInput from "./TextInput.svelte";
   import ChipButton from "./ChipButton.svelte";
   import IconButton from "./IconButton.svelte";
-  import { Paperclip, X, Check } from "lucide-svelte";
+  import { Paperclip, X, Check } from "@lucide/svelte";
   import { formatFileSize } from "../lib/format";
   import { routes } from "../lib/routes";
   import { toggleSelectedTag } from "../lib/time-entry-form";
@@ -26,7 +26,7 @@
 
   let { entry, projects, tags, open, onClose, onDelete }: Props = $props();
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
   let editFileInput: HTMLInputElement | null = $state(null);
 
   let editForm = useForm({
@@ -43,30 +43,29 @@
   // while the dialog fades out.
   $effect(() => {
     if (open && entry) {
-      $editForm.description = entry.description || "";
-      $editForm.project_id = entry.project?.id?.toString() || "";
-      $editForm.tag_ids = (entry.tags || []).map((t) => t.id);
-      $editForm.billable = !!entry.billable;
-      $editForm.files = [];
+      editForm.description = entry.description || "";
+      editForm.project_id = entry.project?.id?.toString() || "";
+      editForm.tag_ids = (entry.tags || []).map((t) => t.id);
+      editForm.billable = !!entry.billable;
+      editForm.files = [];
     }
   });
 
   function toggleTag(tagId: number) {
-    $editForm.tag_ids = toggleSelectedTag($editForm.tag_ids, tagId);
+    editForm.tag_ids = toggleSelectedTag(editForm.tag_ids, tagId);
   }
 
   function handleEditFileSelect(event: Event) {
     const target = event.target as HTMLInputElement;
     if (target.files) {
       const files = Array.from(target.files);
-      const existingCount =
-        (entry?.files?.length || 0) + $editForm.files.length;
+      const existingCount = (entry?.files?.length || 0) + editForm.files.length;
       if (existingCount + files.length > 3) {
         alert("You can only attach up to 3 files");
         target.value = "";
         return;
       }
-      $editForm.files = [...$editForm.files, ...files].slice(
+      editForm.files = [...editForm.files, ...files].slice(
         0,
         3 - (entry?.files?.length || 0),
       );
@@ -75,7 +74,7 @@
   }
 
   function removeEditFile(index: number) {
-    $editForm.files = $editForm.files.filter((_, i) => i !== index);
+    editForm.files = editForm.files.filter((_, i) => i !== index);
   }
 
   function deleteExistingFile(blobId: number) {
@@ -97,7 +96,7 @@
   function saveEdit() {
     if (!entry || !workspaceId) return;
 
-    $editForm
+    editForm
       .transform((data) => {
         const formData = new FormData();
         formData.append("time_entry[description]", data.description);
@@ -150,7 +149,7 @@
       {#snippet children({ describedBy })}
         <TextInput
           id="edit-description"
-          bind:value={$editForm.description}
+          bind:value={editForm.description}
           aria-describedby={describedBy}
         />
       {/snippet}
@@ -163,7 +162,7 @@
         <SelectInput
           id="edit-project"
           tone="blue"
-          bind:value={$editForm.project_id}
+          bind:value={editForm.project_id}
           aria-describedby={describedBy}
         >
           <option value="">No project</option>
@@ -180,13 +179,13 @@
       >
       <button
         type="button"
-        class="w-full h-9 px-3 text-sm font-medium border rounded-[10px] transition-colors duration-150 {$editForm.billable
+        class="w-full h-9 px-3 text-sm font-medium border rounded-[10px] transition-colors duration-150 {editForm.billable
           ? 'border-bright-green text-bright-green'
           : 'border-bg-tertiary text-fg-muted hover:text-fg-primary'}"
-        aria-pressed={$editForm.billable}
-        onclick={() => ($editForm.billable = !$editForm.billable)}
+        aria-pressed={editForm.billable}
+        onclick={() => (editForm.billable = !editForm.billable)}
       >
-        {$editForm.billable ? "Billable" : "Non-billable"}
+        {editForm.billable ? "Billable" : "Non-billable"}
       </button>
     </div>
   </div>
@@ -200,11 +199,11 @@
         {#each tags as tag}
           <ChipButton
             type="button"
-            selected={$editForm.tag_ids.includes(tag.id)}
-            class={$editForm.tag_ids.includes(tag.id)
+            selected={editForm.tag_ids.includes(tag.id)}
+            class={editForm.tag_ids.includes(tag.id)
               ? "border-bright-green text-bright-green"
               : "text-fg-muted hover:text-fg-primary"}
-            aria-pressed={$editForm.tag_ids.includes(tag.id)}
+            aria-pressed={editForm.tag_ids.includes(tag.id)}
             onclick={() => toggleTag(tag.id)}
           >
             {tag.name}
@@ -243,9 +242,9 @@
         </div>
       {/if}
 
-      {#if $editForm.files.length > 0}
+      {#if editForm.files.length > 0}
         <div class="flex flex-wrap gap-2">
-          {#each $editForm.files as file, index}
+          {#each editForm.files as file, index}
             <div
               class="flex items-center gap-2 px-3 py-1.5 bg-bg-primary border border-bright-blue rounded-lg text-sm"
             >
@@ -267,7 +266,7 @@
         </div>
       {/if}
 
-      {#if (entry?.files?.length || 0) + $editForm.files.length < 3}
+      {#if (entry?.files?.length || 0) + editForm.files.length < 3}
         <div class="flex items-center gap-2">
           <input
             bind:this={editFileInput}
@@ -283,7 +282,7 @@
             class="flex items-center gap-2 px-3 py-1.5 text-sm text-fg-muted hover:text-fg-primary border border-bg-tertiary rounded-lg hover:border-bright-blue transition-colors duration-150"
           >
             <Paperclip class="w-4 h-4" />
-            Add Files ({(entry?.files?.length || 0) + $editForm.files.length}/3)
+            Add Files ({(entry?.files?.length || 0) + editForm.files.length}/3)
           </button>
           <span class="text-xs text-fg-muted">Max 10MB each</span>
         </div>
@@ -297,7 +296,7 @@
         variant="ghost"
         type="button"
         onclick={openDeleteModal}
-        disabled={$editForm.processing}
+        disabled={editForm.processing}
         class="text-bright-red hover:text-bright-red hover:bg-bright-red/10"
       >
         Delete
@@ -307,7 +306,7 @@
           variant="ghost"
           type="button"
           onclick={onClose}
-          disabled={$editForm.processing}
+          disabled={editForm.processing}
         >
           Cancel
         </Button>
@@ -315,10 +314,10 @@
           tone="blue"
           type="button"
           onclick={saveEdit}
-          disabled={$editForm.processing}
+          disabled={editForm.processing}
         >
           <Check class="w-4 h-4" aria-hidden="true" />
-          {$editForm.processing ? "Saving..." : "Save"}
+          {editForm.processing ? "Saving..." : "Save"}
         </Button>
       </div>
     </div>

@@ -2,7 +2,7 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import { page, Link } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
-  import { DollarSign } from "lucide-svelte";
+  import { DollarSign } from "@lucide/svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -13,29 +13,29 @@
   import { routes } from "../../lib/routes";
   import { renderMarkdown } from "../../lib/markdown";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
-  let flash = $derived($page.props.flash || {});
-  let canEdit = $derived(!!$page.props.canEdit);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
+  let flash = $derived(page.props.flash || {});
+  let canEdit = $derived(!!page.props.canEdit);
 
   let form = useForm({
-    sender_name: ($page.props.invoiceSettings as any)?.sender_name || "",
-    sender_address: ($page.props.invoiceSettings as any)?.sender_address || "",
+    sender_name: (page.props.invoiceSettings as any)?.sender_name || "",
+    sender_address: (page.props.invoiceSettings as any)?.sender_address || "",
     billable_rate_cents:
-      ($page.props.invoiceSettings as any)?.billable_rate_cents || 0,
-    notes: ($page.props.invoiceSettings as any)?.notes || "",
+      (page.props.invoiceSettings as any)?.billable_rate_cents || 0,
+    notes: (page.props.invoiceSettings as any)?.notes || "",
   });
 
-  const notesMaxLength = $page.props.notesMaxLength as number;
+  const notesMaxLength = page.props.notesMaxLength as number;
   let notesMode = $state<"write" | "preview">(
-    $page.props.canEdit === false ? "preview" : "write",
+    page.props.canEdit === false ? "preview" : "write",
   );
 
   let rateInputValue = $state(
-    formatRate(($page.props.invoiceSettings as any)?.billable_rate_cents || 0),
+    formatRate((page.props.invoiceSettings as any)?.billable_rate_cents || 0),
   );
 
   function saveSettings() {
-    $form.patch(routes.settings.updateBilling(workspaceId), {
+    form.patch(routes.settings.updateBilling(workspaceId), {
       preserveScroll: true,
     });
   }
@@ -67,13 +67,13 @@
         id="sender-name"
         label="Sender Name"
         description="This name will appear as the sender on your invoices."
-        error={$form.errors.sender_name}
+        error={form.errors.sender_name}
       >
         {#snippet children({ describedBy })}
           <TextInput
             id="sender-name"
             tone="purple"
-            bind:value={$form.sender_name}
+            bind:value={form.sender_name}
             placeholder="Your name or company name"
             aria-describedby={describedBy}
           />
@@ -84,13 +84,13 @@
         id="sender-address"
         label="Sender Address"
         description="This address will appear on invoices as the sender's address."
-        error={$form.errors.sender_address}
+        error={form.errors.sender_address}
       >
         {#snippet children({ describedBy })}
           <TextArea
             id="sender-address"
             tone="purple"
-            bind:value={$form.sender_address}
+            bind:value={form.sender_address}
             placeholder="Your billing address"
             rows={3}
             aria-describedby={describedBy}
@@ -116,7 +116,7 @@
               min="0"
               bind:value={rateInputValue}
               onchange={(e) =>
-                ($form.billable_rate_cents = parseRate(e.currentTarget.value))}
+                (form.billable_rate_cents = parseRate(e.currentTarget.value))}
               placeholder="0.00"
               class="pl-8 pr-4"
             />
@@ -128,7 +128,7 @@
         id="invoice-notes"
         label="Invoice Notes"
         description="Printed under the totals on new invoices, e.g. payment terms or bank details. Markdown works; check Preview to see how it prints."
-        error={$form.errors.notes}
+        error={form.errors.notes}
       >
         {#snippet children({ describedBy })}
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -152,14 +152,14 @@
               {/each}
             </div>
             <span class="text-xs text-fg-muted tabular-nums">
-              {$form.notes.length.toLocaleString()} / {notesMaxLength.toLocaleString()}
+              {form.notes.length.toLocaleString()} / {notesMaxLength.toLocaleString()}
             </span>
           </div>
           <div class="grid">
             <TextArea
               id="invoice-notes"
               tone="purple"
-              bind:value={$form.notes}
+              bind:value={form.notes}
               placeholder={"**Payment due within 30 days.**\n- Bank: Monzo\n- Sort code: 04-00-04\n- Account: 12345678"}
               rows={8}
               maxlength={notesMaxLength}
@@ -175,11 +175,11 @@
                 aria-label="Invoice notes preview"
               >
                 <p class="mb-2 text-xs text-[#666]">Notes</p>
-                {#if $form.notes.trim()}
+                {#if form.notes.trim()}
                   <div
                     class="prose prose-sm prose-quoteless max-w-none text-inherit prose-headings:text-[#1a1a1a] prose-headings:text-sm prose-headings:mt-0 prose-headings:mb-2 prose-strong:text-inherit prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-a:text-[#6366F1] prose-code:text-[#1a1a1a] prose-code:font-[inherit] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:text-inherit prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
                   >
-                    {@html renderMarkdown($form.notes)}
+                    {@html renderMarkdown(form.notes)}
                   </div>
                 {:else}
                   <p class="italic">Nothing to preview yet.</p>
@@ -191,12 +191,8 @@
       </FormField>
 
       <div class="flex justify-end pt-4">
-        <Button
-          tone="purple"
-          onclick={saveSettings}
-          disabled={$form.processing}
-        >
-          {$form.processing ? "Saving..." : "Save Settings"}
+        <Button tone="purple" onclick={saveSettings} disabled={form.processing}>
+          {form.processing ? "Saving..." : "Save Settings"}
         </Button>
       </div>
     </fieldset>

@@ -10,12 +10,12 @@
   import { page } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
-  import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "lucide-svelte";
+  import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "@lucide/svelte";
   import type { Tag as TagType } from "../../types";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  let tags = $derived(($page.props.tags as TagType[]) || []);
+  let tags = $derived((page.props.tags as TagType[]) || []);
 
   let editingId: number | null = $state(null);
   let tagToDelete: TagType | null = $state(null);
@@ -30,36 +30,36 @@
 
   function startEditing(tagItem: TagType) {
     editingId = tagItem.id;
-    $editForm.name = tagItem.name;
+    editForm.name = tagItem.name;
   }
 
   function cancelEditing() {
     editingId = null;
-    $editForm.reset();
+    editForm.reset();
   }
 
   function handleCreate() {
     if (!workspaceId) return;
-    $createForm.post(routes.tags.create(workspaceId), {
+    createForm.post(routes.tags.create(workspaceId), {
       onSuccess: () => {
-        $createForm.reset();
+        createForm.reset();
       },
     });
   }
 
   function handleUpdate(tagId: number) {
     if (!workspaceId) return;
-    $editForm.patch(routes.tags.update(workspaceId, tagId), {
+    editForm.patch(routes.tags.update(workspaceId, tagId), {
       onSuccess: () => {
         editingId = null;
-        $editForm.reset();
+        editForm.reset();
       },
     });
   }
 
   function confirmDelete() {
     if (tagToDelete && workspaceId) {
-      $editForm.delete(routes.tags.delete(workspaceId, tagToDelete.id));
+      editForm.delete(routes.tags.delete(workspaceId, tagToDelete.id));
     }
     tagToDelete = null;
   }
@@ -70,7 +70,7 @@
   icon={Tag}
   iconColor="text-bright-yellow"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Tag"
@@ -84,10 +84,10 @@
           <TextInput
             id="tag-name"
             tone="yellow"
-            bind:value={$createForm.name}
+            bind:value={createForm.name}
             placeholder="Enter tag name..."
             onkeydown={(e) =>
-              e.key === "Enter" && $createForm.name && handleCreate()}
+              e.key === "Enter" && createForm.name && handleCreate()}
             aria-describedby={describedBy}
           />
         {/snippet}
@@ -97,7 +97,7 @@
         <Button
           tone="yellow"
           onclick={handleCreate}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
           Create Tag
@@ -128,7 +128,7 @@
                     <TextInput
                       id="edit-tag-{tagItem.id}"
                       tone="yellow"
-                      bind:value={$editForm.name}
+                      bind:value={editForm.name}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
@@ -143,7 +143,7 @@
                   tone="success"
                   aria-label="Save changes"
                   onclick={() => handleUpdate(tagItem.id)}
-                  disabled={$editForm.processing}
+                  disabled={editForm.processing}
                 >
                   <Check class="w-5 h-5" />
                 </IconButton>

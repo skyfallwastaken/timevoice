@@ -3,7 +3,7 @@
   import SectionCard from "../../components/SectionCard.svelte";
   import SettingsTabs from "../../components/SettingsTabs.svelte";
   import { page, router } from "@inertiajs/svelte";
-  import { Palette, Check } from "lucide-svelte";
+  import { Palette, Check } from "@lucide/svelte";
   import { routes } from "../../lib/routes";
   import { applyTheme } from "../../lib/theme";
 
@@ -14,9 +14,9 @@
     mode: "dark" | "light";
   };
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
-  let themes = $derived(($page.props.themes as Theme[]) || []);
-  let selected = $state($page.props.currentTheme as string);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
+  let themes = $derived((page.props.themes as Theme[]) || []);
+  let selected = $state(page.props.currentTheme as string);
 
   let families = $derived(
     [...new Set(themes.map((t) => t.family))].map((family) => ({
@@ -61,7 +61,7 @@
   icon={Palette}
   iconColor="text-bright-purple"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="themes" />

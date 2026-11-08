@@ -4,10 +4,6 @@ import { mount } from "svelte";
 import AppShell from "../components/AppShell.svelte";
 import { syncThemeColor } from "../lib/theme";
 
-const defaultLayout = AppShell as unknown as NonNullable<
-  ResolvedComponent["layout"]
->;
-
 // The server reads this to bucket entries into days in the browser's timezone.
 document.cookie = `tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}; path=/; max-age=31536000; samesite=lax`;
 
@@ -18,18 +14,14 @@ createInertiaApp({
     const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
       eager: true,
     });
-    const page = pages[`../pages/${name}.svelte`] as
-      | ResolvedComponent
-      | undefined;
+    const page = pages[`../pages/${name}.svelte`];
     if (!page) {
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
-
-    return {
-      ...page,
-      layout: page?.layout === undefined ? AppShell : page.layout,
-    } as ResolvedComponent;
+    return page;
   },
+
+  layout: () => AppShell,
 
   setup({ el, App, props }) {
     if (el) {
@@ -46,12 +38,6 @@ createInertiaApp({
   defaults: {
     form: {
       forceIndicesArrayFormatInFormData: false,
-    },
-    future: {
-      useScriptElementForInitialPage: true,
-      useDataInertiaHeadAttribute: true,
-      useDialogForErrorModal: true,
-      preserveEqualProps: true,
     },
   },
 });

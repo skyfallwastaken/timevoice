@@ -19,13 +19,13 @@
     Check,
     X,
     ChevronDown,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { formatDate, getStatusClasses } from "../../lib/format";
   import { routes } from "../../lib/routes";
   import Turnstile from "../../components/Turnstile.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   type InvoiceLine = {
     id: number;
@@ -55,9 +55,9 @@
     lines: InvoiceLine[];
   };
 
-  let invoice = $derived($page.props.invoice as Invoice);
-  const userEmail = ($page.props.auth as any)?.user?.email || "";
-  const isDevMode = $page.props.rails_env === "development";
+  let invoice = $derived(page.props.invoice as Invoice);
+  const userEmail = (page.props.auth as any)?.user?.email || "";
+  const isDevMode = page.props.rails_env === "development";
 
   let emailModalOpen = $state(false);
   let emailRecipients = $state("");
@@ -150,7 +150,7 @@
   icon={FileText}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <div class="flex flex-wrap items-center sm:justify-end gap-2">

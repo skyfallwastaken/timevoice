@@ -14,7 +14,7 @@
     X,
     Plus,
     Workflow,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
   import FormField from "./FormField.svelte";
@@ -28,13 +28,13 @@
 
   let { children } = $props();
 
-  const user = $derived($page.props.auth?.user);
-  const workspace = $derived($page.props.auth?.workspace);
-  const isAdmin = $derived($page.props.auth?.is_admin);
-  const isDevMode = $derived($page.props.rails_env === "development");
+  const user = $derived(page.props.auth?.user);
+  const workspace = $derived(page.props.auth?.workspace);
+  const isAdmin = $derived(page.props.auth?.is_admin);
+  const isDevMode = $derived(page.props.rails_env === "development");
 
   const currentWorkspaceHashid = $derived(
-    $page.props.auth?.workspace?.hashid || "",
+    page.props.auth?.workspace?.hashid || "",
   );
 
   const navItems = [
@@ -46,7 +46,7 @@
     { href: routes.invoices.index, icon: FileText, label: "Invoices" },
     { href: routes.settings.index, icon: Settings, label: "Settings" },
   ];
-  const workspaces = $derived($page.props.auth?.workspaces || []);
+  const workspaces = $derived(page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);
   let mobileWorkspaceOpen = $state(false);
@@ -54,7 +54,7 @@
   let showCreateModal = $state(false);
 
   const activeIndex = $derived.by(() => {
-    const path = $page.url.split("?")[0];
+    const path = page.url.split("?")[0];
     if (path === `/${currentWorkspaceHashid}`) return 0;
     return navItems.findIndex((item) => {
       const href = item.href(currentWorkspaceHashid);
@@ -88,7 +88,7 @@
   }
 
   function openCreateModal() {
-    $createForm.reset();
+    createForm.reset();
     showCreateModal = true;
     mobileWorkspaceOpen = false;
     desktopWorkspaceOpen = false;
@@ -99,14 +99,14 @@
   }
 
   function submitCreateWorkspace() {
-    $createForm
+    createForm
       .transform((data) => ({ workspace: data }))
       .post(routes.workspaces.create, {
         onSuccess: () => {
           closeCreateModal();
           // Keep the blank defaults the next open resets to; Inertia otherwise
           // adopts the submitted values as the new defaults.
-          $createForm.defaults({});
+          createForm.defaults({});
         },
       });
   }
@@ -140,7 +140,7 @@
     {/if}
     {#each navItems as item}
       {@const href = item.href(currentWorkspaceHashid)}
-      {@const isActive = $page.url === href || $page.url.startsWith(href + "/")}
+      {@const isActive = page.url === href || page.url.startsWith(href + "/")}
       <Link
         {href}
         prefetch
@@ -431,13 +431,13 @@
     <FormField
       id="workspace-name"
       label="Workspace Name"
-      error={$createForm.errors?.name}
+      error={createForm.errors?.name}
     >
       {#snippet children({ describedBy })}
         <TextInput
           id="workspace-name"
           tone="purple"
-          bind:value={$createForm.name}
+          bind:value={createForm.name}
           placeholder="My Team"
           aria-describedby={describedBy}
         />
@@ -449,16 +449,16 @@
         <Button
           variant="ghost"
           onclick={closeCreateModal}
-          disabled={$createForm.processing}
+          disabled={createForm.processing}
         >
           Cancel
         </Button>
         <Button
           tone="purple"
           onclick={submitCreateWorkspace}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
-          {$createForm.processing ? "Creating..." : "Create Workspace"}
+          {createForm.processing ? "Creating..." : "Create Workspace"}
         </Button>
       </div>
     {/snippet}

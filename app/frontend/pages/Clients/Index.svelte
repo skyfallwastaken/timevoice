@@ -19,12 +19,12 @@
     Check,
     X,
     Building2,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import type { Client } from "../../types";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  let clients = $derived(($page.props.clients as Client[]) || []);
+  let clients = $derived((page.props.clients as Client[]) || []);
 
   let editingId: number | null = $state(null);
 
@@ -41,33 +41,33 @@
   });
 
   function startEditing(client: Client) {
-    $editForm.clearErrors();
+    editForm.clearErrors();
     editingId = client.id;
-    $editForm.name = client.name;
-    $editForm.email = client.email || "";
-    $editForm.billing_address = client.billing_address || "";
+    editForm.name = client.name;
+    editForm.email = client.email || "";
+    editForm.billing_address = client.billing_address || "";
   }
 
   function cancelEditing() {
     editingId = null;
-    $editForm.reset();
+    editForm.reset();
   }
 
   function handleCreate() {
     if (!workspaceId) return;
-    $createForm.post(routes.clients.create(workspaceId), {
+    createForm.post(routes.clients.create(workspaceId), {
       onSuccess: () => {
-        $createForm.reset();
+        createForm.reset();
       },
     });
   }
 
   function handleUpdate(clientId: number) {
     if (!workspaceId) return;
-    $editForm.patch(routes.clients.update(workspaceId, clientId), {
+    editForm.patch(routes.clients.update(workspaceId, clientId), {
       onSuccess: () => {
         editingId = null;
-        $editForm.reset();
+        editForm.reset();
       },
     });
   }
@@ -76,7 +76,7 @@
 
   function confirmDelete() {
     if (clientToDelete && workspaceId) {
-      $editForm.delete(routes.clients.delete(workspaceId, clientToDelete.id));
+      editForm.delete(routes.clients.delete(workspaceId, clientToDelete.id));
     }
     clientToDelete = null;
   }
@@ -87,7 +87,7 @@
   icon={Users}
   iconColor="text-bright-blue"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Client"
@@ -99,7 +99,7 @@
       class="space-y-4"
       onsubmit={(e) => {
         e.preventDefault();
-        if ($createForm.name) handleCreate();
+        if (createForm.name) handleCreate();
       }}
     >
       <FormField id="client-name" label="Client Name">
@@ -107,7 +107,7 @@
           <TextInput
             id="client-name"
             tone="blue"
-            bind:value={$createForm.name}
+            bind:value={createForm.name}
             placeholder="Enter client name..."
             aria-describedby={describedBy}
           />
@@ -118,13 +118,13 @@
         id="client-email"
         label="Email"
         description="Invoices are emailed here by default. Separate multiple emails with commas."
-        error={$createForm.errors.email}
+        error={createForm.errors.email}
       >
         {#snippet children({ describedBy })}
           <TextInput
             id="client-email"
             tone="blue"
-            bind:value={$createForm.email}
+            bind:value={createForm.email}
             placeholder="billing@example.com"
             aria-describedby={describedBy}
           />
@@ -140,7 +140,7 @@
           <TextArea
             id="billing-address"
             tone="blue"
-            bind:value={$createForm.billing_address}
+            bind:value={createForm.billing_address}
             rows={3}
             placeholder="Street address
 City, State ZIP
@@ -154,7 +154,7 @@ Country"
         <Button
           type="submit"
           tone="blue"
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
           Create Client
@@ -180,7 +180,7 @@ Country"
                   <TextInput
                     id="edit-name-{client.id}"
                     tone="blue"
-                    bind:value={$editForm.name}
+                    bind:value={editForm.name}
                     aria-describedby={describedBy}
                   />
                 {/snippet}
@@ -190,13 +190,13 @@ Country"
                 id="edit-email-{client.id}"
                 label="Email"
                 description="Separate multiple emails with commas."
-                error={$editForm.errors.email}
+                error={editForm.errors.email}
               >
                 {#snippet children({ describedBy })}
                   <TextInput
                     id="edit-email-{client.id}"
                     tone="blue"
-                    bind:value={$editForm.email}
+                    bind:value={editForm.email}
                     placeholder="billing@example.com"
                     aria-describedby={describedBy}
                   />
@@ -208,7 +208,7 @@ Country"
                   <TextArea
                     id="edit-address-{client.id}"
                     tone="blue"
-                    bind:value={$editForm.billing_address}
+                    bind:value={editForm.billing_address}
                     rows={3}
                     aria-describedby={describedBy}
                   />
@@ -227,7 +227,7 @@ Country"
                     tone="primary"
                     aria-label="Save changes"
                     onclick={() => handleUpdate(client.id)}
-                    disabled={$editForm.processing}
+                    disabled={editForm.processing}
                   >
                     <Check class="w-5 h-5" />
                   </IconButton>

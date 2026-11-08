@@ -19,7 +19,7 @@
     ChevronDown,
     ChevronUp,
     Trash2,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
     formatRate,
@@ -83,14 +83,14 @@
     sender_address: string | null;
   };
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
-  let invoices = $derived(($page.props.invoices as Invoice[]) || []);
-  let clients = $derived(($page.props.clients as Client[]) || []);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
+  let invoices = $derived((page.props.invoices as Invoice[]) || []);
+  let clients = $derived((page.props.clients as Client[]) || []);
   let unbilledEntries = $derived(
-    ($page.props.unbilledEntries as UnbilledEntry[]) || [],
+    (page.props.unbilledEntries as UnbilledEntry[]) || [],
   );
   let invoiceSettings = $derived(
-    ($page.props.invoiceSettings as InvoiceSettings) || {
+    (page.props.invoiceSettings as InvoiceSettings) || {
       billable_rate_cents: 0,
       sender_name: "",
       sender_address: null,
@@ -133,17 +133,16 @@
     period_start: "",
     period_end: "",
     rate_cents:
-      ($page.props.invoiceSettings as InvoiceSettings)?.billable_rate_cents ||
-      0,
+      (page.props.invoiceSettings as InvoiceSettings)?.billable_rate_cents || 0,
   });
 
-  let rateInput = $state(formatRate($createForm.rate_cents));
+  let rateInput = $state(formatRate(createForm.rate_cents));
 
   let clientUnbilledEntries = $derived(
     unbilledEntries.filter(
       (entry) =>
-        !!$createForm.client_id &&
-        entry.project?.client_id === Number($createForm.client_id),
+        !!createForm.client_id &&
+        entry.project?.client_id === Number(createForm.client_id),
     ),
   );
   let clientUnbilledHours = $derived(
@@ -151,17 +150,17 @@
   );
 
   let canCreateInvoice = $derived(
-    !!$createForm.client_id &&
+    !!createForm.client_id &&
       (useAllEntries
         ? clientUnbilledEntries.length > 0
         : !!periodStartDate &&
           !!periodEndDate &&
           periodStartDate.getTime() <= periodEndDate.getTime()) &&
-      !$createForm.processing,
+      !createForm.processing,
   );
 
   function handleCreateInvoice() {
-    $createForm
+    createForm
       .transform((data) => ({
         invoice: {
           ...data,
@@ -172,8 +171,8 @@
       }))
       .post(routes.invoices.create(workspaceId), {
         onSuccess: () => {
-          $createForm.reset();
-          rateInput = formatRate($createForm.rate_cents);
+          createForm.reset();
+          rateInput = formatRate(createForm.rate_cents);
           periodStartDate = null;
           periodEndDate = null;
           useAllEntries = false;
@@ -217,7 +216,7 @@
   icon={FileText}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <Button tone="purple" onclick={() => (showCreateForm = !showCreateForm)}>
@@ -289,13 +288,13 @@
           <FormField
             id="invoice-client"
             label="Client"
-            error={$createForm.errors.client_id}
+            error={createForm.errors.client_id}
           >
             {#snippet children({ describedBy })}
               <SelectInput
                 id="invoice-client"
                 tone="purple"
-                bind:value={$createForm.client_id}
+                bind:value={createForm.client_id}
                 aria-describedby={describedBy}
               >
                 <option value="">Select a client...</option>
@@ -308,7 +307,7 @@
           <FormField
             id="invoice-rate"
             label="Billable Rate ($/hour)"
-            description={$createForm.rate_cents > 0
+            description={createForm.rate_cents > 0
               ? "Defaults from invoice settings."
               : "No rate set. Enter one here or set a default in Billing Settings."}
           >
@@ -318,7 +317,7 @@
                 type="number"
                 tone="purple"
                 bind:value={rateInput}
-                oninput={() => ($createForm.rate_cents = parseRate(rateInput))}
+                oninput={() => (createForm.rate_cents = parseRate(rateInput))}
                 step="0.01"
                 min="0"
                 aria-describedby={describedBy}
@@ -329,7 +328,7 @@
             <div
               class="md:col-span-2 bg-bg-primary border border-bg-tertiary rounded-[10px] p-4 text-sm"
             >
-              {#if !$createForm.client_id}
+              {#if !createForm.client_id}
                 <p class="text-fg-muted">
                   Select a client to see their unbilled entries.
                 </p>
@@ -354,7 +353,7 @@
             <FormField
               id="invoice-start"
               label="Period Start"
-              error={$createForm.errors.period_start}
+              error={createForm.errors.period_start}
             >
               {#snippet children({ describedBy })}
                 <DatePicker
@@ -369,7 +368,7 @@
             <FormField
               id="invoice-end"
               label="Period End"
-              error={$createForm.errors.period_end}
+              error={createForm.errors.period_end}
             >
               {#snippet children({ describedBy })}
                 <DatePicker
@@ -419,7 +418,7 @@
           </Button>
           <Button type="submit" tone="purple" disabled={!canCreateInvoice}>
             <Plus class="w-4 h-4" />
-            {$createForm.processing ? "Creating..." : "Create Invoice"}
+            {createForm.processing ? "Creating..." : "Create Invoice"}
           </Button>
         </div>
       </form>

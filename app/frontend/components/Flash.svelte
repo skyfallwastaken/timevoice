@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
-  import { Check, AlertCircle } from "lucide-svelte";
+  import { Check, AlertCircle } from "@lucide/svelte";
 
   interface Props {
     flash?: {
@@ -11,7 +11,7 @@
 
   let { flash: providedFlash }: Props = $props();
 
-  let flash = $derived(providedFlash || $page.props.flash || {});
+  let flash = $derived(providedFlash || page.props.flash || {});
 </script>
 
 {#if flash.notice}

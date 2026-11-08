@@ -2,7 +2,7 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import { page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
-  import { Settings, Users, Shield, Trash2, Plus, Crown } from "lucide-svelte";
+  import { Settings, Users, Shield, Trash2, Plus, Crown } from "@lucide/svelte";
   import Turnstile from "../../components/Turnstile.svelte";
   import EmptyState from "../../components/EmptyState.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -38,15 +38,15 @@
     created_at: string;
   };
 
-  let workspace = $derived($page.props.workspace || {});
-  let members = $derived(($page.props.members as Membership[]) || []);
+  let workspace = $derived(page.props.workspace || {});
+  let members = $derived((page.props.members as Membership[]) || []);
   let pendingInvites = $derived(
-    ($page.props.pendingInvites as PendingInvite[]) || [],
+    (page.props.pendingInvites as PendingInvite[]) || [],
   );
-  let flash = $derived($page.props.flash || {});
-  let canInvite = $derived(!!$page.props.canInvite);
+  let flash = $derived(page.props.flash || {});
+  let canInvite = $derived(!!page.props.canInvite);
 
-  const currentUserId = $derived($page.props.auth?.user?.id);
+  const currentUserId = $derived(page.props.auth?.user?.id);
   const myRole = $derived(
     members.find((m) => m.user?.id === currentUserId)?.role,
   );
@@ -81,10 +81,10 @@
   });
   let turnstileToken = $state("");
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   function submitInvite() {
-    $inviteForm
+    inviteForm
       .transform((data) => ({
         membership: { email: data.email },
         role: data.role,
@@ -97,7 +97,7 @@
           turnstileToken = "";
           // Keep the blank defaults the next open resets to; Inertia otherwise
           // adopts the submitted values as the new defaults.
-          $inviteForm.defaults({});
+          inviteForm.defaults({});
         },
       });
   }
@@ -246,7 +246,7 @@
         aria-label="Invite new member"
         type="button"
         onclick={() => {
-          $inviteForm.reset();
+          inviteForm.reset();
           showInviteModal = true;
         }}
         disabled={!canInvite}
@@ -415,10 +415,10 @@
           id="invite-email"
           type="email"
           tone="purple"
-          bind:value={$inviteForm.email}
+          bind:value={inviteForm.email}
           placeholder="name@company.com"
           onkeydown={(e) =>
-            e.key === "Enter" && $inviteForm.email && submitInvite()}
+            e.key === "Enter" && inviteForm.email && submitInvite()}
           aria-describedby={describedBy}
           autocomplete="email"
         />
@@ -434,7 +434,7 @@
         <SelectInput
           id="invite-role"
           tone="purple"
-          bind:value={$inviteForm.role}
+          bind:value={inviteForm.role}
           aria-describedby={describedBy}
         >
           <option value="member">Member</option>
@@ -457,7 +457,7 @@
           onclick={() => {
             showInviteModal = false;
           }}
-          disabled={$inviteForm.processing}
+          disabled={inviteForm.processing}
         >
           Cancel
         </Button>
@@ -465,9 +465,9 @@
           type="button"
           tone="purple"
           onclick={submitInvite}
-          disabled={$inviteForm.processing || !$inviteForm.email}
+          disabled={inviteForm.processing || !inviteForm.email}
         >
-          {$inviteForm.processing ? "Inviting..." : "Invite"}
+          {inviteForm.processing ? "Inviting..." : "Invite"}
         </Button>
       </div>
     {/snippet}

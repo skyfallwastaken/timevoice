@@ -20,7 +20,7 @@
 
   let { ids, projects, tags, open, onClose, onSaved }: Props = $props();
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   let project = $state("keep");
   let billable = $state("keep");

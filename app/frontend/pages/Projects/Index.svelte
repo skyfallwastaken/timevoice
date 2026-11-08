@@ -20,21 +20,21 @@
     Check,
     X,
     Briefcase,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import type { Project, Client } from "../../types";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  let projects = $derived(($page.props.projects as Project[]) || []);
-  let clients = $derived(($page.props.clients as Client[]) || []);
-  let colors = $derived(($page.props.colors as string[]) || []);
+  let projects = $derived((page.props.projects as Project[]) || []);
+  let clients = $derived((page.props.clients as Client[]) || []);
+  let colors = $derived((page.props.colors as string[]) || []);
 
   let editingId: number | null = $state(null);
 
   let createForm = useForm({
     name: "",
     client_id: "",
-    color: ($page.props.colors as string[])?.[0] ?? "",
+    color: (page.props.colors as string[])?.[0] ?? "",
     billable_default: true,
   });
 
@@ -47,33 +47,33 @@
 
   function startEditing(project: Project) {
     editingId = project.id;
-    $editForm.name = project.name;
-    $editForm.client_id = project.client?.id?.toString() || "";
-    $editForm.color = project.color;
-    $editForm.billable_default = project.billable_default;
+    editForm.name = project.name;
+    editForm.client_id = project.client?.id?.toString() || "";
+    editForm.color = project.color;
+    editForm.billable_default = project.billable_default;
   }
 
   function cancelEditing() {
     editingId = null;
-    $editForm.reset();
+    editForm.reset();
   }
 
   function handleCreate() {
     if (!workspaceId) return;
-    $createForm.post(routes.projects.create(workspaceId), {
+    createForm.post(routes.projects.create(workspaceId), {
       onSuccess: () => {
-        $createForm.reset();
-        $createForm.color = colors[0] ?? "";
+        createForm.reset();
+        createForm.color = colors[0] ?? "";
       },
     });
   }
 
   function handleUpdate(projectId: number) {
     if (!workspaceId) return;
-    $editForm.patch(routes.projects.update(workspaceId, projectId), {
+    editForm.patch(routes.projects.update(workspaceId, projectId), {
       onSuccess: () => {
         editingId = null;
-        $editForm.reset();
+        editForm.reset();
       },
     });
   }
@@ -82,7 +82,7 @@
 
   function confirmDelete() {
     if (projectToDelete && workspaceId) {
-      $editForm.delete(routes.projects.delete(workspaceId, projectToDelete.id));
+      editForm.delete(routes.projects.delete(workspaceId, projectToDelete.id));
     }
     projectToDelete = null;
   }
@@ -93,7 +93,7 @@
   icon={FolderKanban}
   iconColor="text-bright-green"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Project"
@@ -108,10 +108,10 @@
             <TextInput
               id="project-name"
               tone="green"
-              bind:value={$createForm.name}
+              bind:value={createForm.name}
               placeholder="Enter project name..."
               onkeydown={(e) =>
-                e.key === "Enter" && $createForm.name && handleCreate()}
+                e.key === "Enter" && createForm.name && handleCreate()}
               aria-describedby={describedBy}
             />
           {/snippet}
@@ -121,7 +121,7 @@
             <SelectInput
               id="project-client"
               tone="green"
-              bind:value={$createForm.client_id}
+              bind:value={createForm.client_id}
               aria-describedby={describedBy}
             >
               <option value="">No Client</option>
@@ -133,13 +133,13 @@
         </FormField>
       </div>
 
-      <ColorPicker {colors} bind:value={$createForm.color} />
+      <ColorPicker {colors} bind:value={createForm.color} />
 
       <div class="flex items-center justify-between">
         <label class="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            bind:checked={$createForm.billable_default}
+            bind:checked={createForm.billable_default}
             class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
           />
           <span class="text-sm text-fg-secondary">Billable by default</span>
@@ -148,7 +148,7 @@
         <Button
           tone="green"
           onclick={handleCreate}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
           Create Project
@@ -178,7 +178,7 @@
                     <TextInput
                       id="edit-project-name-{project.id}"
                       tone="green"
-                      bind:value={$editForm.name}
+                      bind:value={editForm.name}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
@@ -188,7 +188,7 @@
                     <SelectInput
                       id="edit-project-client-{project.id}"
                       tone="green"
-                      bind:value={$editForm.client_id}
+                      bind:value={editForm.client_id}
                       aria-describedby={describedBy}
                     >
                       <option value="">No Client</option>
@@ -200,13 +200,13 @@
                 </FormField>
               </div>
 
-              <ColorPicker {colors} bind:value={$editForm.color} />
+              <ColorPicker {colors} bind:value={editForm.color} />
 
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    bind:checked={$editForm.billable_default}
+                    bind:checked={editForm.billable_default}
                     class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
                   />
                   <span class="text-sm text-fg-secondary"
@@ -225,7 +225,7 @@
                     tone="success"
                     aria-label="Save changes"
                     onclick={() => handleUpdate(project.id)}
-                    disabled={$editForm.processing}
+                    disabled={editForm.processing}
                   >
                     <Check class="w-5 h-5" />
                   </IconButton>

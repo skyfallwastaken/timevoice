@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CalendarDate, type DateValue } from "@internationalized/date";
-  import { CalendarDays } from "lucide-svelte";
+  import { CalendarDays } from "@lucide/svelte";
   import { Calendar } from "$lib/components/ui/calendar/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import { toDateString } from "../lib/format";

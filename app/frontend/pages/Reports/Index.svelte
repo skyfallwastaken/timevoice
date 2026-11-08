@@ -15,7 +15,7 @@
     Filter,
     ChevronDown,
     ChevronUp,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { formatShortDate, toDateString } from "../../lib/format";
   import { routes } from "../../lib/routes";
   import type { TimeEntry, Project } from "../../types";
@@ -44,9 +44,9 @@
     by_client: Record<string, ClientBreakdown>;
   };
 
-  let entries = $derived(($page.props.entries as TimeEntry[]) || []);
+  let entries = $derived((page.props.entries as TimeEntry[]) || []);
   let totals = $derived(
-    ($page.props.totals as Totals) || {
+    (page.props.totals as Totals) || {
       total: 0,
       billable: 0,
       non_billable: 0,
@@ -56,7 +56,7 @@
     },
   );
 
-  let projects = $derived(($page.props.projects as Project[]) || []);
+  let projects = $derived((page.props.projects as Project[]) || []);
 
   function maxTotal(groups: Record<string, { total: number }>): number {
     return Math.max(1, ...Object.values(groups).map((g) => g.total));
@@ -68,11 +68,11 @@
   let maxClientSeconds = $derived(maxTotal(totals.by_client));
 
   let selectedProjectId = $state(
-    ($page.props.projectId as string | null)?.toString() ?? "",
+    (page.props.projectId as string | null)?.toString() ?? "",
   );
-  let showFilters = $state(!!$page.props.projectId);
+  let showFilters = $state(!!page.props.projectId);
 
-  const initialDateRange = ($page.props.dateRange as {
+  const initialDateRange = (page.props.dateRange as {
     start: string;
     end: string;
   }) || { start: "", end: "" };
@@ -93,15 +93,15 @@
 
   function updateDateRange() {
     if (startDate && endDate && startDate <= endDate) {
-      $dateFilterForm.start_date = toDateString(startDate);
-      $dateFilterForm.end_date = toDateString(endDate);
+      dateFilterForm.start_date = toDateString(startDate);
+      dateFilterForm.end_date = toDateString(endDate);
       loadReport();
     }
   }
 
   function loadReport() {
-    const auth = $page.props.auth as { workspace: { hashid: string } };
-    $dateFilterForm
+    const auth = page.props.auth as { workspace: { hashid: string } };
+    dateFilterForm
       .transform((data) => ({
         ...data,
         project_id: selectedProjectId || undefined,
@@ -128,7 +128,7 @@
     !!startDate &&
       !!endDate &&
       startDate <= endDate &&
-      !$dateFilterForm.processing,
+      !dateFilterForm.processing,
   );
 </script>
 
@@ -137,7 +137,7 @@
   icon={BarChart3}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <Button
