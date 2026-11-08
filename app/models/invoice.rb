@@ -51,7 +51,8 @@ class Invoice < ApplicationRecord
         period_end: period_end_date || entries.maximum(:start_at).to_date,
         issued_on: Date.current,
         status: STATUS_DRAFT,
-        total_cents: 0
+        total_cents: 0,
+        notes: workspace.invoice_setting&.notes
       )
 
       total = 0

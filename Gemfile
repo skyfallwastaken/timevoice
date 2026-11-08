@@ -56,6 +56,7 @@ gem "pundit", "~> 2.3"
 # PDF generation
 gem "prawn", "~> 2.4"
 gem "prawn-table", "~> 0.2"
+gem "commonmarker", "~> 2.10"
 
 # OmniAuth for Google OAuth
 gem "omniauth-google-oauth2", "~> 1.1"
@@ -98,6 +99,7 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "pdf-reader"
 end
 
 gem "mission_control-jobs", "~> 1.1"
