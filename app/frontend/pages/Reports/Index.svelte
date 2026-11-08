@@ -58,6 +58,15 @@
 
   let projects = $derived(($page.props.projects as Project[]) || []);
 
+  function maxTotal(groups: Record<string, { total: number }>): number {
+    return Math.max(1, ...Object.values(groups).map((g) => g.total));
+  }
+
+  let dailyEntries = $derived(Object.entries(totals.daily));
+  let maxDailySeconds = $derived(maxTotal(totals.daily));
+  let maxProjectSeconds = $derived(maxTotal(totals.by_project));
+  let maxClientSeconds = $derived(maxTotal(totals.by_client));
+
   let selectedProjectId = $state(
     ($page.props.projectId as string | null)?.toString() ?? "",
   );
@@ -147,7 +156,7 @@
   {/snippet}
 
   {#if showFilters}
-    <SectionCard class="animate-slide-in">
+    <SectionCard class="animate-slide-in" bodyClass="p-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         <FormField id="report-start" label="Start Date">
           {#snippet children({ describedBy })}
@@ -232,10 +241,60 @@
     </div>
   </div>
 
-  {#if Object.keys(totals.daily).length > 0}
+  {#if dailyEntries.length > 0}
+    <SectionCard title="Daily Hours" bodyClass="p-4">
+      <div class="flex items-stretch gap-2 h-48">
+        {#each dailyEntries as [date, data]}
+          <div
+            class="@container flex-1 flex flex-col items-center gap-2 min-w-0"
+            title={`${formatShortDate(`${date}T00:00:00`)}: ${formatDuration(data.total)} (${formatDuration(data.billable)} billable)`}
+          >
+            <div class="w-full flex-1 flex flex-col justify-end pt-5">
+              <div
+                class="relative w-full"
+                style="height: {(data.total / maxDailySeconds) * 100}%"
+              >
+                <span
+                  class="absolute bottom-full inset-x-0 mb-1 text-center text-xs text-fg-muted font-tabular hidden @min-[3rem]:block"
+                >
+                  {formatDuration(data.total)}
+                </span>
+                <div
+                  class="h-full rounded-t bg-bg-tertiary overflow-hidden flex flex-col justify-end"
+                >
+                  <div
+                    class="bg-bright-green"
+                    style="height: {data.total > 0
+                      ? (data.billable / data.total) * 100
+                      : 0}%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <span class="text-xs text-fg-muted whitespace-nowrap">
+              <span class="hidden @min-[3rem]:inline"
+                >{formatDayOfWeek(date)}</span
+              >
+              {new Date(`${date}T00:00:00`).getDate()}
+            </span>
+          </div>
+        {/each}
+      </div>
+      <div
+        class="flex items-center justify-center gap-4 mt-4 text-xs text-fg-muted"
+      >
+        <span class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-bright-green"></span> Billable
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-bg-tertiary"></span> Non-billable
+        </span>
+      </div>
+    </SectionCard>
+
     <SectionCard title="Daily Breakdown">
       <div class="divide-y divide-bg-tertiary">
-        {#each Object.entries(totals.daily) as [date, data]}
+        {#each dailyEntries as [date, data]}
           <div class="p-4 flex items-center justify-between text-sm">
             <div class="flex items-center gap-3">
               <div class="text-center min-w-12">
@@ -270,15 +329,23 @@
     <SectionCard title="Breakdown by Project">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_project) as [projectName, data]}
-          <div class="p-4 flex items-center justify-between text-sm">
-            <span class="font-medium">{projectName}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-bright-green"
-                >{formatDuration(data.billable)} billable</span
-              >
-              <span class="font-medium font-tabular"
-                >{formatDuration(data.total)}</span
-              >
+          <div class="p-4 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{projectName}</span>
+              <div class="flex items-center gap-4">
+                <span class="text-bright-green"
+                  >{formatDuration(data.billable)} billable</span
+                >
+                <span class="font-medium font-tabular"
+                  >{formatDuration(data.total)}</span
+                >
+              </div>
+            </div>
+            <div class="mt-2 h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+              <div
+                class="h-full bg-bright-purple rounded-full"
+                style="width: {(data.total / maxProjectSeconds) * 100}%"
+              ></div>
             </div>
           </div>
         {/each}
@@ -290,15 +357,23 @@
     <SectionCard title="Breakdown by Client">
       <div class="divide-y divide-bg-tertiary">
         {#each Object.entries(totals.by_client) as [clientName, data]}
-          <div class="p-4 flex items-center justify-between text-sm">
-            <span class="font-medium">{clientName}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-bright-green"
-                >{formatDuration(data.billable)} billable</span
-              >
-              <span class="font-medium font-tabular"
-                >{formatDuration(data.total)}</span
-              >
+          <div class="p-4 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{clientName}</span>
+              <div class="flex items-center gap-4">
+                <span class="text-bright-green"
+                  >{formatDuration(data.billable)} billable</span
+                >
+                <span class="font-medium font-tabular"
+                  >{formatDuration(data.total)}</span
+                >
+              </div>
+            </div>
+            <div class="mt-2 h-1.5 rounded-full bg-bg-tertiary overflow-hidden">
+              <div
+                class="h-full bg-bright-blue rounded-full"
+                style="width: {(data.total / maxClientSeconds) * 100}%"
+              ></div>
             </div>
           </div>
         {/each}
