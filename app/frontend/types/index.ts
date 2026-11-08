@@ -9,6 +9,7 @@ export type Client = {
   id: number;
   name: string;
   billing_address?: string | null;
+  email?: string | null;
 };
 
 export type Tag = {

@@ -73,7 +73,7 @@ class InvoicesController < ApplicationController
         only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
         methods: [ :hashid ],
         include: {
-          client: { only: [ :id, :name, :billing_address ] },
+          client: { only: [ :id, :name, :billing_address, :email ] },
           invoice_lines: { only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ] }
         }
       ).merge(

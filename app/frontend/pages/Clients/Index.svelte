@@ -30,17 +30,20 @@
 
   let createForm = useForm({
     name: "",
+    email: "",
     billing_address: "",
   });
 
   let editForm = useForm({
     name: "",
+    email: "",
     billing_address: "",
   });
 
   function startEditing(client: Client) {
     editingId = client.id;
     $editForm.name = client.name;
+    $editForm.email = client.email || "";
     $editForm.billing_address = client.billing_address || "";
   }
 
@@ -111,6 +114,23 @@
       </FormField>
 
       <FormField
+        id="client-email"
+        label="Email"
+        description="Invoices are emailed here by default. Separate multiple emails with commas."
+        error={$createForm.errors.email}
+      >
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="client-email"
+            tone="blue"
+            bind:value={$createForm.email}
+            placeholder="billing@example.com"
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
+
+      <FormField
         id="billing-address"
         label="Billing Address"
         description="Line breaks will appear on invoices."
@@ -165,6 +185,23 @@ Country"
                 {/snippet}
               </FormField>
 
+              <FormField
+                id="edit-email-{client.id}"
+                label="Email"
+                description="Separate multiple emails with commas."
+                error={$editForm.errors.email}
+              >
+                {#snippet children({ describedBy })}
+                  <TextInput
+                    id="edit-email-{client.id}"
+                    tone="blue"
+                    bind:value={$editForm.email}
+                    placeholder="billing@example.com"
+                    aria-describedby={describedBy}
+                  />
+                {/snippet}
+              </FormField>
+
               <FormField id="edit-address-{client.id}" label="Billing Address">
                 {#snippet children({ describedBy })}
                   <TextArea
@@ -202,6 +239,9 @@ Country"
                 {client.name}
               {/snippet}
               {#snippet secondary()}
+                {#if client.email}
+                  <span class="block truncate">{client.email}</span>
+                {/if}
                 {#if client.billing_address}
                   <span class="whitespace-pre-line">
                     {client.billing_address}
