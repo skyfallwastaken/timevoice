@@ -14,7 +14,6 @@
   import { renderMarkdown } from "../../lib/markdown";
 
   const workspaceId = $derived(page.props.auth?.workspace?.hashid);
-  let flash = $derived(page.props.flash || {});
   let canEdit = $derived(!!page.props.canEdit);
 
   let form = useForm({
@@ -46,7 +45,6 @@
   icon={DollarSign}
   iconColor="text-bright-purple"
   variant="narrow"
-  {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="billing" />

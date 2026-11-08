@@ -137,7 +137,6 @@
   icon={BarChart3}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <Button

@@ -1,14 +1,9 @@
 <script lang="ts">
-  import { Clock, DollarSign, Folder, Hash, Timer, X } from "@lucide/svelte";
-  import { useForm, page } from "@inertiajs/svelte";
-  import * as Popover from "$lib/components/ui/popover/index.js";
-  import * as Command from "$lib/components/ui/command/index.js";
-  import Button from "./Button.svelte";
-  import DatePicker from "./DatePicker.svelte";
+  import { DollarSign, Timer } from "@lucide/svelte";
+  import TimeEntryEditor from "./TimeEntryEditor.svelte";
   import type { TimeEntry, Project, Tag } from "../types";
   import { formatHours, toDateString } from "../lib/format";
-  import { routes } from "../lib/routes";
-  import { toggleSelectedTag } from "../lib/time-entry-form";
+  import { draftFromEntry, type TimeEntryDraft } from "../lib/time-entry-form";
 
   type RunningEntry = {
     id: number;
@@ -25,7 +20,7 @@
     tags?: Tag[];
     weekStart: string;
     dayCount?: number;
-    onEntryClick?: (entry: TimeEntry) => void;
+    onDelete?: (entry: TimeEntry) => void;
   }
 
   let {
@@ -35,9 +30,8 @@
     tags = [],
     weekStart,
     dayCount = 7,
-    onEntryClick,
+    onDelete,
   }: Props = $props();
-  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   const HOUR = 52;
   const DAY_MINUTES = 24 * 60;
@@ -69,9 +63,12 @@
     lanes: number;
   };
 
-  // The running timer is drawn as a block that grows until now.
+  // The running timer is drawn as a block that grows until now. The entry
+  // being edited is drawn as the editable selection instead of a block.
   let allEntries = $derived.by(() => {
-    const list = entries.map((entry) => ({ entry, running: false }));
+    const list = entries
+      .filter((entry) => entry.id !== editingId)
+      .map((entry) => ({ entry, running: false }));
     if (runningEntry) {
       list.push({
         entry: {
@@ -136,10 +133,13 @@
   let blocksByDay = $derived(days.map(layoutDay));
 
   // Completed time only, so the totals match the Logged bar.
-  function dayTotal(blocks: Block[]) {
-    return blocks.reduce(
-      (sum, { entry, running }) =>
-        running ? sum : sum + (entry.duration_seconds ?? 0),
+  function dayTotal(day: Date) {
+    const key = toDateString(day);
+    return entries.reduce(
+      (sum, entry) =>
+        toDateString(new Date(entry.start_at)) === key
+          ? sum + (entry.duration_seconds ?? 0)
+          : sum,
       0,
     );
   }
@@ -180,12 +180,16 @@
     }
   });
 
-  // Drag on an empty part of a day to select a time for a new entry. The
-  // selection stays editable like Google Calendar's: drag it to move it, drag
-  // its bottom edge to resize it, drag elsewhere to replace it, or type the
-  // times in the popover. Minutes can run past 24:00 for overnight entries.
-  type Selection = { day: Date; from: number; to: number };
-  let selection = $state<Selection | null>(null);
+  // Drag on an empty part of a day to select a time for a new entry, or click
+  // an entry to edit it. The selection stays editable like Google Calendar's:
+  // drag it to move it, drag its bottom edge to resize it, drag elsewhere to
+  // replace it, or type the times in the popover. Minutes can run past 24:00
+  // for overnight entries.
+  let selection = $state<TimeEntryDraft | null>(null);
+  let editingId = $state<number | null>(null);
+  let editingEntry = $derived(
+    entries.find((entry) => entry.id === editingId) ?? null,
+  );
   let gesture: {
     mode: "create" | "move" | "resize";
     grab: number;
@@ -195,21 +199,10 @@
   } | null = null;
   let showQuickEdit = $state(false);
   let placeholder: HTMLElement | null = $state(null);
-  let descriptionInput: HTMLInputElement | null = $state(null);
-  let showProjectPicker = $state(false);
-  let showTagPicker = $state(false);
-
-  let form = useForm({
-    description: "",
-    project_id: null as number | null,
-    tag_ids: [] as number[],
-    billable: false,
-  });
 
   let selectedProject = $derived(
-    projects.find((p) => p.id === form.project_id),
+    projects.find((p) => p.id === selection?.project_id),
   );
-  let selectedTags = $derived(tags.filter((t) => form.tag_ids.includes(t.id)));
 
   function minuteAt(event: PointerEvent, column: HTMLElement) {
     const y = event.clientY - column.getBoundingClientRect().top;
@@ -233,7 +226,19 @@
       DAY_MINUTES - 15,
       Math.floor(minuteAt(event, column) / 15) * 15,
     );
-    selection = { day, from: minute, to: minute };
+    // Dragging away from an entry being edited starts a new one instead.
+    if (editingId !== null) {
+      editingId = null;
+      showQuickEdit = false;
+    }
+    // Re-dragging while the popover is open keeps what was already filled in.
+    const fields = (showQuickEdit && selection) || {
+      description: "",
+      project_id: null,
+      tag_ids: [],
+      billable: false,
+    };
+    selection = { ...fields, day, from: minute, to: minute };
     gesture = {
       mode: "create",
       grab: minute,
@@ -241,7 +246,6 @@
       to: minute,
       column,
     };
-    showProjectPicker = showTagPicker = false;
   }
 
   function adjustSelection(event: PointerEvent, mode: "move" | "resize") {
@@ -257,7 +261,6 @@
       to: selection.to,
       column,
     };
-    showProjectPicker = showTagPicker = false;
   }
 
   function moveDrag(event: PointerEvent) {
@@ -288,11 +291,7 @@
     if (mode !== "create") return;
     if (selection.to - selection.from < 15)
       selection.to = Math.min(DAY_MINUTES, selection.from + 30);
-    // Re-dragging while the popover is open keeps what was already filled in.
-    if (!showQuickEdit) {
-      form.reset();
-      showQuickEdit = true;
-    }
+    showQuickEdit = true;
   }
 
   function cancelDrag() {
@@ -300,62 +299,23 @@
     if (!showQuickEdit) selection = null;
   }
 
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const timeOfDay = (minute: number) =>
-    `${pad(Math.floor(minute / 60) % 24)}:${pad(minute % 60)}`;
-  const parseTime = (value: string) => {
-    const [hours, minutes] = value.split(":").map(Number);
-    return hours * 60 + minutes;
-  };
-
-  // A new start time keeps the entry's length, like Google Calendar.
-  function setStart(value: string) {
-    if (!value || !selection) return;
-    const length = selection.to - selection.from;
-    selection.from = parseTime(value);
-    selection.to = selection.from + length;
+  function editEntry(entry: TimeEntry) {
+    editingId = entry.id;
+    selection = draftFromEntry(entry);
+    showQuickEdit = true;
   }
 
-  // An end time at or before the start means the entry ran past midnight.
-  function setEnd(value: string) {
-    if (!value || !selection) return;
-    const to = parseTime(value);
-    selection.to = to <= selection.from ? to + DAY_MINUTES : to;
-  }
-
-  function saveQuickEntry() {
-    if (!form.description.trim() || !selection) return;
-    const { day, from, to } = selection;
-    const at = (minute: number) => {
-      const date = new Date(day);
-      date.setHours(0, minute, 0, 0);
-      return date.toISOString();
-    };
-    form
-      .transform((data) => ({
-        time_entry: { ...data, start_at: at(from), end_at: at(to) },
-      }))
-      .post(routes.timeEntries.create(workspaceId), {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => {
-          closeQuickEdit();
-          // Keep the blank defaults the next open resets to; Inertia otherwise
-          // adopts the submitted values as the new defaults.
-          form.defaults({});
-        },
-      });
-  }
-
-  // The dashed placeholder stays while the new entry's details are filled in,
+  // The dashed placeholder stays while the entry's details are filled in,
   // and until the popover has faded out so its contents don't change mid-fade.
-  // A drag started during the fade owns the new selection.
+  // A drag or edit started during the fade owns the new selection.
   function closeQuickEdit() {
     showQuickEdit = false;
   }
 
-  function clearClosedSelection(open: boolean) {
-    if (!open && !gesture) selection = null;
+  function clearClosedSelection() {
+    if (gesture || showQuickEdit) return;
+    selection = null;
+    editingId = null;
   }
 
   const clock = (minute: number) => {
@@ -366,24 +326,12 @@
     });
   };
 
-  function selectProject(project: Project | null) {
-    form.project_id = project?.id ?? null;
-    if (project?.billable_default) form.billable = true;
-    showProjectPicker = false;
-  }
-
   // Clicks on empty calendar space edit the selection instead of closing.
   function keepOpenForCalendar(event: PointerEvent) {
     const target = event.target as Element | null;
     if (target?.closest("[data-day-index]") && !target.closest("button"))
       event.preventDefault();
   }
-
-  const row =
-    "flex items-center gap-3 w-full min-h-9 -mx-2 px-2 rounded-lg text-left transition-colors duration-150";
-  const rowButton = `${row} hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary`;
-  const timeField =
-    "bg-transparent text-fg-primary font-tabular h-8 px-1.5 rounded-lg hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150 [&::-webkit-calendar-picker-indicator]:hidden";
 </script>
 
 <svelte:window
@@ -401,7 +349,7 @@
       <div class="sticky left-0 z-10 bg-bg-primary"></div>
       {#each days as day, i (day.getTime())}
         {@const isToday = toDateString(day) === todayKey}
-        {@const total = dayTotal(blocksByDay[i])}
+        {@const total = dayTotal(day)}
         <div
           class="flex items-center gap-1.5 h-14 px-2 border-l border-bg-tertiary min-w-0"
         >
@@ -487,7 +435,7 @@
                 seconds,
               )})"
               onpointerdown={(e) => e.stopPropagation()}
-              onclick={() => !block.running && onEntryClick?.(entry)}
+              onclick={() => !block.running && editEntry(entry)}
             >
               {#if height < 18}
                 <!-- Too short for text; the title carries the details. -->
@@ -560,8 +508,10 @@
                 : ''}"
               onpointerdown={(e) => adjustSelection(e, "move")}
             >
-              {#if form.description.trim()}
-                <span class="truncate font-semibold">{form.description}</span>
+              {#if selection.description.trim()}
+                <span class="truncate font-semibold"
+                  >{selection.description}</span
+                >
               {/if}
               <span class="truncate"
                 >{clock(selection.from)} – {clock(shownTo)}</span
@@ -593,265 +543,17 @@
   </div>
 </div>
 
-<Popover.Root
+<TimeEntryEditor
   open={showQuickEdit}
-  onOpenChange={(open) => !open && closeQuickEdit()}
-  onOpenChangeComplete={clearClosedSelection}
->
-  <Popover.Content
-    customAnchor={placeholder}
-    side="right"
-    align="start"
-    sideOffset={10}
-    collisionPadding={12}
-    updatePositionStrategy="always"
-    class="w-[26rem] max-w-[calc(100vw-1.5rem)] gap-0 p-0 shadow-2xl"
-    aria-label="New time entry"
-    onOpenAutoFocus={(e) => {
-      e.preventDefault();
-      descriptionInput?.focus();
-    }}
-    onCloseAutoFocus={(e) => e.preventDefault()}
-    onInteractOutside={keepOpenForCalendar}
-  >
-    <div class="flex items-center justify-between pl-4 pr-2 pt-2">
-      <span class="text-xs font-medium text-fg-muted">New time entry</span>
-      <button
-        type="button"
-        class="inline-flex items-center justify-center size-8 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150"
-        aria-label="Close"
-        onclick={closeQuickEdit}
-      >
-        <X class="size-4" aria-hidden="true" />
-      </button>
-    </div>
-
-    <div class="px-4 pb-4 space-y-3">
-      <input
-        bind:this={descriptionInput}
-        bind:value={form.description}
-        id="quick-entry-description"
-        type="text"
-        aria-label="Description"
-        placeholder="What did you work on?"
-        autocomplete="off"
-        class="w-full h-11 bg-transparent border-b-2 border-bg-tertiary focus:border-bright-purple text-xl font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-dim outline-none transition-colors duration-150"
-        onkeydown={(e) => e.key === "Enter" && saveQuickEntry()}
-      />
-
-      {#if selection}
-        {@const sel = selection}
-        <div>
-          <div class="{row} items-start pb-1">
-            <Clock
-              class="size-4 shrink-0 mt-2 text-fg-muted"
-              aria-hidden="true"
-            />
-            <div class="min-w-0 -ml-1.5">
-              <div class="flex flex-wrap items-center gap-x-1">
-                <DatePicker
-                  id="quick-entry-date"
-                  bind:value={() => sel.day, (date) => date && (sel.day = date)}
-                  min={days[0]}
-                  max={days[days.length - 1]}
-                  format={(date) =>
-                    date.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  class="w-auto h-8 gap-1.5 px-1.5 rounded-lg border-transparent bg-transparent hover:bg-bg-tertiary hover:border-transparent data-[state=open]:border-transparent data-[state=open]:bg-bg-tertiary [&>svg]:hidden"
-                />
-                <div class="flex items-center gap-0.5">
-                  <input
-                    type="time"
-                    aria-label="Start time"
-                    value={timeOfDay(sel.from)}
-                    oninput={(e) => setStart(e.currentTarget.value)}
-                    class={timeField}
-                  />
-                  <span class="text-fg-dim" aria-hidden="true">–</span>
-                  <input
-                    type="time"
-                    aria-label="End time"
-                    value={timeOfDay(sel.to)}
-                    oninput={(e) => setEnd(e.currentTarget.value)}
-                    class={timeField}
-                  />
-                </div>
-              </div>
-              <p class="px-1.5 text-xs text-fg-muted font-tabular">
-                <span class="font-medium text-bright-purple"
-                  >{formatHours((sel.to - sel.from) * 60)}</span
-                >{sel.to > DAY_MINUTES ? " · Ends the next day" : ""}
-              </p>
-            </div>
-          </div>
-
-          {#if projects.length > 0}
-            <Popover.Root bind:open={showProjectPicker}>
-              <Popover.Trigger class={rowButton}>
-                {#if selectedProject}
-                  <span
-                    class="grid place-items-center size-4 shrink-0"
-                    aria-hidden="true"
-                  >
-                    <span
-                      class="size-2.5 rounded-full"
-                      style="background-color: {selectedProject.color}"
-                    ></span>
-                  </span>
-                  <span class="truncate text-fg-primary"
-                    >{selectedProject.name}</span
-                  >
-                  {#if selectedProject.client}
-                    <span class="truncate text-fg-muted"
-                      >· {selectedProject.client.name}</span
-                    >
-                  {/if}
-                {:else}
-                  <Folder
-                    class="size-4 shrink-0 text-fg-muted"
-                    aria-hidden="true"
-                  />
-                  <span class="text-fg-muted">Add project</span>
-                {/if}
-              </Popover.Trigger>
-              <Popover.Content align="start" class="w-64 p-0">
-                <Command.Root>
-                  <Command.Input placeholder="Search projects..." />
-                  <Command.List>
-                    <Command.Empty>No matching projects.</Command.Empty>
-                    {#if selectedProject}
-                      <Command.Item
-                        value="No project"
-                        onSelect={() => selectProject(null)}
-                        class="gap-3 px-3 py-2 rounded-[5px] text-fg-muted"
-                      >
-                        <X class="w-3 h-3" aria-hidden="true" />
-                        No project
-                      </Command.Item>
-                    {/if}
-                    {#each projects as project (project.id)}
-                      <Command.Item
-                        value={`${project.name} ${project.client?.name ?? ""}`}
-                        data-checked={form.project_id === project.id}
-                        onSelect={() => selectProject(project)}
-                        class="gap-3 px-3 py-2 rounded-[5px]"
-                      >
-                        <span
-                          class="w-3 h-3 rounded-full shrink-0"
-                          style="background-color: {project.color}"
-                          aria-hidden="true"
-                        ></span>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-fg-primary truncate">
-                            {project.name}
-                          </p>
-                          {#if project.client}
-                            <p class="text-xs text-fg-muted truncate">
-                              {project.client.name}
-                            </p>
-                          {/if}
-                        </div>
-                      </Command.Item>
-                    {/each}
-                  </Command.List>
-                </Command.Root>
-              </Popover.Content>
-            </Popover.Root>
-          {/if}
-
-          {#if tags.length > 0}
-            <Popover.Root bind:open={showTagPicker}>
-              <Popover.Trigger class={rowButton}>
-                <Hash
-                  class="size-4 shrink-0 text-fg-muted"
-                  aria-hidden="true"
-                />
-                {#if selectedTags.length > 0}
-                  <span class="flex flex-wrap gap-1 py-1.5">
-                    {#each selectedTags as tag (tag.id)}
-                      <span
-                        class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs font-medium text-fg-primary"
-                        >{tag.name}</span
-                      >
-                    {/each}
-                  </span>
-                {:else}
-                  <span class="text-fg-muted">Add tags</span>
-                {/if}
-              </Popover.Trigger>
-              <Popover.Content align="start" class="w-56 p-0">
-                <Command.Root>
-                  <Command.Input placeholder="Search tags..." />
-                  <Command.List>
-                    <Command.Empty>No matching tags.</Command.Empty>
-                    {#each tags as tag (tag.id)}
-                      <Command.Item
-                        value={tag.name}
-                        data-checked={form.tag_ids.includes(tag.id)}
-                        onSelect={() =>
-                          (form.tag_ids = toggleSelectedTag(
-                            form.tag_ids,
-                            tag.id,
-                          ))}
-                        class="px-3 py-2 rounded-[5px]"
-                      >
-                        <span class="text-fg-primary">{tag.name}</span>
-                      </Command.Item>
-                    {/each}
-                  </Command.List>
-                </Command.Root>
-              </Popover.Content>
-            </Popover.Root>
-          {/if}
-
-          <button
-            type="button"
-            class={rowButton}
-            role="switch"
-            aria-checked={form.billable}
-            onclick={() => (form.billable = !form.billable)}
-          >
-            <DollarSign
-              class="size-4 shrink-0 {form.billable
-                ? 'text-bright-green'
-                : 'text-fg-muted'}"
-              aria-hidden="true"
-            />
-            <span class={form.billable ? "text-bright-green" : "text-fg-muted"}
-              >{form.billable ? "Billable" : "Non-billable"}</span
-            >
-            <span
-              class="ml-auto flex items-center w-8 h-[18px] p-0.5 rounded-full transition-colors duration-150 {form.billable
-                ? 'bg-bright-green'
-                : 'bg-bg-quaternary'}"
-              aria-hidden="true"
-            >
-              <span
-                class="size-3.5 rounded-full bg-bg-primary transition-transform duration-150 {form.billable
-                  ? 'translate-x-3.5'
-                  : ''}"
-              ></span>
-            </span>
-          </button>
-        </div>
-      {/if}
-    </div>
-
-    <div class="flex items-center justify-end gap-2 px-4 pb-4">
-      <Button type="button" variant="ghost" onclick={closeQuickEdit}>
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        tone="purple"
-        onclick={saveQuickEntry}
-        disabled={!form.description.trim() || form.processing}
-      >
-        Save
-      </Button>
-    </div>
-  </Popover.Content>
-</Popover.Root>
+  bind:draft={selection}
+  entry={editingEntry}
+  anchor={placeholder}
+  {projects}
+  {tags}
+  minDay={days[0]}
+  maxDay={days[days.length - 1]}
+  onClose={closeQuickEdit}
+  onClosed={clearClosedSelection}
+  {onDelete}
+  onInteractOutside={keepOpenForCalendar}
+/>

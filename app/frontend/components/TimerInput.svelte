@@ -26,7 +26,9 @@
   import * as Popover from "$lib/components/ui/popover/index.js";
   import * as Command from "$lib/components/ui/command/index.js";
   import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { cn } from "$lib/utils.js";
+  import { toast } from "svelte-sonner";
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
@@ -68,6 +70,9 @@
       hint: "Add an entry you already finished, with its start and end times",
     },
   ] as const;
+  // One tooltip shared by both buttons, so moving between them swaps its
+  // text in place instead of fading one out while the other fades in.
+  const modeTooltip = TooltipPrimitive.createTether<(typeof modes)[number]>();
   // Toggl-style timer modes. Settings apply to the next timer; a countdown
   // target is remembered by the start time it was set for, so a timer
   // started elsewhere keeps counting up.
@@ -390,7 +395,7 @@
     if (target.files) {
       const files = Array.from(target.files);
       if (selectedFiles.length + files.length > 3) {
-        alert("You can only attach up to 3 files");
+        toast.error("You can only attach up to 3 files");
         target.value = "";
         return;
       }
@@ -495,7 +500,7 @@
         : "What are you working on?"}
       disabled={isRunning}
       onkeydown={handleDescriptionKeydown}
-      class="flex-1 min-w-0 md:min-w-60 bg-transparent text-base md:text-lg font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-muted outline-none h-9 disabled:opacity-100"
+      class="flex-1 min-w-0 md:min-w-60 bg-transparent text-base md:text-lg font-extrabold text-fg-primary placeholder:font-bold placeholder:text-fg-muted outline-none h-9 disabled:opacity-100"
       autocomplete="off"
     />
 
@@ -908,36 +913,38 @@
               aria-label="Entry mode"
             >
               {#each modes as option (option.key)}
-                <Tooltip.Root>
-                  <Tooltip.Trigger>
-                    {#snippet child({ props })}
-                      <button
-                        {...props}
-                        type="button"
-                        role="radio"
-                        aria-checked={mode === option.key}
-                        aria-label={option.label}
-                        onclick={() => (mode = option.key)}
-                        class="flex-1 grid place-items-center rounded-[5px] max-md:w-[30px] transition-colors duration-150 {mode ===
-                        option.key
-                          ? 'bg-bright-purple/15 text-bright-purple'
-                          : 'text-fg-dim hover:text-fg-primary'}"
-                      >
-                        <option.icon class="size-3.5" aria-hidden="true" />
-                      </button>
-                    {/snippet}
-                  </Tooltip.Trigger>
-                  <Tooltip.Content
-                    side="left"
-                    sideOffset={6}
-                    class="flex-col items-start gap-0.5 max-w-56"
-                  >
-                    <span class="font-semibold">{option.label}</span>
-                    <span>{option.hint}</span>
-                  </Tooltip.Content>
-                </Tooltip.Root>
+                <Tooltip.Trigger tether={modeTooltip} payload={option}>
+                  {#snippet child({ props })}
+                    <button
+                      {...props}
+                      type="button"
+                      role="radio"
+                      aria-checked={mode === option.key}
+                      aria-label={option.label}
+                      onclick={() => (mode = option.key)}
+                      class="flex-1 grid place-items-center rounded-[5px] max-md:w-[30px] transition-colors duration-150 {mode ===
+                      option.key
+                        ? 'bg-bright-purple/15 text-bright-purple'
+                        : 'text-fg-dim hover:text-fg-primary'}"
+                    >
+                      <option.icon class="size-3.5" aria-hidden="true" />
+                    </button>
+                  {/snippet}
+                </Tooltip.Trigger>
               {/each}
             </div>
+            <Tooltip.Root tether={modeTooltip}>
+              {#snippet children({ payload })}
+                <Tooltip.Content
+                  side="left"
+                  sideOffset={6}
+                  class="flex-col items-start gap-0.5 max-w-56"
+                >
+                  <span class="font-semibold">{payload?.label}</span>
+                  <span>{payload?.hint}</span>
+                </Tooltip.Content>
+              {/snippet}
+            </Tooltip.Root>
           </Tooltip.Provider>
         {/if}
       </div>

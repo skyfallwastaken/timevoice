@@ -1,12 +1,9 @@
 <script lang="ts">
-  import Flash from "./Flash.svelte";
-
   interface Props {
     title: string;
     icon?: any;
     iconColor?: string;
     variant?: "wide" | "narrow";
-    flash?: { notice?: string; alert?: string };
     children: import("svelte").Snippet;
     headerActions?: import("svelte").Snippet;
   }
@@ -16,7 +13,6 @@
     icon: IconComponent,
     iconColor = "text-bright-blue",
     variant = "narrow",
-    flash,
     children,
     headerActions,
   }: Props = $props();
@@ -43,8 +39,6 @@
         </div>
       {/if}
     </div>
-
-    <Flash {flash} />
 
     {@render children()}
   </div>

@@ -127,7 +127,6 @@
   icon={Users}
   iconColor="text-bright-blue"
   variant="narrow"
-  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Client"

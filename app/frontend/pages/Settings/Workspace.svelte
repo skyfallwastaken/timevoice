@@ -43,7 +43,6 @@
   let pendingInvites = $derived(
     (page.props.pendingInvites as PendingInvite[]) || [],
   );
-  let flash = $derived(page.props.flash || {});
   let canInvite = $derived(!!page.props.canInvite);
 
   const currentUserId = $derived(page.props.auth?.user?.id);
@@ -191,7 +190,6 @@
   icon={Settings}
   iconColor="text-bright-blue"
   variant="narrow"
-  {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="workspace" />

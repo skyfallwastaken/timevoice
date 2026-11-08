@@ -209,7 +209,6 @@
   icon={Code}
   iconColor="text-bright-purple"
   variant="narrow"
-  {flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="developer" />

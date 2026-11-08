@@ -96,7 +96,6 @@
   icon={Tag}
   iconColor="text-bright-yellow"
   variant="narrow"
-  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Tag"

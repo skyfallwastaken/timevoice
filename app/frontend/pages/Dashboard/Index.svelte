@@ -1,14 +1,13 @@
 <script lang="ts">
   import TimerInput from "../../components/TimerInput.svelte";
   import WeekCalendar from "../../components/WeekCalendar.svelte";
-  import Flash from "../../components/Flash.svelte";
   import { page, router, Link } from "@inertiajs/svelte";
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { routes } from "../../lib/routes";
   import SelectInput from "../../components/SelectInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
-  import TimeEntryEditModal from "../../components/TimeEntryEditModal.svelte";
+  import TimeEntryEditor from "../../components/TimeEntryEditor.svelte";
   import TimeEntryBulkEditModal from "../../components/TimeEntryBulkEditModal.svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -31,6 +30,10 @@
     List,
   } from "@lucide/svelte";
   import { formatDuration, formatHours, toDateString } from "../../lib/format";
+  import {
+    draftFromEntry,
+    type TimeEntryDraft,
+  } from "../../lib/time-entry-form";
   import type { Project, Tag, TimeEntry } from "../../types";
 
   let projects = $derived((page.props.projects as Project[]) || []);
@@ -254,7 +257,11 @@
 
   // Single-entry actions. Closing a dialog keeps its entry so the dialog still
   // shows it while fading out.
-  let editingEntry = $state<TimeEntry | null>(null);
+  let editingId = $state<number | null>(null);
+  let editingEntry = $derived(
+    recentEntries.find((e) => e.id === editingId) ?? null,
+  );
+  let editDraft = $state<TimeEntryDraft | null>(null);
   let showEdit = $state(false);
   let entryToDelete = $state<TimeEntry | null>(null);
   let showDeleteModal = $state(false);
@@ -262,7 +269,8 @@
   let showBulkDelete = $state(false);
 
   function openEdit(entry: TimeEntry) {
-    editingEntry = entry;
+    editingId = entry.id;
+    editDraft = draftFromEntry(entry);
     showEdit = true;
   }
 
@@ -294,7 +302,6 @@
       .delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
         preserveScroll: true,
       });
-    if (editingEntry?.id === entryToDelete.id) closeEdit();
     closeDeleteModal();
   }
 
@@ -585,29 +592,20 @@
 </div>
 
 {#if view === "calendar"}
-  <div class="flex-1 min-h-0 flex flex-col">
-    {#if page.props.flash?.notice || page.props.flash?.alert}
-      <div class="px-4 md:px-6 pt-3 -mb-1">
-        <Flash flash={page.props.flash} />
-      </div>
-    {/if}
-    <div class="flex-1 min-h-0">
-      <WeekCalendar
-        entries={calendarEntries}
-        runningEntry={page.props.runningEntry}
-        {projects}
-        {tags}
-        {weekStart}
-        {dayCount}
-        onEntryClick={openEdit}
-      />
-    </div>
+  <div class="flex-1 min-h-0">
+    <WeekCalendar
+      entries={calendarEntries}
+      runningEntry={page.props.runningEntry}
+      {projects}
+      {tags}
+      {weekStart}
+      {dayCount}
+      onDelete={openDeleteModal}
+    />
   </div>
 {:else}
   <div class="flex-1 overflow-auto">
     <div class="px-4 md:px-6 py-4">
-      <Flash flash={page.props.flash} />
-
       {#if !hasEntries}
         <div
           class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
@@ -824,11 +822,13 @@
   </div>
 {/if}
 
-<TimeEntryEditModal
+<TimeEntryEditor
+  open={showEdit}
+  bind:draft={editDraft}
   entry={editingEntry}
+  modal
   {projects}
   {tags}
-  open={showEdit}
   onClose={closeEdit}
   onDelete={openDeleteModal}
 />

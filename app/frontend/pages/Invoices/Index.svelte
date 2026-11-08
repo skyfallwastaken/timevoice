@@ -222,7 +222,6 @@
   icon={FileText}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <Button tone="purple" onclick={() => (showCreateForm = !showCreateForm)}>

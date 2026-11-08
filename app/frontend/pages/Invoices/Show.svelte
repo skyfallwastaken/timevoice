@@ -158,7 +158,6 @@
   icon={FileText}
   iconColor="text-bright-purple"
   variant="wide"
-  flash={page.props.flash}
 >
   {#snippet headerActions()}
     <div class="flex flex-wrap items-center sm:justify-end gap-2">

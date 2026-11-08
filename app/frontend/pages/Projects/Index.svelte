@@ -134,7 +134,6 @@
   icon={FolderKanban}
   iconColor="text-bright-green"
   variant="narrow"
-  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Project"

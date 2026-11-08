@@ -26,6 +26,9 @@
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
   import { routes } from "../lib/routes";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+  import { Toaster } from "$lib/components/ui/sonner/index.js";
+  import { toast } from "svelte-sonner";
 
   let { children } = $props();
 
@@ -158,9 +161,16 @@
   const workspaces = $derived(page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);
-  let mobileWorkspaceOpen = $state(false);
-  let desktopWorkspaceOpen = $state(false);
   let showCreateModal = $state(false);
+
+  // Inertia fires this once per response that carries a flash message.
+  $effect(() =>
+    router.on("flash", (event) => {
+      const { notice, alert } = event.detail.flash;
+      if (notice) toast.success(notice);
+      if (alert) toast.error(alert);
+    }),
+  );
 
   const activeIndex = $derived.by(() => {
     const path = page.url.split("?")[0];
@@ -189,7 +199,6 @@
 
   function closeMobileNav() {
     mobileNavOpen = false;
-    mobileWorkspaceOpen = false;
   }
 
   function signOut() {
@@ -199,8 +208,6 @@
   function openCreateModal() {
     createForm.reset();
     showCreateModal = true;
-    mobileWorkspaceOpen = false;
-    desktopWorkspaceOpen = false;
   }
 
   function closeCreateModal() {
@@ -221,16 +228,11 @@
   }
 
   function switchWorkspace(workspaceHashid: string) {
+    if (workspaceHashid === workspace?.hashid) return;
     router.patch(
       routes.workspaces.switch,
       { workspace_id: workspaceHashid },
-      {
-        onSuccess: () => {
-          desktopWorkspaceOpen = false;
-          mobileWorkspaceOpen = false;
-          closeMobileNav();
-        },
-      },
+      { onSuccess: closeMobileNav },
     );
   }
 
@@ -269,6 +271,45 @@
       </Link>
     {/each}
   </div>
+{/snippet}
+
+{#snippet workspaceSwitcher()}
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger
+      class="group w-full flex items-center justify-between px-3 py-2 text-sm bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary data-[state=open]:bg-bg-quaternary transition-colors duration-150"
+      aria-label="Switch workspace: {workspace?.name || 'Workspace'}"
+    >
+      <span class="font-medium truncate">{workspace?.name || "Workspace"}</span>
+      <ChevronDown
+        class="w-4 h-4 text-fg-muted transition-transform duration-150 group-data-[state=open]:rotate-180"
+        aria-hidden="true"
+      />
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content sideOffset={6}>
+      <DropdownMenu.Label class="px-2">Workspaces</DropdownMenu.Label>
+      <DropdownMenu.RadioGroup
+        value={workspace?.hashid}
+        onValueChange={switchWorkspace}
+      >
+        {#each workspaces as ws (ws.hashid)}
+          <DropdownMenu.RadioItem
+            value={ws.hashid}
+            closeOnSelect
+            class="px-2 py-1.5 rounded-[6px] data-[state=checked]:text-bright-purple"
+          >
+            <span class="truncate">{ws.name}</span>
+          </DropdownMenu.RadioItem>
+        {/each}
+      </DropdownMenu.RadioGroup>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item
+        class="px-2 py-1.5 gap-2 rounded-[6px] text-fg-secondary"
+        onSelect={openCreateModal}
+      >
+        <Plus aria-hidden="true" /> Create workspace
+      </DropdownMenu.Item>
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
 {/snippet}
 
 {#snippet userProfile()}
@@ -359,46 +400,7 @@
         </div>
 
         <div class="p-4 border-b border-bg-tertiary">
-          <button
-            type="button"
-            class="w-full flex items-center justify-between px-3 py-2 text-sm bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
-            aria-label="Switch workspace: {workspace?.name || 'Workspace'}"
-            aria-expanded={mobileWorkspaceOpen}
-            onclick={() => (mobileWorkspaceOpen = !mobileWorkspaceOpen)}
-          >
-            <span class="font-medium truncate"
-              >{workspace?.name || "Workspace"}</span
-            >
-            <ChevronDown class="w-4 h-4 text-fg-muted" aria-hidden="true" />
-          </button>
-
-          {#if mobileWorkspaceOpen}
-            <div
-              class="mt-2 bg-bg-primary border border-bg-tertiary rounded-[10px] overflow-hidden"
-            >
-              {#each workspaces as ws}
-                <button
-                  type="button"
-                  class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.hashid ===
-                  workspace?.hashid
-                    ? 'bg-bright-purple/20 text-bright-purple'
-                    : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
-                  onclick={() => switchWorkspace(ws.hashid)}
-                  disabled={ws.hashid === workspace?.hashid}
-                >
-                  {ws.name}
-                </button>
-              {/each}
-              <button
-                type="button"
-                class="w-full flex items-center gap-2 px-4 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary transition-colors duration-150 border-t border-bg-tertiary"
-                onclick={openCreateModal}
-              >
-                <Plus class="w-4 h-4" />
-                Create workspace
-              </button>
-            </div>
-          {/if}
+          {@render workspaceSwitcher()}
         </div>
 
         <nav class="flex-1 p-4 space-y-1" aria-label="Main navigation">
@@ -432,15 +434,6 @@
     </div>
   {/if}
 
-  {#if desktopWorkspaceOpen}
-    <button
-      type="button"
-      class="hidden md:block fixed inset-0 z-30 bg-transparent"
-      aria-label="Close workspace menu"
-      onclick={() => (desktopWorkspaceOpen = false)}
-    ></button>
-  {/if}
-
   <aside
     class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col z-50"
     aria-label="Application sidebar"
@@ -452,48 +445,7 @@
     </div>
 
     <div class="p-4 border-b border-bg-tertiary">
-      <div class="relative">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2 text-sm bg-bg-tertiary rounded-[10px] hover:bg-bg-quaternary transition-colors duration-150"
-          aria-label="Switch workspace: {workspace?.name || 'Workspace'}"
-          aria-expanded={desktopWorkspaceOpen}
-          onclick={() => (desktopWorkspaceOpen = !desktopWorkspaceOpen)}
-        >
-          <span class="font-medium truncate"
-            >{workspace?.name || "Workspace"}</span
-          >
-          <ChevronDown class="w-4 h-4 text-fg-muted" aria-hidden="true" />
-        </button>
-
-        {#if desktopWorkspaceOpen}
-          <div
-            class="absolute top-full left-0 right-0 mt-2 bg-bg-secondary border border-bg-tertiary rounded-[10px] overflow-hidden z-40"
-          >
-            {#each workspaces as ws}
-              <button
-                type="button"
-                class="w-full text-left px-4 py-2 text-sm transition-colors duration-150 {ws.hashid ===
-                workspace?.hashid
-                  ? 'bg-bright-purple/20 text-bright-purple'
-                  : 'text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary'}"
-                onclick={() => switchWorkspace(ws.hashid)}
-                disabled={ws.hashid === workspace?.hashid}
-              >
-                {ws.name}
-              </button>
-            {/each}
-            <button
-              type="button"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary hover:text-fg-primary transition-colors duration-150 border-t border-bg-tertiary"
-              onclick={openCreateModal}
-            >
-              <Plus class="w-4 h-4" />
-              Create workspace
-            </button>
-          </div>
-        {/if}
-      </div>
+      {@render workspaceSwitcher()}
     </div>
 
     <nav class="flex-1 p-4" aria-label="Main navigation">
@@ -532,6 +484,8 @@
   >
     {@render children()}
   </main>
+
+  <Toaster />
 
   <Modal
     bind:open={showCreateModal}

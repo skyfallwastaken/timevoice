@@ -61,7 +61,6 @@
   icon={Palette}
   iconColor="text-bright-purple"
   variant="narrow"
-  flash={page.props.flash}
 >
   <SectionCard class="overflow-hidden" bodyClass="p-0">
     <SettingsTabs {workspaceId} active="themes" />
