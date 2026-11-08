@@ -670,6 +670,11 @@ components:
         due_date:
           type: string
           format: date
+        notes:
+          type: [string, "null"]
+          readOnly: true
+          description: Markdown notes printed under the totals on the invoice PDF, such as payment terms or bank details. Copied from the workspace's billing settings when the invoice is created, so later changes to the settings don't affect it.
+          example: "**Payment due within 30 days.**\n- Bank: Monzo"
         client:
           $ref: "#/components/schemas/Client"
 

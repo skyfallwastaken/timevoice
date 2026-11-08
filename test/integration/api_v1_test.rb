@@ -103,6 +103,17 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_nil cleared["email"]
   end
 
+  test "invoices include the notes they were created with" do
+    invoice = invoices(:one)
+    invoice.update!(notes: "**Net 30**")
+
+    body = api(:get, "/#{workspaces(:one).hashid}/invoices/#{invoice.hashid}")
+
+    assert_response :success
+    assert_equal "**Net 30**", body["invoice"]["notes"]
+    assert_equal "**Net 30**", api(:get, "/#{workspaces(:one).hashid}/invoices")["invoices"].first["notes"]
+  end
+
   private
 
   def api(verb, path, body = nil)
