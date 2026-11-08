@@ -8,6 +8,7 @@ class InvoicePdf
   TEXT_MUTED = "999999"
   BORDER_COLOR = "EEEEEE"
   SAFE_LINK = /\A(https?:|mailto:)/i
+  BARE_URL = %r{(https?://[^\s\[\]<>()]*[^\s\[\]<>().,;:!?'"])}i
   NOTES_MARKDOWN_OPTIONS = {
     extension: { strikethrough: true, autolink: true, table: false, tasklist: false, tagfilter: false, shortcodes: false },
     render: { escaped_char_spans: false }
@@ -288,9 +289,15 @@ class InvoicePdf
   def markdown_fragments(node, styles: [], color: nil, link: nil)
     node.flat_map do |child|
       case child.type
-      when :text, :html_inline
-        text = child.type == :text ? child.string_content : child.to_commonmark.chomp
-        [ { text: text, styles: styles, color: color, link: link }.compact ]
+      when :text
+        # Comrak leaves some bare URLs (e.g. "[https://…]") unlinked where markdown-it's linkify links them.
+        pieces = link ? [ child.string_content ] : child.string_content.split(BARE_URL)
+        pieces.reject(&:empty?).map do |piece|
+          url = piece if !link && piece.match?(/\A#{BARE_URL}\z/)
+          { text: piece, styles: styles, color: url ? BRAND_COLOR : color, link: url || link }.compact
+        end
+      when :html_inline
+        [ { text: child.to_commonmark.chomp, styles: styles, color: color, link: link }.compact ]
       when :code
         [ { text: child.string_content, styles: styles, color: TEXT_PRIMARY, link: link }.compact ]
       when :softbreak, :linebreak

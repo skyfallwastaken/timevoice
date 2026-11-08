@@ -11,6 +11,8 @@ class InvoicePdfTest < ActiveSupport::TestCase
       - [Pay online](https://pay.example.com) or [not this](javascript:alert(1))
 
       2026. Thanks
+
+      Terms: [https://pay.example.com/terms].
     MD
 
     assert_includes lines, "Payment due within 30 days."
@@ -18,7 +20,8 @@ class InvoicePdfTest < ActiveSupport::TestCase
     assert_includes lines, "• Sort code: 04-00-04"
     assert_includes lines, "• Pay online or not this"
     assert_includes lines, "2026. Thanks"
-    assert_equal [ "https://pay.example.com" ], @links
+    assert_includes lines, "Terms: [https://pay.example.com/terms]."
+    assert_equal [ "https://pay.example.com", "https://pay.example.com/terms" ], @links
   end
 
   test "deeply nested notes still render" do
