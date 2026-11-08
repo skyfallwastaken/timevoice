@@ -38,7 +38,7 @@
         </h2>
       </div>
       {#if headerActions}
-        <div class="flex items-center gap-2 sm:justify-end">
+        <div class="flex items-center gap-2 sm:flex-1 sm:justify-end">
           {@render headerActions()}
         </div>
       {/if}
