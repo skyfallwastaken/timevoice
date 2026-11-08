@@ -73,7 +73,6 @@ class OauthApplicationsController < ApplicationController
       id: app.id,
       name: app.name,
       uid: app.uid,
-      secret: app.secret,
       redirect_uri: app.redirect_uri,
       scopes: app.scopes_array,
       trust_level: app.trust_level,

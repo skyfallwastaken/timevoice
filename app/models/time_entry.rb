@@ -17,6 +17,9 @@ class TimeEntry < ApplicationRecord
   validates :start_at, presence: true
   validates :description, presence: true, if: :completed?
   validate :file_count_limit
+  validate :end_after_start
+  validate :project_in_workspace
+  validate :one_running_entry, if: :running?
   validates :files, size: { less_than: 10.megabytes, message: "must be less than 10MB" }
 
   before_save :calculate_duration_seconds, if: :should_calculate_duration?
@@ -54,7 +57,7 @@ class TimeEntry < ApplicationRecord
   def stop!(at: nil)
     return false unless running?
 
-    ended = (at || Time.current).clamp(start_at, Time.current)
+    ended = [ [ at || Time.current, Time.current ].min, start_at ].max
     update!(end_at: ended, duration_seconds: (ended - start_at).to_i)
   end
 
@@ -80,6 +83,14 @@ class TimeEntry < ApplicationRecord
     tags.pluck(:name)
   end
 
+  # Starting a timer stops the user's other running timer in the workspace.
+  def save_stopping_running_entries
+    transaction do
+      self.class.running.where(user_id: user_id, workspace_id: workspace_id).where.not(id: id).find_each(&:stop!) if running?
+      save || raise(ActiveRecord::Rollback)
+    end
+  end
+
   def billable?
     billable || (project&.billable_default || false)
   end
@@ -90,6 +101,19 @@ class TimeEntry < ApplicationRecord
     if files.attached? && files.count > MAX_FILES
       errors.add(:files, "can only have up to #{MAX_FILES} files")
     end
+  end
+
+  def end_after_start
+    errors.add(:end_at, "must be after the start time") if end_at && start_at && end_at < start_at
+  end
+
+  def project_in_workspace
+    errors.add(:project, "must belong to this workspace") if project && project.workspace_id != workspace_id
+  end
+
+  def one_running_entry
+    others = self.class.running.where(user_id: user_id, workspace_id: workspace_id).where.not(id: id)
+    errors.add(:base, "Another timer is already running") if others.exists?
   end
 
   def should_calculate_duration?

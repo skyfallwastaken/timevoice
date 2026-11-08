@@ -7,6 +7,7 @@ class Project < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :workspace_id }
   validates :color, presence: true, format: { with: /\A#[0-9A-Fa-f]{6}\z/ }
+  validate :client_in_workspace
 
   GRUVBOX_COLORS = %w[
     #cc241d #98971a #d79921 #458588 #b16286 #689d6a #d65d0e
@@ -19,5 +20,11 @@ class Project < ApplicationRecord
 
   def display_name
     client ? "#{client.name}: #{name}" : name
+  end
+
+  private
+
+  def client_in_workspace
+    errors.add(:client, "must belong to this workspace") if client && client.workspace_id != workspace_id
   end
 end

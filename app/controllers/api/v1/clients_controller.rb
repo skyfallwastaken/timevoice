@@ -44,8 +44,11 @@ module Api
         require_scope!(:clients)
         return if performed?
 
-        @client.destroy
-        head :no_content
+        if @client.destroy
+          head :no_content
+        else
+          render json: { error: "unprocessable_entity", message: @client.errors.full_messages.join(", ") }, status: :unprocessable_entity
+        end
       end
 
       private

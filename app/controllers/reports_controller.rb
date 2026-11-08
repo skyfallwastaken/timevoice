@@ -42,6 +42,7 @@ class ReportsController < ApplicationController
   private
 
   def parse_date(date_string)
+    date_string = date_string.to_s
     return nil if date_string.blank?
     return nil unless date_string.match?(/^\d{4}-\d{2}-\d{2}$/)
 

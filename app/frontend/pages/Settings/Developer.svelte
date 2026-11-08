@@ -29,7 +29,6 @@
     id: number;
     name: string;
     uid: string;
-    secret: string;
     redirect_uri: string;
     scopes: string[];
     trust_level: string;

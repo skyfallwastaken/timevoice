@@ -8,6 +8,7 @@ module Api
       InvalidParameter = Class.new(StandardError)
 
       before_action :doorkeeper_authorize!
+      around_action :use_user_time_zone
 
       rescue_from Pundit::NotAuthorizedError, with: :forbidden
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
@@ -30,6 +31,10 @@ module Api
             current_user&.workspaces&.first
           end
         end
+      end
+
+      def use_user_time_zone(&)
+        Time.use_zone(current_user&.timezone.presence || "UTC", &)
       end
 
       def require_workspace!

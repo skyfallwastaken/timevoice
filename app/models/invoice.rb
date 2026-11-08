@@ -16,6 +16,7 @@ class Invoice < ApplicationRecord
   validates :period_end, presence: true
   validates :issued_on, presence: true
   validates :status, inclusion: { in: STATUSES }
+  validates :invoice_number, numericality: { only_integer: true, greater_than: 0 }, uniqueness: { scope: :workspace_id }, on: :update
 
   scope :draft, -> { where(status: STATUS_DRAFT) }
   scope :issued, -> { where(status: STATUS_ISSUED) }

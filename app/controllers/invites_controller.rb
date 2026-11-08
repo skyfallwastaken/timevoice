@@ -1,7 +1,7 @@
 class InvitesController < ApplicationController
+  skip_before_action :authenticate_user!, only: [ :show, :accept, :decline ]
   skip_before_action :require_workspace, only: [ :show, :accept, :decline ]
   before_action :set_invite, only: [ :show, :accept, :decline ]
-  before_action :authorize_invite, only: [ :show, :accept, :decline ]
 
   def show
     if @invite.expired?
@@ -91,11 +91,6 @@ class InvitesController < ApplicationController
       redirect_to root_path, alert: "This invitation link is invalid."
       nil
     end
-  end
-
-  def authorize_invite
-    return if @invite.nil?
-    authorize @invite, :show?
   end
 
   def workspace_root_path(workspace)

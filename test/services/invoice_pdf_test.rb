@@ -31,6 +31,12 @@ class InvoicePdfTest < ActiveSupport::TestCase
     assert_includes lines, "•", "items too deep to indent should still get a marker"
   end
 
+  test "shows the invoice number the app shows, not the database id" do
+    invoices(:one).update!(invoice_number: 42)
+
+    assert_includes notes_pdf_lines(""), "42 Jan 29, 2026 Jan 29, 2026 – Jan 29, 2026"
+  end
+
   test "omits the notes section when notes are blank" do
     assert_not_includes notes_pdf_lines("  "), "Notes"
   end
