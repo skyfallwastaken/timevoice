@@ -23,7 +23,7 @@ class ProjectsController < ApplicationController
     if @project.save
       redirect_to projects_path, notice: "Project created successfully!"
     else
-      redirect_to projects_path, alert: @project.errors.full_messages.join(", "), inertia: { errors: @project.errors }
+      redirect_with_record_errors projects_path, @project
     end
   end
 
@@ -31,7 +31,7 @@ class ProjectsController < ApplicationController
     if @project.update(project_params)
       redirect_to projects_path, notice: "Project updated successfully!"
     else
-      redirect_to projects_path, alert: @project.errors.full_messages.join(", "), inertia: { errors: @project.errors }
+      redirect_with_record_errors projects_path, @project
     end
   end
 

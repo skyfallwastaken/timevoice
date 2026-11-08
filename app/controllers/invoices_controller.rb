@@ -152,7 +152,7 @@ class InvoicesController < ApplicationController
     if @invoice.update(invoice_params)
       redirect_back fallback_location: invoices_path, notice: "Invoice updated successfully!"
     else
-      redirect_back fallback_location: invoices_path, alert: @invoice.errors.full_messages.join(", "), inertia: { errors: @invoice.errors }
+      redirect_back_with_record_errors @invoice, fallback_location: invoices_path
     end
   end
 

@@ -18,7 +18,7 @@ class TimeEntriesController < ApplicationController
       assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
       redirect_back fallback_location: root_path, notice: @time_entry.running? ? "Timer started!" : "Entry created!"
     else
-      redirect_back fallback_location: root_path, alert: @time_entry.errors.full_messages.join(", "), inertia: { errors: @time_entry.errors }
+      redirect_back_with_record_errors @time_entry
     end
   end
 
@@ -35,7 +35,7 @@ class TimeEntriesController < ApplicationController
       # Edits to the running timer save as you type, so they don't toast.
       redirect_back(fallback_location: root_path, notice: ("Entry updated!" unless @time_entry.running?))
     else
-      redirect_back(fallback_location: root_path, alert: @time_entry.errors.full_messages.join(", "), inertia: { errors: @time_entry.errors })
+      redirect_back_with_record_errors @time_entry
     end
   end
 

@@ -38,7 +38,7 @@ class SettingsController < ApplicationController
     if @workspace.update(workspace_params)
       redirect_to settings_workspace_path, notice: "Workspace updated successfully!"
     else
-      redirect_to settings_workspace_path, alert: @workspace.errors.full_messages.join(", "), inertia: { errors: @workspace.errors }
+      redirect_with_record_errors settings_workspace_path, @workspace
     end
   end
 
@@ -94,7 +94,7 @@ class SettingsController < ApplicationController
     if @invoice_settings.update(billing_params)
       redirect_to settings_billing_path, notice: "Billing settings updated successfully!"
     else
-      redirect_to settings_billing_path, alert: @invoice_settings.errors.full_messages.join(", "), inertia: { errors: @invoice_settings.errors }
+      redirect_with_record_errors settings_billing_path, @invoice_settings
     end
   end
 

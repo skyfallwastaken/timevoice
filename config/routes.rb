@@ -47,7 +47,7 @@ Rails.application.routes.draw do
   post "/invite/:token/decline", to: "invites#decline", as: :decline_invite
 
   scope "/:workspace_id", constraints: { workspace_id: /[a-zA-Z0-9]+/ } do
-    get "/timer", to: "dashboard#index"
+    get "/timer", to: "dashboard#index", as: :workspace_timer
     get "/calendar", to: redirect { |params, request|
       "/#{params[:workspace_id]}/timer?#{{ view: "calendar", week_start: request.params[:week_start].presence }.compact.to_query}"
     }
@@ -99,7 +99,7 @@ Rails.application.routes.draw do
   patch "/workspaces/switch", to: "workspaces#switch", as: :switch_workspace
 
   root "marketing#home"
-  get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
+  get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }, as: :workspace_root
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

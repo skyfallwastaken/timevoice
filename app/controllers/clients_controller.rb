@@ -20,7 +20,7 @@ class ClientsController < ApplicationController
     if @client.save
       redirect_to clients_path, notice: "Client created successfully!"
     else
-      redirect_to clients_path, alert: @client.errors.full_messages.join(", "), inertia: { errors: @client.errors }
+      redirect_with_record_errors clients_path, @client
     end
   end
 
@@ -28,7 +28,7 @@ class ClientsController < ApplicationController
     if @client.update(client_params)
       redirect_to clients_path, notice: "Client updated successfully!"
     else
-      redirect_to clients_path, alert: @client.errors.full_messages.join(", "), inertia: { errors: @client.errors }
+      redirect_with_record_errors clients_path, @client
     end
   end
 

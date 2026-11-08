@@ -24,7 +24,7 @@ class OauthApplicationsController < ApplicationController
         secret_app_id: @application.id
       }
     else
-      redirect_to settings_developer_path, alert: @application.errors.full_messages.join(", "), inertia: { errors: @application.errors }
+      redirect_with_record_errors settings_developer_path, @application
     end
   end
 
@@ -34,7 +34,7 @@ class OauthApplicationsController < ApplicationController
     if @application.update(oauth_application_params)
       redirect_to settings_developer_path, notice: "Application updated successfully!"
     else
-      redirect_to settings_developer_path, alert: @application.errors.full_messages.join(", "), inertia: { errors: @application.errors }
+      redirect_with_record_errors settings_developer_path, @application
     end
   end
 
