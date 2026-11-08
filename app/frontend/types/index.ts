@@ -1,9 +1,9 @@
 export type FlashData = {
-  notice?: string
-  alert?: string
-}
+  notice?: string;
+  alert?: string;
+};
 
-export type SharedProps = {}
+export type SharedProps = {};
 
 export type Client = {
   id: number;
@@ -71,4 +71,68 @@ export type RecentDescription = {
   project_id: number | null;
   tag_ids: number[];
   billable: boolean;
+};
+
+export type InvoiceStatus = "draft" | "issued" | "paid";
+
+type InvoiceBase = {
+  id: number;
+  hashid: string;
+  invoice_number: number;
+  status: InvoiceStatus;
+  total_cents: number;
+  period_start: string;
+  period_end: string;
+  issued_on: string | null;
+  total_amount: string;
+};
+
+export type InvoiceListItem = InvoiceBase & {
+  line_count: number;
+  client: { id: number; name: string };
+};
+
+export type InvoiceLine = {
+  id: number;
+  description: string;
+  qty_hours: string;
+  rate_cents: number | null;
+  amount_cents: number;
+  amount: string;
+  rate: string | null;
+};
+
+export type Invoice = InvoiceBase & {
+  notes: string | null;
+  client: Client;
+  lines: InvoiceLine[];
+};
+
+export type InvoiceSettings = {
+  billable_rate_cents: number;
+  sender_name: string;
+  sender_address: string | null;
+};
+
+export type InvoiceSender = {
+  name: string;
+  address: string | null;
+};
+
+export type UnbilledEntry = {
+  id: number;
+  description: string;
+  duration_seconds: number;
+  billable: boolean;
+  start_at: string;
+  formattedDuration: string;
+  hours: number;
+  project: {
+    id: number;
+    name: string;
+    color: string;
+    client_id: number | null;
+    client: { id: number; name: string } | null;
+  } | null;
+  tags: Tag[];
 };

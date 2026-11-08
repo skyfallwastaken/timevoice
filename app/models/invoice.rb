@@ -85,6 +85,26 @@ class Invoice < ApplicationRecord
     end
   end
 
+  def update_line(line, attributes)
+    change_line(line) do
+      line.assign_attributes(attributes)
+      line.amount_cents = (line.qty_hours * line.rate_cents).round if line.qty_hours && line.rate_cents
+      line.save
+    end
+  end
+
+  # The removed line's time entry becomes unbilled again.
+  def remove_line(line)
+    change_line(line) do
+      if invoice_lines.count == 1
+        line.errors.add(:base, "An invoice needs at least one line. Delete the invoice instead.")
+        false
+      else
+        line.destroy
+      end
+    end
+  end
+
   private
 
   def ensure_draft
@@ -92,6 +112,20 @@ class Invoice < ApplicationRecord
 
     errors.add(:base, "Only draft invoices can be deleted")
     throw :abort
+  end
+
+  # Re-reads the status under a lock so a concurrent issue can't slip past the draft check.
+  def change_line(line)
+    transaction do
+      lock!
+      unless status == STATUS_DRAFT
+        line.errors.add(:base, "Only draft invoices can be edited")
+        raise ActiveRecord::Rollback
+      end
+      raise ActiveRecord::Rollback unless yield
+
+      update!(total_cents: invoice_lines.sum(:amount_cents))
+    end || false
   end
 
   def stamp_issued_on

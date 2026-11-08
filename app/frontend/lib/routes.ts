@@ -59,6 +59,8 @@ export const routes = {
       `/${workspaceId}/invoices/${id}/csv`,
     sendEmail: (workspaceId: string, id: string) =>
       `/${workspaceId}/invoices/${id}/send_email`,
+    line: (workspaceId: string, id: string, lineId: number) =>
+      `/${workspaceId}/invoices/${id}/lines/${lineId}`,
   },
 
   reports: {

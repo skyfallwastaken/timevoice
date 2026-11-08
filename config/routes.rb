@@ -91,6 +91,7 @@ Rails.application.routes.draw do
         get :csv
         post :send_email
       end
+      resources :lines, only: [ :update, :destroy ], controller: "invoice_lines"
     end
   end
 

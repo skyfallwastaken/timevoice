@@ -68,13 +68,19 @@ class InvoicesController < ApplicationController
   end
 
   def show
+    invoice_setting = current_workspace.invoice_setting
+
     render inertia: "Invoices/Show", props: {
+      canEdit: policy(@invoice).update?,
+      sender: {
+        name: invoice_setting&.sender_name || "Your Company",
+        address: invoice_setting&.sender_address
+      },
       invoice: @invoice.as_json(
-        only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
+        only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on, :notes ],
         methods: [ :hashid ],
         include: {
-          client: { only: [ :id, :name, :billing_address, :email ] },
-          invoice_lines: { only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ] }
+          client: { only: [ :id, :name, :billing_address, :email ] }
         }
       ).merge(
         total_amount: @invoice.formatted_total,
@@ -136,7 +142,7 @@ class InvoicesController < ApplicationController
       return
     end
 
-    redirect_to invoices_path, notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
+    redirect_to invoice_path(current_workspace.hashid, invoice.hashid), notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
   rescue ArgumentError
     redirect_with_error invoices_path, "Invalid invoice period dates.", field: :period_start
   rescue ActiveRecord::RecordNotFound

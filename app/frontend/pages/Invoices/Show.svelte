@@ -2,62 +2,57 @@
   import PageLayout from "../../components/PageLayout.svelte";
   import Modal from "../../components/Modal.svelte";
   import Button from "../../components/Button.svelte";
+  import IconButton from "../../components/IconButton.svelte";
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import TextArea from "../../components/TextArea.svelte";
-  import { Link, page, router, useForm } from "@inertiajs/svelte";
+  import { Link, page, router } from "@inertiajs/svelte";
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
     FileText,
     ArrowLeft,
     Calendar,
-    Building2,
     Download,
     Mail,
     Trash2,
     Edit2,
     Check,
     X,
-    ChevronDown,
+    Ellipsis,
   } from "@lucide/svelte";
-  import { formatDate, getStatusClasses, toDateString } from "../../lib/format";
+  import {
+    formatCurrency,
+    formatDate,
+    formatRate,
+    getStatusClasses,
+    parseRate,
+    toDateString,
+  } from "../../lib/format";
+  import { renderMarkdown } from "../../lib/markdown";
   import { routes } from "../../lib/routes";
   import Turnstile from "../../components/Turnstile.svelte";
+  import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+  import type {
+    FlashData,
+    Invoice,
+    InvoiceLine,
+    InvoiceSender,
+    InvoiceStatus,
+  } from "../../types";
 
   const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  type InvoiceLine = {
-    id: number;
-    description: string | null;
-    qty_hours: number;
-    rate_cents: number;
-    amount_cents: number;
-    amount: string;
-    rate: string;
-  };
-
-  type Invoice = {
-    id: number;
-    hashid: string;
-    invoice_number: number;
-    status: string;
-    period_start: string;
-    period_end: string;
-    issued_on: string | null;
-    total_amount: string;
-    client: {
-      id: number;
-      name: string;
-      billing_address: string | null;
-      email: string | null;
-    };
-    lines: InvoiceLine[];
-  };
-
   let invoice = $derived(page.props.invoice as Invoice);
+  let sender = $derived(page.props.sender as InvoiceSender);
+  let canEditLines = $derived(
+    !!page.props.canEdit && invoice.status === "draft",
+  );
   const userEmail = (page.props.auth as any)?.user?.email || "";
   const isDevMode = page.props.rails_env === "development";
+
+  const linkButtonClass =
+    "inline-flex items-center justify-center gap-2 rounded-[10px] transition-colors duration-150 font-medium h-9 px-4 text-sm bg-bg-secondary border border-bg-tertiary hover:bg-bg-tertiary text-fg-primary";
 
   let emailModalOpen = $state(false);
   let emailRecipients = $state("");
@@ -69,6 +64,18 @@
   let showDeleteModal = $state(false);
   let editingNumber = $state(false);
   let editInvoiceNumber = $state(0);
+
+  let editingLineId = $state<number | null>(null);
+  let lineDescription = $state("");
+  let lineHours = $state("");
+  let lineRate = $state("");
+  let savingLine = $state(false);
+  let lineToRemove = $state<InvoiceLine | null>(null);
+  let showRemoveLineModal = $state(false);
+
+  let lineAmountPreview = $derived(
+    Math.round((parseFloat(lineHours) || 0) * parseRate(lineRate)),
+  );
 
   function deleteInvoice() {
     router.delete(routes.invoices.delete(workspaceId, invoice.hashid), {
@@ -91,7 +98,7 @@
     );
   }
 
-  function updateInvoiceStatus(status: string) {
+  function updateInvoiceStatus(status: InvoiceStatus) {
     router
       .optimistic<{ invoice: Invoice }>((props) => ({
         invoice: {
@@ -123,6 +130,51 @@
   function cancelInvoiceNumberEdit() {
     editInvoiceNumber = invoice.invoice_number;
     editingNumber = false;
+  }
+
+  function startEditingLine(line: InvoiceLine) {
+    lineDescription = line.description;
+    lineHours = Number(line.qty_hours).toFixed(2);
+    lineRate = formatRate(line.rate_cents ?? 0);
+    editingLineId = line.id;
+  }
+
+  function saveLine() {
+    if (editingLineId === null) return;
+
+    savingLine = true;
+    router.patch(
+      routes.invoices.line(workspaceId, invoice.hashid, editingLineId),
+      {
+        line: {
+          description: lineDescription,
+          qty_hours: lineHours,
+          rate_cents:
+            String(lineRate ?? "").trim() === "" ? null : parseRate(lineRate),
+        },
+      },
+      {
+        preserveScroll: true,
+        onSuccess: (visit) => {
+          if (!(visit.props.flash as FlashData | undefined)?.alert) {
+            editingLineId = null;
+          }
+        },
+        onFinish: () => {
+          savingLine = false;
+        },
+      },
+    );
+  }
+
+  function removeLine() {
+    if (!lineToRemove) return;
+
+    router.delete(
+      routes.invoices.line(workspaceId, invoice.hashid, lineToRemove.id),
+      { preserveScroll: true },
+    );
+    showRemoveLineModal = false;
   }
 
   function sendEmail() {
@@ -158,124 +210,161 @@
   icon={FileText}
   iconColor="text-bright-purple"
 >
+  {#snippet breadcrumb()}
+    <Link
+      href={routes.invoices.index(workspaceId)}
+      class="inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg-primary transition-colors duration-150"
+    >
+      <ArrowLeft class="w-4 h-4" aria-hidden="true" />
+      Invoices
+    </Link>
+  {/snippet}
+
   {#snippet headerActions()}
     <div class="flex flex-wrap items-center sm:justify-end gap-2">
       {#if showLetterOpenerHint && isDevMode}
         <a
           href={routes.devTools.letterOpener}
           target="_blank"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-bright-green/10 border-2 border-dashed border-bright-green/60 text-bright-green rounded-[10px] hover:bg-bright-green/20 transition-colors duration-150"
+          class="inline-flex items-center gap-2 h-9 px-4 text-sm bg-bright-green/10 border-2 border-dashed border-bright-green/60 text-bright-green rounded-[10px] hover:bg-bright-green/20 transition-colors duration-150"
         >
           <Mail class="w-4 h-4" />
           View Sent Email
         </a>
       {/if}
       {#if editingNumber}
-        <div class="flex items-center gap-2">
-          <TextInput
-            type="number"
-            bind:value={editInvoiceNumber}
-            tone="purple"
-            class="w-24 text-sm"
-            min="1"
-          />
-          <Button variant="secondary" type="button" onclick={saveInvoiceNumber}>
+        <form
+          class="flex items-center gap-2"
+          onsubmit={(e) => {
+            e.preventDefault();
+            saveInvoiceNumber();
+          }}
+        >
+          <label for="invoice-number" class="text-sm text-fg-muted"
+            >Invoice #</label
+          >
+          <div class="w-24">
+            <TextInput
+              id="invoice-number"
+              type="number"
+              bind:value={editInvoiceNumber}
+              tone="purple"
+              min="1"
+            />
+          </div>
+          <Button variant="secondary" type="submit" aria-label="Save number">
             <Check class="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"
             type="button"
+            aria-label="Cancel"
             onclick={cancelInvoiceNumberEdit}
           >
             <X class="w-4 h-4" />
           </Button>
-        </div>
+        </form>
       {:else}
-        <Button
-          variant="secondary"
-          type="button"
-          onclick={startEditingInvoiceNumber}
-        >
-          <Edit2 class="w-4 h-4" />
-          Rename
-        </Button>
-      {/if}
-      {#if invoice.status === "draft"}
-        <Button
-          variant="secondary"
-          type="button"
-          onclick={() => updateInvoiceStatus("issued")}
-        >
-          <Check class="w-4 h-4" />
-          Issue Invoice
-        </Button>
-      {/if}
-      {#if invoice.status !== "paid"}
-        <Button
-          tone="green"
-          type="button"
-          onclick={() => updateInvoiceStatus("paid")}
-        >
-          <Check class="w-4 h-4" />
-          Mark Paid
-        </Button>
-      {/if}
-      <Button tone="purple" type="button" onclick={openEmailModal}>
-        <Mail class="w-4 h-4" />
-        Email Invoice
-      </Button>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          {#snippet child({ props })}
-            <Button {...props} variant="secondary" type="button">
-              <Download class="w-4 h-4" />
-              Download
-              <ChevronDown class="w-4 h-4 text-fg-muted" aria-hidden="true" />
-            </Button>
-          {/snippet}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" class="w-auto min-w-48">
-          <DropdownMenu.Item class="px-3 py-2 gap-2">
+        {#if invoice.status === "draft"}
+          <Button tone="purple" onclick={() => updateInvoiceStatus("issued")}>
+            <Check class="w-4 h-4" />
+            Issue invoice
+          </Button>
+        {:else if invoice.status === "issued"}
+          <Button variant="secondary" onclick={openEmailModal}>
+            <Mail class="w-4 h-4" />
+            Email
+          </Button>
+          <Button tone="green" onclick={() => updateInvoiceStatus("paid")}>
+            <Check class="w-4 h-4" />
+            Mark paid
+          </Button>
+        {:else}
+          <a
+            href={routes.invoices.pdf(workspaceId, invoice.hashid)}
+            target="_blank"
+            class={linkButtonClass}
+          >
+            <FileText class="w-4 h-4" aria-hidden="true" />
+            Download PDF
+          </a>
+          <Button tone="purple" onclick={openEmailModal}>
+            <Mail class="w-4 h-4" />
+            Email
+          </Button>
+        {/if}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
             {#snippet child({ props })}
-              <a
+              <Button
                 {...props}
-                href={routes.invoices.pdf(workspaceId, invoice.hashid)}
-                target="_blank"
+                variant="secondary"
+                class="px-2.5"
+                aria-label="More invoice actions"
               >
-                <FileText class="w-4 h-4" aria-hidden="true" />
-                Download PDF
-              </a>
+                <Ellipsis class="w-4 h-4" aria-hidden="true" />
+              </Button>
             {/snippet}
-          </DropdownMenu.Item>
-          <DropdownMenu.Item class="px-3 py-2 gap-2">
-            {#snippet child({ props })}
-              <a
-                {...props}
-                href={routes.invoices.csv(workspaceId, invoice.hashid)}
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end" class="w-auto min-w-48">
+            {#if invoice.status === "draft"}
+              <DropdownMenu.Item
+                class="px-3 py-2 gap-2"
+                onSelect={openEmailModal}
               >
-                <Download class="w-4 h-4" aria-hidden="true" />
-                Export CSV
-              </a>
-            {/snippet}
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-      {#if invoice.status === "draft"}
-        <Button
-          variant="secondary"
-          type="button"
-          onclick={() => (showDeleteModal = true)}
-        >
-          <Trash2 class="w-4 h-4" />
-          Delete
-        </Button>
+                <Mail aria-hidden="true" /> Email
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                class="px-3 py-2 gap-2"
+                onSelect={() => updateInvoiceStatus("paid")}
+              >
+                <Check aria-hidden="true" /> Mark paid
+              </DropdownMenu.Item>
+            {/if}
+            {#if invoice.status !== "paid"}
+              <DropdownMenu.Item class="px-3 py-2 gap-2">
+                {#snippet child({ props })}
+                  <a
+                    {...props}
+                    href={routes.invoices.pdf(workspaceId, invoice.hashid)}
+                    target="_blank"
+                  >
+                    <FileText aria-hidden="true" />
+                    Download PDF
+                  </a>
+                {/snippet}
+              </DropdownMenu.Item>
+            {/if}
+            <DropdownMenu.Item class="px-3 py-2 gap-2">
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  href={routes.invoices.csv(workspaceId, invoice.hashid)}
+                >
+                  <Download aria-hidden="true" />
+                  Export CSV
+                </a>
+              {/snippet}
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              class="px-3 py-2 gap-2"
+              onSelect={startEditingInvoiceNumber}
+            >
+              <Edit2 aria-hidden="true" /> Edit number
+            </DropdownMenu.Item>
+            {#if invoice.status === "draft"}
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item
+                variant="destructive"
+                class="px-3 py-2 gap-2"
+                onSelect={() => (showDeleteModal = true)}
+              >
+                <Trash2 aria-hidden="true" /> Delete
+              </DropdownMenu.Item>
+            {/if}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       {/if}
-      <Link href={routes.invoices.index(workspaceId)}>
-        <Button variant="secondary">
-          <ArrowLeft class="w-4 h-4" />
-          Back
-        </Button>
-      </Link>
     </div>
   {/snippet}
 
@@ -317,12 +406,18 @@
       </div>
     </div>
 
-    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-bg-primary border border-bg-tertiary rounded-[10px] p-4">
-        <div class="flex items-center gap-2 text-fg-muted mb-2">
-          <Building2 class="w-4 h-4" />
-          <span class="text-sm">Client</span>
-        </div>
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <div class="text-sm text-fg-muted mb-2">From</div>
+        <div class="text-sm font-medium">{sender.name}</div>
+        {#if sender.address}
+          <div class="mt-1 text-sm text-fg-muted whitespace-pre-line">
+            {sender.address}
+          </div>
+        {/if}
+      </div>
+      <div>
+        <div class="text-sm text-fg-muted mb-2">Bill to</div>
         <div class="text-sm font-medium">{invoice.client.name}</div>
         {#if invoice.client.billing_address}
           <div class="mt-1 text-sm text-fg-muted whitespace-pre-line">
@@ -333,13 +428,6 @@
             No billing address
           </div>
         {/if}
-      </div>
-
-      <div class="bg-bg-primary border border-bg-tertiary rounded-[10px] p-4">
-        <div class="text-sm text-fg-muted mb-2">Line Items</div>
-        <div class="text-sm text-fg-muted">
-          {invoice.lines.length} item{invoice.lines.length === 1 ? "" : "s"}
-        </div>
       </div>
     </div>
 
@@ -352,31 +440,153 @@
               <th class="text-right font-medium py-2 pl-4">Hours</th>
               <th class="text-right font-medium py-2 pl-4">Rate</th>
               <th class="text-right font-medium py-2 pl-4">Amount</th>
+              {#if canEditLines}
+                <th class="py-2 pl-2"><span class="sr-only">Actions</span></th>
+              {/if}
             </tr>
           </thead>
           <tbody class="divide-y divide-bg-tertiary">
-            {#each invoice.lines as line}
-              <tr>
-                <td class="py-3 pr-4">
-                  <span class="text-fg-primary"
-                    >{line.description || "No description"}</span
+            {#each invoice.lines as line (line.id)}
+              {#if editingLineId === line.id}
+                <tr>
+                  <td class="py-2 pr-2">
+                    <TextInput
+                      tone="purple"
+                      bind:value={lineDescription}
+                      aria-label="Description"
+                      class="min-w-48"
+                      onkeydown={(e) => e.key === "Enter" && saveLine()}
+                    />
+                  </td>
+                  <td class="py-2 pl-2">
+                    <div class="w-24 ml-auto">
+                      <TextInput
+                        type="number"
+                        tone="purple"
+                        step="0.01"
+                        min="0.01"
+                        bind:value={lineHours}
+                        aria-label="Hours"
+                        class="text-right font-tabular"
+                        onkeydown={(e) => e.key === "Enter" && saveLine()}
+                      />
+                    </div>
+                  </td>
+                  <td class="py-2 pl-2">
+                    <div class="relative w-28 ml-auto">
+                      <span
+                        class="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"
+                        aria-hidden="true">$</span
+                      >
+                      <TextInput
+                        type="number"
+                        tone="purple"
+                        step="0.01"
+                        min="0"
+                        bind:value={lineRate}
+                        aria-label="Rate per hour"
+                        class="pl-6 text-right font-tabular"
+                        onkeydown={(e) => e.key === "Enter" && saveLine()}
+                      />
+                    </div>
+                  </td>
+                  <td
+                    class="py-2 pl-4 text-right font-tabular whitespace-nowrap text-fg-muted"
+                    >{formatCurrency(lineAmountPreview)}</td
                   >
-                </td>
-                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
-                  >{Number(line.qty_hours).toFixed(2)}</td
-                >
-                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
-                  >{line.rate}</td
-                >
-                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
-                  >{line.amount}</td
-                >
-              </tr>
+                  <td class="py-2 pl-2">
+                    <div class="flex items-center justify-end gap-1">
+                      <Button
+                        size="sm"
+                        tone="purple"
+                        disabled={savingLine}
+                        onclick={saveLine}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onclick={() => (editingLineId = null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              {:else}
+                <tr>
+                  <td class="py-3 pr-4">
+                    <span class="text-fg-primary"
+                      >{line.description || "No description"}</span
+                    >
+                  </td>
+                  <td
+                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    >{Number(line.qty_hours).toFixed(2)}</td
+                  >
+                  <td
+                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    >{line.rate}</td
+                  >
+                  <td
+                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    >{line.amount}</td
+                  >
+                  {#if canEditLines}
+                    <td class="py-1 pl-2">
+                      <div class="flex items-center justify-end">
+                        <IconButton
+                          size="sm"
+                          aria-label="Edit line"
+                          onclick={() => startEditingLine(line)}
+                        >
+                          <Edit2 class="w-4 h-4" aria-hidden="true" />
+                        </IconButton>
+                        {#if invoice.lines.length > 1}
+                          <IconButton
+                            size="sm"
+                            tone="danger"
+                            aria-label="Remove line"
+                            onclick={() => {
+                              lineToRemove = line;
+                              showRemoveLineModal = true;
+                            }}
+                          >
+                            <Trash2 class="w-4 h-4" aria-hidden="true" />
+                          </IconButton>
+                        {/if}
+                      </div>
+                    </td>
+                  {/if}
+                </tr>
+              {/if}
             {/each}
           </tbody>
+          <tfoot>
+            <tr class="border-t border-bg-tertiary">
+              <td colspan="3" class="pt-3 text-right text-fg-muted">Total</td>
+              <td
+                class="pt-3 pl-4 text-right font-semibold font-tabular whitespace-nowrap"
+                >{invoice.total_amount}</td
+              >
+              {#if canEditLines}<td></td>{/if}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
+
+    {#if invoice.notes?.trim()}
+      <div class="border-t border-bg-tertiary p-4">
+        <div class="text-sm text-fg-muted mb-2">Notes</div>
+        <div
+          class="prose prose-sm prose-quoteless max-w-none text-fg-secondary prose-headings:text-fg-primary prose-headings:text-sm prose-headings:mt-0 prose-headings:mb-2 prose-strong:text-fg-primary prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-a:text-bright-purple prose-code:text-fg-primary prose-code:font-[inherit] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:text-inherit prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:my-3 prose-li:marker:text-fg-muted [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+        >
+          {@html renderMarkdown(invoice.notes)}
+        </div>
+      </div>
+    {/if}
   </div>
 </PageLayout>
 
@@ -423,12 +633,7 @@
     </FormField>
 
     <div class="flex items-center gap-2">
-      <input
-        id="cc_self"
-        type="checkbox"
-        bind:checked={ccSelf}
-        class="w-4 h-4 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple/50"
-      />
+      <Checkbox id="cc_self" bind:checked={ccSelf} />
       <label for="cc_self" class="text-sm">CC myself ({userEmail})</label>
     </div>
 
@@ -468,3 +673,13 @@
     </div>
   {/snippet}
 </ConfirmDeleteModal>
+
+<ConfirmDeleteModal
+  bind:open={showRemoveLineModal}
+  title="Remove line"
+  actionVerb="remove"
+  itemName={lineToRemove?.description || "this line"}
+  warningMessage="Its time entry goes back to your unbilled entries and the invoice total is recalculated."
+  onConfirm={removeLine}
+  onClose={() => (showRemoveLineModal = false)}
+/>
