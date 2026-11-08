@@ -79,7 +79,7 @@ module Api
 
       def invoice_json(invoice, include_lines: false)
         json = invoice.as_json(
-          only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
+          only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on, :notes ],
           methods: [ :hashid ],
           include: {
             client: { only: [ :id, :name, :billing_address ] }
