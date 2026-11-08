@@ -39,6 +39,14 @@ class Invoice < ApplicationRecord
     format_cents(total_cents)
   end
 
+  def period_label
+    "#{period_start.strftime('%b %d, %Y')} - #{period_end.strftime('%b %d, %Y')}"
+  end
+
+  def filename(extension)
+    "Invoice to #{client.name} - #{period_label}.#{extension}"
+  end
+
   def self.generate_from_time_entries(workspace, client, period_start_date, period_end_date, rate_cents, user = nil)
     entries = TimeEntry
       .where(workspace: workspace)

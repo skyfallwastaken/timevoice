@@ -169,21 +169,13 @@ class InvoicesController < ApplicationController
 
     pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
 
-    client_name = @invoice.client.name
-    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
-    filename = "Invoice to #{client_name} - #{date_range}.pdf"
-
     send_data pdf,
-      filename: filename,
+      filename: @invoice.filename("pdf"),
       type: "application/pdf",
       disposition: "inline"
   end
 
   def csv
-    client_name = @invoice.client.name
-    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
-    filename = "Invoice to #{client_name} - #{date_range}.csv"
-
     data = CSV.generate do |csv|
       csv << [ "Description", "Hours", "Amount" ]
       @invoice.invoice_lines.each do |line|
@@ -192,7 +184,7 @@ class InvoicesController < ApplicationController
     end
 
     send_data data,
-      filename: filename,
+      filename: @invoice.filename("csv"),
       type: "text/csv",
       disposition: "attachment"
   end
