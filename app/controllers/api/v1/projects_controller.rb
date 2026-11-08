@@ -57,12 +57,9 @@ module Api
 
       def project_attrs
         src = api_params(:project, :name, :client_id, :color, :billable_default)
-        attrs = {}
-        attrs[:name] = src[:name] if src.key?(:name)
-        attrs[:color] = src[:color] if src.key?(:color)
-        attrs[:billable_default] = src[:billable_default] if src.key?(:billable_default)
+        attrs = src.slice(:name, :color, :billable_default)
         if src.key?(:client_id)
-          attrs[:client_id] = src[:client_id].present? ? current_workspace.clients.find_by!(id: Client.decode_id(src[:client_id].to_s)).id : nil
+          attrs[:client] = src[:client_id].present? ? find_referenced!(current_workspace.clients, :client_id, src[:client_id]) : nil
         end
         attrs
       end

@@ -24,6 +24,8 @@ module Hashidable
 
     def decode_id(hashid)
       hashids.decode(hashid).first
+    rescue Hashids::InputError
+      nil
     end
 
     def find_by_hashid(hashid)
