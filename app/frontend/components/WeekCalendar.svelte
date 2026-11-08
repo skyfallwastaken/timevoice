@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { DollarSign, Timer } from "lucide-svelte";
+  import { Clock, DollarSign, Folder, Hash, Timer, X } from "lucide-svelte";
   import { useForm, page } from "@inertiajs/svelte";
-  import Modal from "./Modal.svelte";
+  import * as Popover from "$lib/components/ui/popover/index.js";
+  import * as Command from "$lib/components/ui/command/index.js";
   import Button from "./Button.svelte";
-  import ChipButton from "./ChipButton.svelte";
-  import TextInput from "./TextInput.svelte";
+  import DatePicker from "./DatePicker.svelte";
   import type { TimeEntry, Project, Tag } from "../types";
   import { formatHours, toDateString } from "../lib/format";
   import { routes } from "../lib/routes";
@@ -180,25 +180,36 @@
     }
   });
 
-  // Drag on an empty part of a day to add an entry for that time.
-  let drag = $state<{ day: Date; from: number; to: number } | null>(null);
+  // Drag on an empty part of a day to select a time for a new entry. The
+  // selection stays editable like Google Calendar's: drag it to move it, drag
+  // its bottom edge to resize it, drag elsewhere to replace it, or type the
+  // times in the popover. Minutes can run past 24:00 for overnight entries.
+  type Selection = { day: Date; from: number; to: number };
+  let selection = $state<Selection | null>(null);
+  let gesture: {
+    mode: "create" | "move" | "resize";
+    grab: number;
+    from: number;
+    to: number;
+    column: HTMLElement;
+  } | null = null;
   let showQuickEdit = $state(false);
+  let placeholder: HTMLElement | null = $state(null);
   let descriptionInput: HTMLInputElement | null = $state(null);
-  $effect(() => {
-    if (showQuickEdit && descriptionInput) {
-      const input = descriptionInput;
-      setTimeout(() => input.focus(), 50);
-    }
-  });
+  let showProjectPicker = $state(false);
+  let showTagPicker = $state(false);
 
   let form = useForm({
     description: "",
     project_id: null as number | null,
     tag_ids: [] as number[],
     billable: false,
-    start_at: null as string | null,
-    end_at: null as string | null,
   });
+
+  let selectedProject = $derived(
+    projects.find((p) => p.id === $form.project_id),
+  );
+  let selectedTags = $derived(tags.filter((t) => $form.tag_ids.includes(t.id)));
 
   function minuteAt(event: PointerEvent, column: HTMLElement) {
     const y = event.clientY - column.getBoundingClientRect().top;
@@ -206,51 +217,124 @@
     return Math.max(0, Math.min(DAY_MINUTES, minute));
   }
 
-  let dragColumn: HTMLElement | null = null;
+  function dayAt(x: number) {
+    const columns = scroller?.querySelectorAll<HTMLElement>("[data-day-index]");
+    for (const column of columns ?? []) {
+      const { left, right } = column.getBoundingClientRect();
+      if (x >= left && x < right) return days[Number(column.dataset.dayIndex)];
+    }
+    return null;
+  }
+
   function startDrag(event: PointerEvent, day: Date) {
     if (event.button !== 0 || event.pointerType === "touch") return;
-    dragColumn = event.currentTarget as HTMLElement;
-    const minute = Math.floor(minuteAt(event, dragColumn) / 15) * 15;
-    drag = { day, from: minute, to: minute };
+    const column = event.currentTarget as HTMLElement;
+    const minute = Math.min(
+      DAY_MINUTES - 15,
+      Math.floor(minuteAt(event, column) / 15) * 15,
+    );
+    selection = { day, from: minute, to: minute };
+    gesture = {
+      mode: "create",
+      grab: minute,
+      from: minute,
+      to: minute,
+      column,
+    };
+    showProjectPicker = showTagPicker = false;
+  }
+
+  function adjustSelection(event: PointerEvent, mode: "move" | "resize") {
+    if (event.button !== 0 || !selection) return;
+    event.stopPropagation();
+    const column = (event.currentTarget as HTMLElement).closest<HTMLElement>(
+      "[data-day-index]",
+    )!;
+    gesture = {
+      mode,
+      grab: minuteAt(event, column),
+      from: selection.from,
+      to: selection.to,
+      column,
+    };
+    showProjectPicker = showTagPicker = false;
   }
 
   function moveDrag(event: PointerEvent) {
-    if (drag && dragColumn && !showQuickEdit)
-      drag.to = minuteAt(event, dragColumn);
+    if (!gesture || !selection) return;
+    const minute = minuteAt(event, gesture.column);
+    if (gesture.mode === "create") {
+      selection.from = Math.min(gesture.grab, minute);
+      selection.to = Math.max(gesture.grab, minute);
+    } else if (gesture.mode === "resize") {
+      selection.to = Math.max(gesture.from + 15, minute);
+    } else {
+      const length = gesture.to - gesture.from;
+      const from = Math.max(
+        0,
+        Math.min(DAY_MINUTES - length, gesture.from + minute - gesture.grab),
+      );
+      selection.from = from;
+      selection.to = from + length;
+      const day = dayAt(event.clientX);
+      if (day && day.getTime() !== selection.day.getTime()) selection.day = day;
+    }
   }
 
   function endDrag() {
-    if (!drag || showQuickEdit) return;
-    let from = Math.min(drag.from, drag.to);
-    let to = Math.max(drag.from, drag.to);
-    if (to - from < 15) to = Math.min(DAY_MINUTES, from + 30);
-    drag.from = from;
-    drag.to = to;
+    if (!gesture || !selection) return;
+    const { mode } = gesture;
+    gesture = null;
+    if (mode !== "create") return;
+    if (selection.to - selection.from < 15)
+      selection.to = Math.min(DAY_MINUTES, selection.from + 30);
+    // Re-dragging while the popover is open keeps what was already filled in.
+    if (!showQuickEdit) {
+      $form.reset();
+      showQuickEdit = true;
+    }
+  }
+
+  function cancelDrag() {
+    gesture = null;
+    if (!showQuickEdit) selection = null;
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const timeOfDay = (minute: number) =>
+    `${pad(Math.floor(minute / 60) % 24)}:${pad(minute % 60)}`;
+  const parseTime = (value: string) => {
+    const [hours, minutes] = value.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // A new start time keeps the entry's length, like Google Calendar.
+  function setStart(value: string) {
+    if (!value || !selection) return;
+    const length = selection.to - selection.from;
+    selection.from = parseTime(value);
+    selection.to = selection.from + length;
+  }
+
+  // An end time at or before the start means the entry ran past midnight.
+  function setEnd(value: string) {
+    if (!value || !selection) return;
+    const to = parseTime(value);
+    selection.to = to <= selection.from ? to + DAY_MINUTES : to;
+  }
+
+  function saveQuickEntry() {
+    if (!$form.description.trim() || !selection) return;
+    const { day, from, to } = selection;
     const at = (minute: number) => {
-      const date = new Date(drag!.day);
+      const date = new Date(day);
       date.setHours(0, minute, 0, 0);
       return date.toISOString();
     };
-    $form.start_at = at(from);
-    $form.end_at = at(to);
-    $form.description = "";
-    $form.project_id = null;
-    $form.tag_ids = [];
-    $form.billable = false;
-    dragColumn = null;
-    showQuickEdit = true;
-  }
-
-  let dragRange = $derived(
-    drag
-      ? { from: Math.min(drag.from, drag.to), to: Math.max(drag.from, drag.to) }
-      : null,
-  );
-
-  function saveQuickEntry() {
-    if (!$form.description.trim()) return;
     $form
-      .transform((data) => ({ time_entry: data }))
+      .transform((data) => ({
+        time_entry: { ...data, start_at: at(from), end_at: at(to) },
+      }))
       .post(routes.timeEntries.create(workspaceId), {
         preserveScroll: true,
         preserveState: true,
@@ -264,7 +348,7 @@
   // The dashed placeholder stays while the new entry's details are filled in.
   function closeQuickEdit() {
     showQuickEdit = false;
-    drag = null;
+    selection = null;
   }
 
   const clock = (minute: number) => {
@@ -275,31 +359,30 @@
     });
   };
 
-  function formatTimeRange() {
-    if (!$form.start_at || !$form.end_at) return "";
-    const time = (iso: string) =>
-      new Date(iso).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      });
-    const day = new Date($form.start_at).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-    return `${day}, ${time($form.start_at)} – ${time($form.end_at)}`;
+  function selectProject(project: Project | null) {
+    $form.project_id = project?.id ?? null;
+    if (project?.billable_default) $form.billable = true;
+    showProjectPicker = false;
   }
 
-  function selectProject(project: { id: number; billable_default: boolean }) {
-    $form.project_id = project.id;
-    if (project.billable_default) $form.billable = true;
+  // Clicks on empty calendar space edit the selection instead of closing.
+  function keepOpenForCalendar(event: PointerEvent) {
+    const target = event.target as Element | null;
+    if (target?.closest("[data-day-index]") && !target.closest("button"))
+      event.preventDefault();
   }
+
+  const row =
+    "flex items-center gap-3 w-full min-h-9 -mx-2 px-2 rounded-lg text-left transition-colors duration-150";
+  const rowButton = `${row} hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary`;
+  const timeField =
+    "bg-transparent text-fg-primary font-tabular h-8 px-1.5 rounded-lg hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150 [&::-webkit-calendar-picker-indicator]:hidden";
 </script>
 
 <svelte:window
   onpointermove={moveDrag}
   onpointerup={endDrag}
-  onpointercancel={() => !showQuickEdit && (drag = null)}
+  onpointercancel={cancelDrag}
 />
 
 <div bind:this={scroller} class="h-full overflow-auto">
@@ -365,6 +448,7 @@
             HOUR}px; background-image: repeating-linear-gradient(to bottom, transparent 0 {HOUR -
             1}px, var(--color-bg-tertiary) {HOUR - 1}px {HOUR}px);"
           data-today={isToday || undefined}
+          data-day-index={i}
           onpointerdown={(e) => startDrag(e, day)}
         >
           {#each blocksByDay[i] as block (block.running ? "running" : block.entry.id)}
@@ -448,17 +532,40 @@
             </button>
           {/each}
 
-          {#if dragRange && drag?.day.getTime() === day.getTime()}
+          {#if selection && selection.day.getTime() === day.getTime()}
+            {@const color = selectedProject?.color}
+            {@const shownTo = Math.max(selection.to, selection.from + 15)}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-              class="absolute inset-x-[3px] overflow-hidden rounded-md border-2 border-dashed border-bright-purple bg-bright-purple/15 px-1.5 py-0.5 text-xs font-medium text-bright-purple font-tabular pointer-events-none"
-              style="top: {dragRange.from * pxPerMinute}px; height: {Math.max(
-                dragRange.to - dragRange.from,
-                15,
-              ) * pxPerMinute}px;"
+              bind:this={placeholder}
+              class="absolute inset-x-[3px] z-10 flex flex-col overflow-hidden rounded-md border-2 border-dashed px-1.5 py-0.5 text-xs font-medium font-tabular {color
+                ? 'text-fg-primary'
+                : 'border-bright-purple bg-bright-purple/15 text-bright-purple'} {showQuickEdit
+                ? 'cursor-grab active:cursor-grabbing shadow-lg'
+                : 'pointer-events-none'}"
+              style="top: {selection.from * pxPerMinute}px; height: {(Math.min(
+                DAY_MINUTES,
+                shownTo,
+              ) -
+                selection.from) *
+                pxPerMinute}px; {color
+                ? `border-color: ${color}; background-color: ${color}33;`
+                : ''}"
+              onpointerdown={(e) => adjustSelection(e, "move")}
             >
-              {clock(dragRange.from)} – {clock(
-                Math.max(dragRange.to, dragRange.from + 15),
-              )}
+              {#if $form.description.trim()}
+                <span class="truncate font-semibold">{$form.description}</span>
+              {/if}
+              <span class="truncate"
+                >{clock(selection.from)} – {clock(shownTo)}</span
+              >
+              {#if showQuickEdit}
+                <span
+                  class="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+                  aria-hidden="true"
+                  onpointerdown={(e) => adjustSelection(e, "resize")}
+                ></span>
+              {/if}
             </div>
           {/if}
 
@@ -479,99 +586,264 @@
   </div>
 </div>
 
-<Modal
+<Popover.Root
   open={showQuickEdit}
-  title="New Time Entry"
-  onclose={closeQuickEdit}
-  maxWidth="max-w-md"
+  onOpenChange={(open) => !open && closeQuickEdit()}
 >
-  <p class="text-fg-muted text-sm">{formatTimeRange()}</p>
-
-  <div>
-    <label for="entry-description" class="block text-sm font-medium mb-2"
-      >Description</label
-    >
-    <TextInput
-      id="entry-description"
-      type="text"
-      placeholder="What did you work on?"
-      bind:value={$form.description}
-      bind:inputRef={descriptionInput}
-      tone="blue"
-      onkeydown={(e: KeyboardEvent) => e.key === "Enter" && saveQuickEntry()}
-    />
-  </div>
-
-  {#if projects.length > 0}
-    <div>
-      <span class="block text-sm font-medium mb-2">Project</span>
-      <div class="flex flex-wrap gap-2">
-        {#each projects as project}
-          <ChipButton
-            type="button"
-            selected={$form.project_id === project.id}
-            class={$form.project_id === project.id
-              ? "border-bright-purple text-fg-primary"
-              : "text-fg-muted hover:text-fg-primary"}
-            onclick={() => selectProject(project)}
-          >
-            <span
-              class="size-2 rounded-full"
-              style="background-color: {project.color}"
-            ></span>
-            {project.name}
-          </ChipButton>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  {#if tags.length > 0}
-    <div>
-      <span class="block text-sm font-medium mb-2">Tags</span>
-      <div class="flex flex-wrap gap-2">
-        {#each tags as tag}
-          <ChipButton
-            type="button"
-            selected={$form.tag_ids.includes(tag.id)}
-            class={$form.tag_ids.includes(tag.id)
-              ? "border-bright-purple text-fg-primary"
-              : "text-fg-muted hover:text-fg-primary"}
-            onclick={() =>
-              ($form.tag_ids = toggleSelectedTag($form.tag_ids, tag.id))}
-          >
-            {tag.name}
-          </ChipButton>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  {#snippet footer()}
-    <div class="flex items-center justify-between">
-      <ChipButton
+  <Popover.Content
+    customAnchor={placeholder}
+    side="right"
+    align="start"
+    sideOffset={10}
+    collisionPadding={12}
+    updatePositionStrategy="always"
+    class="w-[26rem] max-w-[calc(100vw-1.5rem)] gap-0 p-0 shadow-2xl"
+    aria-label="New time entry"
+    onOpenAutoFocus={(e) => {
+      e.preventDefault();
+      descriptionInput?.focus();
+    }}
+    onCloseAutoFocus={(e) => e.preventDefault()}
+    onInteractOutside={keepOpenForCalendar}
+  >
+    <div class="flex items-center justify-between pl-4 pr-2 pt-2">
+      <span class="text-xs font-medium text-fg-muted">New time entry</span>
+      <button
         type="button"
-        selected={$form.billable}
-        class="h-9 {$form.billable
-          ? 'border-bright-green text-bright-green'
-          : 'text-fg-muted hover:text-fg-primary'}"
-        onclick={() => ($form.billable = !$form.billable)}
+        class="inline-flex items-center justify-center size-8 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150"
+        aria-label="Close"
+        onclick={closeQuickEdit}
       >
-        <DollarSign class="size-4" aria-hidden="true" /> Billable
-      </ChipButton>
-      <div class="flex gap-2">
-        <Button type="button" variant="secondary" onclick={closeQuickEdit}>
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          tone="purple"
-          onclick={saveQuickEntry}
-          disabled={!$form.description.trim() || $form.processing}
-        >
-          Add entry
-        </Button>
-      </div>
+        <X class="size-4" aria-hidden="true" />
+      </button>
     </div>
-  {/snippet}
-</Modal>
+
+    <div class="px-4 pb-4 space-y-3">
+      <input
+        bind:this={descriptionInput}
+        bind:value={$form.description}
+        id="quick-entry-description"
+        type="text"
+        aria-label="Description"
+        placeholder="What did you work on?"
+        autocomplete="off"
+        class="w-full h-11 bg-transparent border-b-2 border-bg-tertiary focus:border-bright-purple text-xl font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-dim outline-none transition-colors duration-150"
+        onkeydown={(e) => e.key === "Enter" && saveQuickEntry()}
+      />
+
+      {#if selection}
+        {@const sel = selection}
+        <div>
+          <div class="{row} items-start pb-1">
+            <Clock
+              class="size-4 shrink-0 mt-2 text-fg-muted"
+              aria-hidden="true"
+            />
+            <div class="min-w-0 -ml-1.5">
+              <div class="flex flex-wrap items-center gap-x-1">
+                <DatePicker
+                  id="quick-entry-date"
+                  bind:value={() => sel.day, (date) => date && (sel.day = date)}
+                  min={days[0]}
+                  max={days[days.length - 1]}
+                  format={(date) =>
+                    date.toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  class="w-auto h-8 gap-1.5 px-1.5 rounded-lg border-transparent bg-transparent hover:bg-bg-tertiary hover:border-transparent data-[state=open]:border-transparent data-[state=open]:bg-bg-tertiary [&>svg]:hidden"
+                />
+                <div class="flex items-center gap-0.5">
+                  <input
+                    type="time"
+                    aria-label="Start time"
+                    value={timeOfDay(sel.from)}
+                    oninput={(e) => setStart(e.currentTarget.value)}
+                    class={timeField}
+                  />
+                  <span class="text-fg-dim" aria-hidden="true">–</span>
+                  <input
+                    type="time"
+                    aria-label="End time"
+                    value={timeOfDay(sel.to)}
+                    oninput={(e) => setEnd(e.currentTarget.value)}
+                    class={timeField}
+                  />
+                </div>
+              </div>
+              <p class="px-1.5 text-xs text-fg-muted font-tabular">
+                <span class="font-medium text-bright-purple"
+                  >{formatHours((sel.to - sel.from) * 60)}</span
+                >{sel.to > DAY_MINUTES ? " · Ends the next day" : ""}
+              </p>
+            </div>
+          </div>
+
+          {#if projects.length > 0}
+            <Popover.Root bind:open={showProjectPicker}>
+              <Popover.Trigger class={rowButton}>
+                {#if selectedProject}
+                  <span
+                    class="grid place-items-center size-4 shrink-0"
+                    aria-hidden="true"
+                  >
+                    <span
+                      class="size-2.5 rounded-full"
+                      style="background-color: {selectedProject.color}"
+                    ></span>
+                  </span>
+                  <span class="truncate text-fg-primary"
+                    >{selectedProject.name}</span
+                  >
+                  {#if selectedProject.client}
+                    <span class="truncate text-fg-muted"
+                      >· {selectedProject.client.name}</span
+                    >
+                  {/if}
+                {:else}
+                  <Folder
+                    class="size-4 shrink-0 text-fg-muted"
+                    aria-hidden="true"
+                  />
+                  <span class="text-fg-muted">Add project</span>
+                {/if}
+              </Popover.Trigger>
+              <Popover.Content align="start" class="w-64 p-0">
+                <Command.Root>
+                  <Command.Input placeholder="Search projects..." />
+                  <Command.List>
+                    <Command.Empty>No matching projects.</Command.Empty>
+                    {#if selectedProject}
+                      <Command.Item
+                        value="No project"
+                        onSelect={() => selectProject(null)}
+                        class="gap-3 px-3 py-2 rounded-[5px] text-fg-muted"
+                      >
+                        <X class="w-3 h-3" aria-hidden="true" />
+                        No project
+                      </Command.Item>
+                    {/if}
+                    {#each projects as project (project.id)}
+                      <Command.Item
+                        value={`${project.name} ${project.client?.name ?? ""}`}
+                        data-checked={$form.project_id === project.id}
+                        onSelect={() => selectProject(project)}
+                        class="gap-3 px-3 py-2 rounded-[5px]"
+                      >
+                        <span
+                          class="w-3 h-3 rounded-full shrink-0"
+                          style="background-color: {project.color}"
+                          aria-hidden="true"
+                        ></span>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-fg-primary truncate">
+                            {project.name}
+                          </p>
+                          {#if project.client}
+                            <p class="text-xs text-fg-muted truncate">
+                              {project.client.name}
+                            </p>
+                          {/if}
+                        </div>
+                      </Command.Item>
+                    {/each}
+                  </Command.List>
+                </Command.Root>
+              </Popover.Content>
+            </Popover.Root>
+          {/if}
+
+          {#if tags.length > 0}
+            <Popover.Root bind:open={showTagPicker}>
+              <Popover.Trigger class={rowButton}>
+                <Hash
+                  class="size-4 shrink-0 text-fg-muted"
+                  aria-hidden="true"
+                />
+                {#if selectedTags.length > 0}
+                  <span class="flex flex-wrap gap-1 py-1.5">
+                    {#each selectedTags as tag (tag.id)}
+                      <span
+                        class="px-1.5 py-0.5 rounded-md bg-bg-tertiary text-xs font-medium text-fg-primary"
+                        >{tag.name}</span
+                      >
+                    {/each}
+                  </span>
+                {:else}
+                  <span class="text-fg-muted">Add tags</span>
+                {/if}
+              </Popover.Trigger>
+              <Popover.Content align="start" class="w-56 p-0">
+                <Command.Root>
+                  <Command.Input placeholder="Search tags..." />
+                  <Command.List>
+                    <Command.Empty>No matching tags.</Command.Empty>
+                    {#each tags as tag (tag.id)}
+                      <Command.Item
+                        value={tag.name}
+                        data-checked={$form.tag_ids.includes(tag.id)}
+                        onSelect={() =>
+                          ($form.tag_ids = toggleSelectedTag(
+                            $form.tag_ids,
+                            tag.id,
+                          ))}
+                        class="px-3 py-2 rounded-[5px]"
+                      >
+                        <span class="text-fg-primary">{tag.name}</span>
+                      </Command.Item>
+                    {/each}
+                  </Command.List>
+                </Command.Root>
+              </Popover.Content>
+            </Popover.Root>
+          {/if}
+
+          <button
+            type="button"
+            class={rowButton}
+            role="switch"
+            aria-checked={$form.billable}
+            onclick={() => ($form.billable = !$form.billable)}
+          >
+            <DollarSign
+              class="size-4 shrink-0 {$form.billable
+                ? 'text-bright-green'
+                : 'text-fg-muted'}"
+              aria-hidden="true"
+            />
+            <span class={$form.billable ? "text-bright-green" : "text-fg-muted"}
+              >{$form.billable ? "Billable" : "Non-billable"}</span
+            >
+            <span
+              class="ml-auto flex items-center w-8 h-[18px] p-0.5 rounded-full transition-colors duration-150 {$form.billable
+                ? 'bg-bright-green'
+                : 'bg-bg-quaternary'}"
+              aria-hidden="true"
+            >
+              <span
+                class="size-3.5 rounded-full bg-bg-primary transition-transform duration-150 {$form.billable
+                  ? 'translate-x-3.5'
+                  : ''}"
+              ></span>
+            </span>
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <div class="flex items-center justify-end gap-2 px-4 pb-4">
+      <Button type="button" variant="ghost" onclick={closeQuickEdit}>
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        tone="purple"
+        onclick={saveQuickEntry}
+        disabled={!$form.description.trim() || $form.processing}
+      >
+        Save
+      </Button>
+    </div>
+  </Popover.Content>
+</Popover.Root>

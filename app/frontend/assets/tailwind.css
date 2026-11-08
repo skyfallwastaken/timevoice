@@ -160,7 +160,8 @@ body {
 
 /* Borderless text fields that are the focus of their bar; a ring would box them in */
 [data-slot="command-input"]:focus-visible,
-#timer-description:focus-visible {
+#timer-description:focus-visible,
+#quick-entry-description:focus-visible {
   box-shadow: none;
 }
 
