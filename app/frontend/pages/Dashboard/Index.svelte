@@ -31,7 +31,12 @@
     Clock,
     SearchX,
   } from "@lucide/svelte";
-  import { formatDuration, formatHours, toDateString } from "../../lib/format";
+  import {
+    formatDuration,
+    formatHours,
+    parseLocalDate,
+    toDateString,
+  } from "../../lib/format";
   import {
     draftFromEntry,
     type TimeEntryDraft,
@@ -99,7 +104,7 @@
     next !== view && visit({ view: next });
 
   function shiftWeek(weeks: number) {
-    const start = new Date(`${weekStart}T00:00:00`);
+    const start = parseLocalDate(weekStart);
     start.setDate(start.getDate() + weeks * 7);
     visit({ view: "calendar", week_start: toDateString(start) });
   }
@@ -151,7 +156,7 @@
   }
 
   let weekLabel = $derived(
-    weekStart ? weekLabelFor(new Date(`${weekStart}T00:00:00`), dayCount) : "",
+    weekStart ? weekLabelFor(parseLocalDate(weekStart), dayCount) : "",
   );
 
   // The list's period: a day, week or month the arrows step through.
@@ -172,9 +177,7 @@
           : "week";
   let periodKind = $derived(periodKindOf(filters.range));
   let periodStart = $derived(
-    filters.date
-      ? new Date(`${filters.date}T00:00:00`)
-      : presetStart(filters.range),
+    filters.date ? parseLocalDate(filters.date) : presetStart(filters.range),
   );
   let periodLabel = $derived.by(() => {
     if (periodKind === "day") return dayLabel(toDateString(periodStart));
@@ -241,7 +244,7 @@
   // What the Logged bar sums: the visible calendar days, or the listed entries.
   let loggedEntries = $derived.by(() => {
     if (view === "list") return recentEntries;
-    const end = new Date(`${weekStart}T00:00:00`);
+    const end = parseLocalDate(weekStart);
     end.setDate(end.getDate() + dayCount);
     return calendarEntries.filter((e) => new Date(e.start_at) < end);
   });
@@ -288,7 +291,7 @@
     yesterday.setDate(today.getDate() - 1);
     if (key === toDateString(today)) return "Today";
     if (key === toDateString(yesterday)) return "Yesterday";
-    const date = new Date(`${key}T00:00:00`);
+    const date = parseLocalDate(key);
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -505,7 +508,7 @@
     <CalendarDays class="size-4 text-fg-muted" aria-hidden="true" />
     {weekLabel}
     <span class="text-fg-muted font-normal"
-      >· W{isoWeek(new Date(`${weekStart}T00:00:00`))}</span
+      >· W{isoWeek(parseLocalDate(weekStart))}</span
     >
   </button>
 {/snippet}

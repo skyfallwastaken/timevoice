@@ -43,7 +43,6 @@ export type TimeEntry = {
   end_at: string | null;
   duration_seconds?: number;
   billable: boolean;
-  formattedDuration: string;
   project: {
     id: number;
     name: string;
@@ -125,7 +124,6 @@ export type UnbilledEntry = {
   duration_seconds: number;
   billable: boolean;
   start_at: string;
-  formattedDuration: string;
   hours: number;
   project: {
     id: number;

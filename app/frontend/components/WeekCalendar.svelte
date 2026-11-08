@@ -2,7 +2,7 @@
   import { DollarSign, Timer } from "@lucide/svelte";
   import TimeEntryEditor from "./TimeEntryEditor.svelte";
   import type { TimeEntry, Project, Tag } from "../types";
-  import { formatHours, toDateString } from "../lib/format";
+  import { formatHours, parseLocalDate, toDateString } from "../lib/format";
   import { draftFromEntry, type TimeEntryDraft } from "../lib/time-entry-form";
 
   type RunningEntry = {
@@ -44,7 +44,7 @@
   });
 
   let days = $derived.by(() => {
-    const start = new Date(`${weekStart}T00:00:00`);
+    const start = parseLocalDate(weekStart);
     return Array.from({ length: dayCount }, (_, i) => {
       const day = new Date(start);
       day.setDate(start.getDate() + i);
@@ -74,7 +74,6 @@
         entry: {
           ...runningEntry,
           end_at: now.toISOString(),
-          formattedDuration: "",
           tags: [],
         },
         running: true,

@@ -12,16 +12,23 @@ export function parseRate(value: string): number {
 }
 
 /**
- * Format a YYYY-MM-DD date (e.g., "Nov 4, 2026")
+ * Parse a YYYY-MM-DD date as local midnight (not UTC, which can shift the day)
  */
-export function formatDate(dateStr: string): string {
-  return formatTimestamp(`${dateStr}T00:00:00`);
+export function parseLocalDate(dateStr: string): Date {
+  return new Date(`${dateStr}T00:00:00`);
 }
 
 /**
- * Format an ISO timestamp as a local date (e.g., "Nov 4, 2026")
+ * Format a YYYY-MM-DD date (e.g., "Nov 4, 2026")
  */
-export function formatTimestamp(timestamp: string): string {
+export function formatDate(dateStr: string): string {
+  return formatTimestamp(parseLocalDate(dateStr));
+}
+
+/**
+ * Format an ISO timestamp or Date as a local date (e.g., "Nov 4, 2026")
+ */
+export function formatTimestamp(timestamp: string | Date): string {
   return new Date(timestamp).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -89,7 +96,7 @@ export function getLastMonthRange(): { start: Date; end: Date } {
 /**
  * Format a date to short format (e.g., "Jan 15")
  */
-export function formatShortDate(dateString: string): string {
+export function formatShortDate(dateString: string | Date): string {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

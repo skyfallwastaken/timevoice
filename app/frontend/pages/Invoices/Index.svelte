@@ -21,6 +21,7 @@
   } from "@lucide/svelte";
   import {
     formatCurrency,
+    formatDuration,
     formatRate,
     parseRate,
     formatDate,
@@ -516,7 +517,7 @@
                   >No client · can't be invoiced</span
                 >
               {/if}
-              <span>{entry.formattedDuration}</span>
+              <span>{formatDuration(entry.duration_seconds)}</span>
               <span>({entry.hours.toFixed(2)} hours)</span>
             </div>
           </div>
