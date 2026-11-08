@@ -14,7 +14,7 @@ md.renderer.rules.image = (tokens, idx) =>
   md.utils.escapeHtml(tokens[idx].content);
 md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
   const token = tokens[idx];
-  if (SAFE_LINK.test(token.attrGet("href") ?? "")) {
+  if (SAFE_LINK.test(String(token.attrGet("href") ?? ""))) {
     token.attrSet("target", "_blank");
     token.attrSet("rel", "noopener noreferrer");
   } else {

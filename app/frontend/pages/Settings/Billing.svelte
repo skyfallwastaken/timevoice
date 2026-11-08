@@ -25,7 +25,9 @@
   });
 
   const notesMaxLength = $page.props.notesMaxLength as number;
-  let notesMode = $state<"write" | "preview">("write");
+  let notesMode = $state<"write" | "preview">(
+    $page.props.canEdit === false ? "preview" : "write",
+  );
 
   let rateInputValue = $state(
     formatRate(($page.props.invoiceSettings as any)?.billable_rate_cents || 0),
@@ -119,56 +121,67 @@
       <FormField
         id="invoice-notes"
         label="Invoice Notes"
-        description="Printed under the totals on every invoice. Handy for payment terms or bank details."
+        description="Printed under the totals on every invoice, e.g. payment terms or bank details. Markdown works; check Preview to see how it prints."
         error={$form.errors.notes}
       >
         {#snippet children({ describedBy })}
-          <div class="mb-2 flex items-center justify-between gap-3">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div
-              class="inline-flex rounded-[8px] border border-bg-tertiary p-0.5"
-              role="group"
+              class="flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+              role="radiogroup"
               aria-label="Notes editor mode"
             >
-              {#each ["write", "preview"] as const as mode}
+              {#each [{ key: "write", label: "Write" }, { key: "preview", label: "Preview" }] as const as option (option.key)}
                 <button
                   type="button"
-                  class="px-3 py-1 text-xs font-medium capitalize rounded-[6px] transition-colors duration-150 {notesMode ===
-                  mode
+                  role="radio"
+                  aria-checked={notesMode === option.key}
+                  class="inline-flex items-center h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {notesMode ===
+                  option.key
                     ? 'bg-bg-tertiary text-fg-primary'
                     : 'text-fg-muted hover:text-fg-primary'}"
-                  aria-pressed={notesMode === mode}
-                  onclick={() => (notesMode = mode)}
+                  onclick={() => (notesMode = option.key)}
                 >
-                  {mode}
+                  {option.label}
                 </button>
               {/each}
             </div>
             <span class="text-xs text-fg-muted tabular-nums">
-              Markdown supported · {$form.notes.length}/{notesMaxLength}
+              {$form.notes.length.toLocaleString()} / {notesMaxLength.toLocaleString()}
             </span>
           </div>
-          {#if notesMode === "write"}
+          <div class="grid">
             <TextArea
               id="invoice-notes"
               tone="purple"
               bind:value={$form.notes}
               placeholder={"**Payment due within 30 days.**\n- Bank: Monzo\n- Sort code: 04-00-04\n- Account: 12345678"}
-              rows={6}
+              rows={8}
               maxlength={notesMaxLength}
               aria-describedby={describedBy}
+              class="[grid-area:1/1] {notesMode === 'preview'
+                ? 'invisible'
+                : ''}"
             />
-          {:else}
-            <div
-              class="min-h-[10.5rem] rounded-[10px] bg-white px-6 py-5 prose prose-sm prose-quoteless max-w-none text-[#666] prose-headings:text-[#1a1a1a] prose-headings:text-sm prose-headings:mt-0 prose-headings:mb-2 prose-strong:text-inherit prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-a:text-[#6366F1] prose-code:text-[#1a1a1a] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:text-inherit prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
-              aria-label="Invoice notes preview"
-            >
-              {#if $form.notes.trim()}
-                {@html renderMarkdown($form.notes)}
-              {:else}
-                <p class="text-[#999] italic">Nothing to preview yet.</p>
-              {/if}
-            </div>
-          {/if}
+            {#if notesMode === "preview"}
+              <div
+                class="[grid-area:1/1] rounded-[10px] bg-white px-6 py-5 text-sm text-[#666]"
+                role="region"
+                aria-label="Invoice notes preview"
+              >
+                <p class="mb-2 text-xs text-[#666]">Notes</p>
+                {#if $form.notes.trim()}
+                  <div
+                    class="prose prose-sm prose-quoteless max-w-none text-inherit prose-headings:text-[#1a1a1a] prose-headings:text-sm prose-headings:mt-0 prose-headings:mb-2 prose-strong:text-inherit prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-a:text-[#6366F1] prose-code:text-[#1a1a1a] prose-code:font-[inherit] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:text-inherit prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+                  >
+                    {@html renderMarkdown($form.notes)}
+                  </div>
+                {:else}
+                  <p class="italic">Nothing to preview yet.</p>
+                {/if}
+              </div>
+            {/if}
+          </div>
         {/snippet}
       </FormField>
 
@@ -197,7 +210,7 @@
       </p>
       <p>
         <strong class="text-fg-primary">Invoice Notes:</strong>
-        Printed at the bottom of every invoice PDF. Markdown works for
+        Printed under the totals on every invoice PDF. Markdown works for
         <code class="text-fg-secondary">**bold**</code>,
         <code class="text-fg-secondary">*italic*</code>,
         <code class="text-fg-secondary">- lists</code> and

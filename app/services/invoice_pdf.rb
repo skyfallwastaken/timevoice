@@ -9,7 +9,8 @@ class InvoicePdf
   BORDER_COLOR = "EEEEEE"
   SAFE_LINK = /\A(https?:|mailto:)/i
   NOTES_MARKDOWN_OPTIONS = {
-    extension: { strikethrough: true, autolink: true, table: false, tasklist: false, tagfilter: false, shortcodes: false }
+    extension: { strikethrough: true, autolink: true, table: false, tasklist: false, tagfilter: false, shortcodes: false },
+    render: { escaped_char_spans: false }
   }.freeze
 
   def initialize(invoice, invoice_setting)
@@ -253,16 +254,21 @@ class InvoicePdf
     when :heading
       markdown_text(markdown_fragments(node, styles: [ :bold ], color: TEXT_PRIMARY), size: 10)
     when :list
+      markers = node.each_with_index.map { |_, index| node.list_type == :ordered ? "#{node.list_start + index}." : "•" }
+      width = [ markers.map { |marker| @document.width_of(marker) }.max + 6, 14 ].max
+
       node.each_with_index do |item, index|
         @document.move_down(node.list_tight ? 2 : 6) if index.positive?
-        marker = node.list_type == :ordered ? "#{node.list_start + index}." : "•"
-        @document.float { markdown_text([ { text: marker } ]) }
-        @document.indent(14) { render_markdown_blocks(item) }
+        indent = room_to_indent?(width)
+        @document.float { markdown_text([ { text: markers[index] } ]) } if indent
+        @document.indent(indent ? width : 0) do
+          item.first_child ? render_markdown_blocks(item) : @document.move_down(@document.height_of(markers[index], leading: 4))
+        end
       end
     when :block_quote
-      top, page = @document.cursor, @document.page_number
-      @document.indent(12) { render_markdown_blocks(node) }
-      @document.stroke_vertical_line(top, @document.cursor, at: 2) if @document.page_number == page
+      top, page, indent = @document.cursor, @document.page_number, room_to_indent?(12)
+      @document.indent(indent ? 12 : 0) { render_markdown_blocks(node) }
+      @document.stroke_vertical_line(top, @document.cursor, at: 2) if indent && @document.page_number == page
     when :thematic_break
       @document.move_down 2
       @document.stroke_horizontal_rule
@@ -299,6 +305,11 @@ class InvoicePdf
         []
       end
     end
+  end
+
+  # Deeply nested lists and quotes stop indenting before the text column gets too narrow for Prawn to fit text.
+  def room_to_indent?(width)
+    @document.bounds.width - width >= 150
   end
 
   def markdown_text(fragments, **options)
