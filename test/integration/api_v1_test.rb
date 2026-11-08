@@ -83,7 +83,9 @@ class ApiV1Test < ActionDispatch::IntegrationTest
 
     api(:post, "/#{workspace_id}/time_entries", { description: "Long running", started_at: "2026-01-01T08:00:00Z" })
     assert_equal [ "Long running" ], api(:get, "/#{workspace_id}/time_entries?running=true").pluck("description")
-    assert_equal 4, api(:get, "/#{workspace_id}/time_entries?running=false").size
+    stopped = api(:get, "/#{workspace_id}/time_entries?running=false")
+    assert_equal 3, stopped.size
+    assert stopped.all? { |entry| entry["ended_at"] }
   end
 
   test "clients store, return, update and clear their email" do
