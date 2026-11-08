@@ -38,14 +38,36 @@ class ApiV1Test < ActionDispatch::IntegrationTest
       api(:post, "/#{workspace_id}/time_entries", { started_at: "2026-06-12T08:00:00Z", project_id: Project.encode_id(projects(:two).id) })
       assert_response :unprocessable_entity
 
+      api(:post, "/#{workspace_id}/time_entries", { started_at: "2026-06-12T08:00:00Z", tag_ids: [ Tag.encode_id(tags(:one).id), Tag.encode_id(tags(:two).id) ] })
+      assert_response :unprocessable_entity
+
       api(:post, "/#{workspace_id}/time_entries", { started_at: "2026-06-12T08:00:00Z", tag_ids: [ "not-a-hashid!" ] })
       assert_response :unprocessable_entity
     end
+
+    entry = time_entries(:one)
+    tags_before = entry.tags.to_a
+    api(:patch, "/#{workspace_id}/time_entries/#{TimeEntry.encode_id(entry.id)}", { ended_at: "garbage", tag_ids: [] })
+    assert_response :unprocessable_entity
+    assert_equal entry.end_at, entry.reload.end_at
+    assert_equal tags_before, entry.tags.to_a
 
     assert_no_difference -> { Project.count } do
       api(:post, "/#{workspace_id}/projects", { name: "Foreign client", color: "#458588", client_id: Client.encode_id(clients(:two).id) })
       assert_response :unprocessable_entity
     end
+  end
+
+  test "nested and form-encoded bodies are accepted as well as flat JSON" do
+    workspace_id = workspaces(:one).hashid
+
+    entry = api(:post, "/#{workspace_id}/time_entries", { time_entry: { description: "Nested", start_at: "2026-06-12T08:00:00Z", end_at: "2026-06-12T08:30:00Z" } })
+    assert_response :created
+    assert_equal 1800, entry["duration_seconds"]
+
+    post "/api/v1/#{workspace_id}/projects", params: { name: "Form encoded", color: "#458588" }, headers: { "Authorization" => "Bearer #{@token}" }
+    assert_response :created
+    assert_equal "Form encoded", response.parsed_body["name"]
   end
 
   test "time entries can be filtered by date" do

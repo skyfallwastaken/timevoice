@@ -5,14 +5,14 @@ module Api
     class BaseController < ActionController::API
       include Pundit::Authorization
 
-      InvalidReference = Class.new(StandardError)
+      InvalidParameter = Class.new(StandardError)
 
       before_action :doorkeeper_authorize!
 
       rescue_from Pundit::NotAuthorizedError, with: :forbidden
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
       rescue_from ActiveRecord::RecordInvalid, with: :unprocessable_entity
-      rescue_from InvalidReference do |exception|
+      rescue_from InvalidParameter do |exception|
         render json: { error: "unprocessable_entity", message: exception.message }, status: :unprocessable_entity
       end
 
@@ -47,11 +47,11 @@ module Api
       # level — top-level keys win.
       def api_params(key, *permitted)
         nested = params[key].is_a?(ActionController::Parameters) ? params[key].permit(*permitted).to_h : {}
-        nested.merge(params.permit(*permitted).to_h)
+        params.permit(*permitted).to_h.reverse_merge(nested)
       end
 
       def find_referenced!(scope, field, hashid)
-        scope.find_by_hashid(hashid.to_s) || raise(InvalidReference, "#{field} #{hashid.to_s.inspect} does not exist in this workspace")
+        scope.find_by_hashid(hashid.to_s) || raise(InvalidParameter, "#{field} #{hashid.to_s.inspect} does not exist in this workspace")
       end
 
       def require_scope!(*scopes)

@@ -103,8 +103,8 @@ module Api
       def time_entry_attrs
         src = api_params(:time_entry, :description, :project_id, :billable, :started_at, :ended_at, :start_at, :end_at, tag_ids: [])
         attrs = src.slice(:description, :billable)
-        attrs[:start_at] = src[:started_at] || src[:start_at] if src.key?(:started_at) || src.key?(:start_at)
-        attrs[:end_at] = src[:ended_at] || src[:end_at] if src.key?(:ended_at) || src.key?(:end_at)
+        attrs[:start_at] = parse_time!(:started_at, src[:started_at] || src[:start_at]) if src.key?(:started_at) || src.key?(:start_at)
+        attrs[:end_at] = parse_time!(:ended_at, src[:ended_at] || src[:end_at]) if src.key?(:ended_at) || src.key?(:end_at)
         if src.key?(:project_id)
           attrs[:project] = src[:project_id].present? ? find_referenced!(current_workspace.projects, :project_id, src[:project_id]) : nil
         end
@@ -112,6 +112,14 @@ module Api
           attrs[:tags] = Array(src[:tag_ids]).uniq.map { |hashid| find_referenced!(current_workspace.tags, :tag_ids, hashid) }
         end
         attrs
+      end
+
+      def parse_time!(field, value)
+        return if value.blank?
+
+        Time.zone.parse(value.to_s) || raise(InvalidParameter, "#{field} must be a valid date-time")
+      rescue ArgumentError
+        raise InvalidParameter, "#{field} must be a valid date-time"
       end
 
       def serialize_time_entry(time_entry)
