@@ -8,5 +8,6 @@ class DocsControllerTest < ActionDispatch::IntegrationTest
     assert_select "header a[href=?]", "/", text: "← Back to Timevoice"
     assert_includes response.body, "Scalar.createApiReference"
     assert_includes response.body, %("showDeveloperTools":"never")
+    assert_includes response.body, %("agent":{"disabled":true})
   end
 end
