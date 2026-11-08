@@ -61,6 +61,7 @@
       form.tag_ids = runningEntry.tags?.map((t: { id: number }) => t.id) ?? [];
       form.billable = runningEntry.billable ?? false;
       lastSyncedEntryId = runningEntry.id;
+      sentDescription = null;
     } else if (!runningEntry && lastSyncedEntryId !== null) {
       lastSyncedEntryId = null;
     }
@@ -473,6 +474,10 @@
   let pendingFields: Partial<RecentDescription> = {};
   let saveFailed = false;
   let afterSaves: ((saved: boolean) => void)[] = [];
+  // The description last sent to the server, which the runningEntry prop
+  // lags behind while that save is in flight; null until one is sent, or
+  // after one fails.
+  let sentDescription: string | null = null;
 
   function saveRunning(
     fields: Partial<RecentDescription>,
@@ -495,6 +500,7 @@
       return;
     }
     saveInFlight = true;
+    if (fields.description !== undefined) sentDescription = fields.description;
     let saved = false;
     router.patch(
       routes.timeEntries.update(workspaceId, runningEntry.id),
@@ -512,7 +518,10 @@
         onSuccess: () => (saved = true),
         onFinish: () => {
           saveInFlight = false;
-          if (!saved) saveFailed = true;
+          if (!saved) {
+            saveFailed = true;
+            sentDescription = null;
+          }
           sendPendingFields();
         },
       },
@@ -522,8 +531,12 @@
   function saveDescription(onSaved?: (saved: boolean) => void) {
     clearTimeout(descriptionSave);
     descriptionSave = undefined;
-    const changed =
-      !!runningEntry && form.description !== (runningEntry.description ?? "");
+    const latest =
+      pendingFields.description ??
+      sentDescription ??
+      runningEntry?.description ??
+      "";
+    const changed = !!runningEntry && form.description !== latest;
     saveRunning(changed ? { description: form.description } : {}, onSaved);
   }
 
