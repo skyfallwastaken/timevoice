@@ -169,8 +169,20 @@ class InvoiceTest < ActiveSupport::TestCase
 
     travel_to Date.new(2026, 5, 1) do
       invoice.update!(status: Invoice::STATUS_PAID)
+      invoice.update!(status: Invoice::STATUS_ISSUED)
     end
     assert_equal Date.new(2026, 4, 10), invoice.reload.issued_on
+  end
+
+  test "an issued or paid invoice can't go back to draft" do
+    invoice = invoices(:one)
+
+    [ Invoice::STATUS_ISSUED, Invoice::STATUS_PAID ].each do |status|
+      invoice.update!(status: status)
+
+      assert_not invoice.update(status: Invoice::STATUS_DRAFT)
+      assert_equal status, invoice.reload.status
+    end
   end
 
   test "a workspace with invoices can be deleted" do

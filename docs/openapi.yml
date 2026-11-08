@@ -463,7 +463,7 @@ paths:
     patch:
       tags: [Invoices]
       summary: Update invoice status
-      description: Moves an invoice between draft, issued and paid. Leaving draft sets `issued_on` to today. Requires the `invoices` scope.
+      description: Issues a draft, marks a draft or issued invoice paid, or moves a paid invoice back to issued (marks it unpaid). Issuing or paying a draft sets `issued_on` to today; marking unpaid keeps it. Issued and paid invoices can't go back to draft (422). Requires the `invoices` scope.
       operationId: updateInvoice
       security:
         - oauth2: [invoices]
@@ -867,6 +867,6 @@ components:
       properties:
         status:
           type: string
-          enum: [draft, issued, paid]
+          enum: [issued, paid]
       required:
         - status

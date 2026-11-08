@@ -18,6 +18,7 @@ class Invoice < ApplicationRecord
   validates :period_end, presence: true
   validates :issued_on, presence: true
   validates :status, inclusion: { in: STATUSES }
+  validates :status, exclusion: { in: [ STATUS_DRAFT ], message: "can't go back to draft once the invoice is issued" }, on: :update, if: :status_changed?
   validates :invoice_number, numericality: { only_integer: true, greater_than: 0 }, uniqueness: { scope: :workspace_id }, on: :update
 
   scope :draft, -> { where(status: STATUS_DRAFT) }

@@ -130,6 +130,10 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_equal invoice.except("invoice_lines"), api(:get, "/#{workspace_id}/invoices").find { |listed| listed["id"] == invoice["id"] }
 
     assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
+    assert_equal "paid", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "paid" })["status"]
+    assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
+    api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "draft" })
+    assert_response :unprocessable_entity
 
     assert_equal "Only draft invoices can be deleted", api(:delete, "/#{workspace_id}/invoices/#{invoice["id"]}")["message"]
     assert_response :unprocessable_entity
