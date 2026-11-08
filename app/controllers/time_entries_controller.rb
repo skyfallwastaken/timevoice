@@ -28,13 +28,13 @@ class TimeEntriesController < ApplicationController
   end
 
   def update
-    if @time_entry.update(time_entry_params)
+    attributes = time_entry_params
+    # Assigning files replaces the attached ones, so pass those along with the uploads.
+    attributes[:files] = @time_entry.files.blobs + attributes[:files] if attributes[:files].present?
+
+    if @time_entry.update(attributes)
       if params[:time_entry].key?(:tag_ids)
         assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
-      end
-
-      if params[:time_entry][:files].present?
-        @time_entry.files.attach(params[:time_entry][:files])
       end
 
       redirect_back(fallback_location: root_path, notice: "Entry updated!")

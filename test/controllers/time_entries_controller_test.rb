@@ -27,6 +27,17 @@ class TimeEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 10 * 60, later.reload.duration_seconds
   end
 
+  test "attaching a file to an entry keeps its other attachments and adds the file once" do
+    entry = time_entries(:one)
+    entry.files.attach(io: StringIO.new("a"), filename: "first.txt")
+
+    patch "/#{@workspace.hashid}/time_entries/#{entry.id}", params: {
+      time_entry: { files: [ Rack::Test::UploadedFile.new(StringIO.new("b"), "text/plain", original_filename: "second.txt") ] }
+    }
+
+    assert_equal [ "first.txt", "second.txt" ], entry.reload.files.map { |f| f.filename.to_s }.sort
+  end
+
   test "bulk update changes only the selected entries of the current user and adds tags" do
     tagged = time_entries(:one)
     extra_tag = Tag.create!(workspace: @workspace, name: "Extra")
