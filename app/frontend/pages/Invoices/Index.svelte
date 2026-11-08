@@ -1,11 +1,12 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import { Link, page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import DatePicker from "../../components/DatePicker.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
+  import EmptyState from "../../components/EmptyState.svelte";
   import FormField from "../../components/FormField.svelte";
   import ChipButton from "../../components/ChipButton.svelte";
   import TextInput from "../../components/TextInput.svelte";
@@ -15,77 +16,30 @@
     DollarSign,
     Plus,
     Clock,
-    Settings,
     Check,
-    ChevronDown,
-    ChevronUp,
-    Trash2,
+    ChevronRight,
   } from "@lucide/svelte";
-  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import {
+    formatCurrency,
     formatRate,
     parseRate,
     formatDate,
-    getStatusColor,
-    getStatusBg,
+    getStatusClasses,
     toDateString,
     getRelativeDateRange,
     getLastMonthRange,
   } from "../../lib/format";
   import { routes } from "../../lib/routes";
-
-  type Client = {
-    id: number;
-    name: string;
-    billing_address: string | null;
-  };
-
-  type Invoice = {
-    id: number;
-    hashid: string;
-    invoice_number: number;
-    status: string;
-    total_cents: number;
-    period_start: string;
-    period_end: string;
-    issued_on: string | null;
-    total_amount: string;
-    line_count: number;
-    client: {
-      id: number;
-      name: string;
-    };
-  };
-
-  type UnbilledEntry = {
-    id: number;
-    description: string;
-    duration_seconds: number;
-    billable: boolean;
-    start_at: string;
-    formattedDuration: string;
-    hours: number;
-    project: {
-      id: number;
-      name: string;
-      color: string;
-      client_id: number | null;
-      client: { id: number; name: string } | null;
-    } | null;
-    tags: Array<{
-      id: number;
-      name: string;
-    }>;
-  };
-
-  type InvoiceSettings = {
-    billable_rate_cents: number;
-    sender_name: string;
-    sender_address: string | null;
-  };
+  import type {
+    Client,
+    InvoiceListItem,
+    InvoiceSettings,
+    InvoiceStatus,
+    UnbilledEntry,
+  } from "../../types";
 
   const workspaceId = $derived(page.props.auth?.workspace?.hashid);
-  let invoices = $derived((page.props.invoices as Invoice[]) || []);
+  let invoices = $derived((page.props.invoices as InvoiceListItem[]) || []);
   let clients = $derived((page.props.clients as Client[]) || []);
   let unbilledEntries = $derived(
     (page.props.unbilledEntries as UnbilledEntry[]) || [],
@@ -99,9 +53,7 @@
   );
 
   let showCreateForm = $state(false);
-  let expandedInvoiceId: number | null = $state(null);
-  let showDeleteModal = $state(false);
-  let invoiceToDelete = $state<Invoice | null>(null);
+  let createFormEl = $state<HTMLElement | null>(null);
 
   let periodStartDate = $state<Date | null>(null);
   let periodEndDate = $state<Date | null>(null);
@@ -158,8 +110,24 @@
         entry.project?.client_id === Number(createForm.client_id),
     ),
   );
-  let clientUnbilledHours = $derived(
-    clientUnbilledEntries.reduce((sum, entry) => sum + entry.hours, 0),
+  let previewEntries = $derived.by(() => {
+    if (useAllEntries) return clientUnbilledEntries;
+    if (!periodStartDate || !periodEndDate) return [];
+    const start = toDateString(periodStartDate);
+    const end = toDateString(periodEndDate);
+    return clientUnbilledEntries.filter((entry) => {
+      const day = entry.start_at.slice(0, 10);
+      return day >= start && day <= end;
+    });
+  });
+  let previewHours = $derived(
+    previewEntries.reduce((sum, entry) => sum + entry.hours, 0),
+  );
+  let previewAmountCents = $derived(
+    previewEntries.reduce(
+      (sum, entry) => sum + Math.round(entry.hours * createForm.rate_cents),
+      0,
+    ),
   );
 
   let canCreateInvoice = $derived(
@@ -195,13 +163,15 @@
       });
   }
 
-  function toggleInvoice(invoiceId: number) {
-    expandedInvoiceId = expandedInvoiceId === invoiceId ? null : invoiceId;
+  async function openCreateForm() {
+    showCreateForm = true;
+    await tick();
+    createFormEl?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function updateInvoiceStatus(invoiceHashid: string, status: string) {
+  function updateInvoiceStatus(invoiceHashid: string, status: InvoiceStatus) {
     router
-      .optimistic<{ invoices: Invoice[] }>((props) => ({
+      .optimistic<{ invoices: InvoiceListItem[] }>((props) => ({
         invoices: props.invoices.map((i) =>
           i.hashid === invoiceHashid ? { ...i, status } : i,
         ),
@@ -212,441 +182,346 @@
         { preserveScroll: true },
       );
   }
-
-  function openDeleteModal(invoice: Invoice) {
-    invoiceToDelete = invoice;
-    showDeleteModal = true;
-  }
-
-  function closeDeleteModal() {
-    showDeleteModal = false;
-  }
-
-  function confirmDeleteInvoice() {
-    if (!invoiceToDelete || !workspaceId) return;
-    router.delete(routes.invoices.delete(workspaceId, invoiceToDelete.hashid), {
-      preserveScroll: true,
-    });
-    closeDeleteModal();
-  }
 </script>
+
+{#snippet previewTotal()}
+  {previewHours.toFixed(2)} hours × {formatCurrency(createForm.rate_cents)}/h =
+  <span class="font-semibold">{formatCurrency(previewAmountCents)}</span>
+{/snippet}
 
 <PageLayout title="Invoices" icon={FileText} iconColor="text-bright-purple">
   {#snippet headerActions()}
-    <Button tone="purple" onclick={() => (showCreateForm = !showCreateForm)}>
-      <Plus class="w-4 h-4" />
-      Create Invoice
-    </Button>
+    {#if !showCreateForm}
+      <Button tone="purple" onclick={openCreateForm}>
+        <Plus class="w-4 h-4" />
+        Create Invoice
+      </Button>
+    {/if}
   {/snippet}
 
-  <SectionCard title="Invoice Settings" icon={Settings} bodyClass="p-4">
-    <div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <span class="block text-sm font-medium text-fg-secondary mb-1"
-            >Default Billable Rate</span
-          >
-          <div class="flex items-center gap-2">
-            <DollarSign class="w-4 h-4 text-fg-muted" />
-            <span class="text-2xl font-semibold"
-              >{formatRate(invoiceSettings.billable_rate_cents)}</span
-            >
-            <span class="text-sm text-fg-muted">/hour</span>
-          </div>
-        </div>
-        <div>
-          <span class="block text-sm font-medium text-fg-secondary mb-1"
-            >Sender Name</span
-          >
-          <p class="text-sm text-fg-primary">
-            {invoiceSettings.sender_name || "Not configured"}
-          </p>
-        </div>
-        {#if invoiceSettings.sender_address}
-          <div class="md:col-span-2">
-            <span class="block text-sm font-medium text-fg-secondary mb-1"
-              >Sender Address</span
-            >
-            <p class="text-fg-primary text-sm whitespace-pre-line">
-              {invoiceSettings.sender_address}
-            </p>
-          </div>
-        {/if}
-      </div>
-    </div>
-    {#snippet footer()}
-      <Link
-        href={routes.settings.billing(workspaceId)}
-        class="text-sm text-bright-purple hover:text-accent-purple transition-colors duration-150"
-      >
-        Edit invoice settings in Billing Settings →
-      </Link>
-    {/snippet}
-  </SectionCard>
-
-  {#if showCreateForm}
-    <SectionCard class="animate-slide-in" headerless bodyClass="p-0">
-      <form
-        class="p-6"
-        onsubmit={(e) => {
-          e.preventDefault();
-          if (canCreateInvoice) handleCreateInvoice();
-        }}
-      >
-        <div class="flex items-center gap-3 mb-4">
-          <Plus class="w-5 h-5 text-bright-purple" />
-          <h3 class="font-semibold">Create New Invoice</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <FormField
-            id="invoice-client"
-            label="Client"
-            error={createForm.errors.client_id}
-          >
-            {#snippet children({ describedBy })}
-              <SelectInput
-                id="invoice-client"
-                tone="purple"
-                bind:value={createForm.client_id}
-                aria-describedby={describedBy}
-              >
-                <option value="">Select a client...</option>
-                {#each clients as client}
-                  <option value={client.id}>{client.name}</option>
-                {/each}
-              </SelectInput>
-            {/snippet}
-          </FormField>
-          <FormField
-            id="invoice-rate"
-            label="Billable Rate ($/hour)"
-            description={createForm.rate_cents > 0
-              ? "Defaults from invoice settings."
-              : "No rate set. Enter one here or set a default in Billing Settings."}
-          >
-            {#snippet children({ describedBy })}
-              <TextInput
-                id="invoice-rate"
-                type="number"
-                tone="purple"
-                bind:value={rateInput}
-                oninput={() => {
-                  rateEdited = true;
-                  createForm.rate_cents = parseRate(rateInput);
-                }}
-                step="0.01"
-                min="0"
-                aria-describedby={describedBy}
-              />
-            {/snippet}
-          </FormField>
-          {#if useAllEntries}
-            <div
-              class="md:col-span-2 bg-bg-primary border border-bg-tertiary rounded-[10px] p-4 text-sm"
-            >
-              {#if !createForm.client_id}
-                <p class="text-fg-muted">
-                  Select a client to see their unbilled entries.
-                </p>
-              {:else if clientUnbilledEntries.length === 0}
-                <p class="text-fg-muted">
-                  This client has no unbilled entries.
-                </p>
-              {:else}
-                <p class="text-fg-primary">
-                  All {clientUnbilledEntries.length} unbilled
-                  {clientUnbilledEntries.length === 1 ? "entry" : "entries"}
-                  ({clientUnbilledHours.toFixed(2)} hours) for this client will be
-                  invoiced.
-                </p>
-                <p class="text-fg-muted mt-1">
-                  The invoice period is set from the earliest to the latest
-                  entry.
-                </p>
-              {/if}
-            </div>
-          {:else}
-            <FormField
-              id="invoice-start"
-              label="Period Start"
-              error={createForm.errors.period_start}
-            >
-              {#snippet children({ describedBy })}
-                <DatePicker
-                  id="invoice-start"
-                  bind:value={periodStartDate}
-                  max={periodEndDate}
-                  placeholder="Select start date"
-                  aria-describedby={describedBy}
-                />
-              {/snippet}
-            </FormField>
-            <FormField
-              id="invoice-end"
-              label="Period End"
-              error={createForm.errors.period_end}
-            >
-              {#snippet children({ describedBy })}
-                <DatePicker
-                  id="invoice-end"
-                  bind:value={periodEndDate}
-                  min={periodStartDate}
-                  placeholder="Select end date"
-                  aria-describedby={describedBy}
-                />
-              {/snippet}
-            </FormField>
-          {/if}
-        </div>
-
-        <div class="mb-4">
-          <span class="block text-sm font-medium text-fg-secondary mb-2"
-            >Quick Select</span
-          >
-          <div class="flex flex-wrap gap-2">
-            <ChipButton
-              type="button"
-              selected={useAllEntries}
-              aria-pressed={useAllEntries}
-              onclick={() => (useAllEntries = !useAllEntries)}
-            >
-              All Unbilled Entries
-            </ChipButton>
-            <ChipButton type="button" onclick={() => setDateRange(6)}>
-              Last 7 Days
-            </ChipButton>
-            <ChipButton type="button" onclick={() => setDateRange(13)}>
-              Last 14 Days
-            </ChipButton>
-            <ChipButton type="button" onclick={() => setDateRange("month")}>
-              Last Month
-            </ChipButton>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            onclick={() => (showCreateForm = false)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" tone="purple" disabled={!canCreateInvoice}>
-            <Plus class="w-4 h-4" />
-            {createForm.processing ? "Creating..." : "Create Invoice"}
-          </Button>
-        </div>
-      </form>
-    </SectionCard>
-  {/if}
-
-  {#if unbilledEntries.length > 0}
-    <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
-      <div class="p-4 border-b border-bg-tertiary">
-        <div class="flex items-center gap-2">
-          <Clock class="w-5 h-5 text-bright-yellow" />
-          <h3 class="font-semibold">
-            Unbilled Time Entries ({unbilledEntries.length})
-          </h3>
-        </div>
-        <p class="text-sm text-fg-muted mt-1">
-          These entries haven't been included in any invoice yet.
-        </p>
-      </div>
-      <div class="divide-y divide-bg-tertiary max-h-96 overflow-y-auto">
-        {#each unbilledEntries as entry}
-          <div class="p-4 flex items-center justify-between">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <p class="text-sm font-medium truncate">
-                  {entry.description || "No description"}
-                </p>
-                {#if entry.billable}
-                  <DollarSign class="w-4 h-4 text-bright-green" />
-                {/if}
-              </div>
-              <div
-                class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted mt-1"
-              >
-                <span>{formatDate(entry.start_at.slice(0, 10))}</span>
-                {#if entry.project}
-                  <span class="flex items-center gap-1">
-                    <span
-                      class="w-2 h-2 rounded-full"
-                      style="background-color: {entry.project.color}"
-                    ></span>
-                    {entry.project.name}
-                  </span>
-                {/if}
-                {#if entry.project?.client}
-                  <span>{entry.project.client.name}</span>
-                {:else}
-                  <span class="text-bright-yellow"
-                    >No client · can't be invoiced</span
-                  >
-                {/if}
-                <span>{entry.formattedDuration}</span>
-                <span>({entry.hours.toFixed(2)} hours)</span>
-              </div>
-            </div>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <p class="-mt-3 text-sm text-fg-muted">
+    Default rate {formatCurrency(invoiceSettings.billable_rate_cents)}/h ·
+    <Link
+      href={routes.settings.billing(workspaceId)}
+      class="text-bright-purple hover:text-accent-purple transition-colors duration-150"
+    >
+      Edit in Billing settings
+    </Link>
+  </p>
 
   <SectionCard title={`All Invoices (${invoices.length})`} bodyClass="p-0">
     {#if invoices.length === 0}
-      <div class="p-8 text-center text-fg-muted">
-        <FileText class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>No invoices yet. Create your first invoice above!</p>
-      </div>
+      <EmptyState
+        icon={FileText}
+        title="No invoices yet"
+        description="Turn your unbilled time entries into an invoice for a client."
+        actionLabel={showCreateForm ? null : "Create Invoice"}
+        onAction={openCreateForm}
+      />
     {:else}
-      <div class="divide-y divide-bg-tertiary">
-        {#each invoices as invoice}
-          <div class="p-4">
+      <ul class="divide-y divide-bg-tertiary">
+        {#each invoices as invoice (invoice.id)}
+          <li
+            class="relative flex items-center gap-4 p-4 hover:bg-bg-tertiary/40 transition-colors duration-150"
+          >
             <div
-              class="flex items-center justify-between cursor-pointer"
-              onclick={() => toggleInvoice(invoice.id)}
-              role="button"
-              tabindex="0"
-              onkeydown={(e) => e.key === "Enter" && toggleInvoice(invoice.id)}
+              class="hidden sm:flex w-10 h-10 shrink-0 rounded-[10px] items-center justify-center {getStatusClasses(
+                invoice.status,
+              )}"
             >
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-12 h-12 rounded-[10px] {getStatusBg(
-                    invoice.status,
-                  )} flex items-center justify-center"
-                >
-                  <FileText class="w-6 h-6 {getStatusColor(invoice.status)}" />
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <p class="text-sm font-medium">
-                      Invoice #{invoice.invoice_number}
-                    </p>
-                    <span
-                      class="px-2 py-0.5 text-xs font-medium rounded-full {getStatusBg(
-                        invoice.status,
-                      )} {getStatusColor(invoice.status)} capitalize"
-                    >
-                      {invoice.status}
-                    </span>
-                  </div>
-                  <p class="text-sm text-fg-muted">
-                    {invoice.client.name} • {formatDate(invoice.period_start)}
-                    - {formatDate(invoice.period_end)}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-4">
-                <div class="text-right">
-                  <p class="text-sm font-semibold font-tabular">
-                    {invoice.total_amount}
-                  </p>
-                  <p class="text-sm text-fg-muted">
-                    {invoice.line_count} line items
-                  </p>
-                </div>
-                {#if expandedInvoiceId === invoice.id}
-                  <ChevronUp class="w-5 h-5 text-fg-muted" />
-                {:else}
-                  <ChevronDown class="w-5 h-5 text-fg-muted" />
-                {/if}
-              </div>
+              <FileText class="w-5 h-5" aria-hidden="true" />
             </div>
-
-            {#if expandedInvoiceId === invoice.id}
-              <div class="mt-4 pt-4 border-t border-bg-tertiary space-y-4">
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span class="text-fg-muted">Issued:</span>
-                    <span class="ml-2"
-                      >{invoice.status === "draft" || !invoice.issued_on
-                        ? "Not issued"
-                        : formatDate(invoice.issued_on)}</span
-                    >
-                  </div>
-                  <div>
-                    <span class="text-fg-muted">Status:</span>
-                    <span class="ml-2 capitalize">{invoice.status}</span>
-                  </div>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-2">
-                  <Link
-                    href={routes.invoices.show(workspaceId, invoice.hashid)}
-                    class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bg-quaternary rounded-[10px] text-fg-primary transition-colors duration-150"
-                  >
-                    <FileText class="w-4 h-4" />
-                    View Details
-                  </Link>
-                  {#if invoice.status === "draft"}
-                    <button
-                      type="button"
-                      class="flex items-center justify-center gap-2 px-4 py-2 bg-bright-blue hover:bg-accent-blue text-bg-primary rounded-[10px] transition-colors duration-150"
-                      onclick={() =>
-                        updateInvoiceStatus(invoice.hashid, "issued")}
-                    >
-                      <Check class="w-4 h-4" />
-                      Issue Invoice
-                    </button>
-                  {/if}
-                  {#if invoice.status !== "paid"}
-                    <button
-                      type="button"
-                      class="flex items-center justify-center gap-2 px-4 py-2 bg-bright-green hover:bg-accent-green text-bg-primary rounded-[10px] transition-colors duration-150"
-                      onclick={() =>
-                        updateInvoiceStatus(invoice.hashid, "paid")}
-                    >
-                      <Check class="w-4 h-4" />
-                      Mark Paid
-                    </button>
-                  {/if}
-                  {#if invoice.status === "draft"}
-                    <button
-                      type="button"
-                      class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bright-red/20 hover:text-bright-red text-fg-primary rounded-[10px] transition-colors duration-150"
-                      onclick={(e) => {
-                        e.stopPropagation();
-                        openDeleteModal(invoice);
-                      }}
-                    >
-                      <Trash2 class="w-4 h-4" />
-                      Delete
-                    </button>
-                  {/if}
-                </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <Link
+                  href={routes.invoices.show(workspaceId, invoice.hashid)}
+                  class="text-sm font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-bright-purple focus-visible:after:rounded-[10px]"
+                >
+                  Invoice #{invoice.invoice_number}
+                </Link>
+                <span
+                  class="px-2 py-0.5 text-xs font-medium rounded-full capitalize {getStatusClasses(
+                    invoice.status,
+                  )}"
+                >
+                  {invoice.status}
+                </span>
               </div>
+              <p class="text-sm text-fg-muted truncate">
+                {invoice.client.name} • {formatDate(invoice.period_start)} - {formatDate(
+                  invoice.period_end,
+                )}
+              </p>
+            </div>
+            {#if invoice.status === "draft"}
+              <Button
+                size="sm"
+                variant="secondary"
+                class="relative hidden sm:inline-flex"
+                onclick={() => updateInvoiceStatus(invoice.hashid, "issued")}
+              >
+                <Check class="w-4 h-4" />
+                Issue
+              </Button>
+            {:else if invoice.status === "issued"}
+              <Button
+                size="sm"
+                variant="secondary"
+                class="relative hidden sm:inline-flex"
+                onclick={() => updateInvoiceStatus(invoice.hashid, "paid")}
+              >
+                <Check class="w-4 h-4" />
+                Mark paid
+              </Button>
             {/if}
-          </div>
+            <div class="text-right shrink-0">
+              <p class="text-sm font-semibold font-tabular">
+                {invoice.total_amount}
+              </p>
+              <p class="text-sm text-fg-muted">
+                {invoice.line_count}
+                {invoice.line_count === 1 ? "line" : "lines"}
+              </p>
+            </div>
+            <ChevronRight
+              class="w-5 h-5 shrink-0 text-fg-muted"
+              aria-hidden="true"
+            />
+          </li>
         {/each}
-      </div>
+      </ul>
     {/if}
   </SectionCard>
 
-  <ConfirmDeleteModal
-    bind:open={showDeleteModal}
-    title="Delete Invoice"
-    itemName={`Invoice #${invoiceToDelete?.invoice_number || ""}`}
-    warningMessage="This action cannot be undone. This will permanently delete the invoice and unbill all associated time entries."
-    onConfirm={confirmDeleteInvoice}
-    onClose={closeDeleteModal}
-  >
-    {#snippet details()}
-      {#if invoiceToDelete}
-        <div class="text-sm text-fg-muted space-y-1">
-          <p>Client: {invoiceToDelete.client.name}</p>
-          <p>Amount: {invoiceToDelete.total_amount}</p>
-          <p>
-            Period: {formatDate(invoiceToDelete.period_start)} - {formatDate(
-              invoiceToDelete.period_end,
-            )}
-          </p>
+  {#if showCreateForm}
+    <div bind:this={createFormEl} class="scroll-mt-6">
+      <SectionCard
+        title="Create New Invoice"
+        icon={Plus}
+        iconColor="text-bright-purple"
+        class="animate-slide-in"
+        bodyClass="p-4"
+      >
+        <form
+          onsubmit={(e) => {
+            e.preventDefault();
+            if (canCreateInvoice) handleCreateInvoice();
+          }}
+        >
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <FormField
+              id="invoice-client"
+              label="Client"
+              error={createForm.errors.client_id}
+            >
+              {#snippet children({ describedBy })}
+                <SelectInput
+                  id="invoice-client"
+                  tone="purple"
+                  bind:value={createForm.client_id}
+                  aria-describedby={describedBy}
+                >
+                  <option value="">Select a client...</option>
+                  {#each clients as client}
+                    <option value={client.id}>{client.name}</option>
+                  {/each}
+                </SelectInput>
+              {/snippet}
+            </FormField>
+            <FormField
+              id="invoice-rate"
+              label="Billable Rate ($/hour)"
+              description={createForm.rate_cents > 0
+                ? "Defaults from invoice settings."
+                : "No rate set. Enter one here or set a default in Billing Settings."}
+            >
+              {#snippet children({ describedBy })}
+                <div class="relative">
+                  <DollarSign
+                    class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-fg-muted"
+                    aria-hidden="true"
+                  />
+                  <TextInput
+                    id="invoice-rate"
+                    type="number"
+                    tone="purple"
+                    bind:value={rateInput}
+                    oninput={() => {
+                      rateEdited = true;
+                      createForm.rate_cents = parseRate(rateInput);
+                    }}
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    class="pl-8 pr-4"
+                    aria-describedby={describedBy}
+                  />
+                </div>
+              {/snippet}
+            </FormField>
+            {#if useAllEntries}
+              <div
+                class="md:col-span-2 bg-bg-primary border border-bg-tertiary rounded-[10px] p-4 text-sm"
+              >
+                {#if !createForm.client_id}
+                  <p class="text-fg-muted">
+                    Select a client to see their unbilled entries.
+                  </p>
+                {:else if clientUnbilledEntries.length === 0}
+                  <p class="text-fg-muted">
+                    This client has no unbilled entries.
+                  </p>
+                {:else}
+                  <p class="text-fg-primary">
+                    All {clientUnbilledEntries.length} unbilled
+                    {clientUnbilledEntries.length === 1 ? "entry" : "entries"}
+                    for this client will be invoiced: {@render previewTotal()}
+                  </p>
+                  <p class="text-fg-muted mt-1">
+                    The invoice period is set from the earliest to the latest
+                    entry.
+                  </p>
+                {/if}
+              </div>
+            {:else}
+              <FormField
+                id="invoice-start"
+                label="Period Start"
+                error={createForm.errors.period_start}
+              >
+                {#snippet children({ describedBy })}
+                  <DatePicker
+                    id="invoice-start"
+                    bind:value={periodStartDate}
+                    max={periodEndDate}
+                    placeholder="Select start date"
+                    aria-describedby={describedBy}
+                  />
+                {/snippet}
+              </FormField>
+              <FormField
+                id="invoice-end"
+                label="Period End"
+                error={createForm.errors.period_end}
+              >
+                {#snippet children({ describedBy })}
+                  <DatePicker
+                    id="invoice-end"
+                    bind:value={periodEndDate}
+                    min={periodStartDate}
+                    placeholder="Select end date"
+                    aria-describedby={describedBy}
+                  />
+                {/snippet}
+              </FormField>
+              {#if createForm.client_id && periodStartDate && periodEndDate}
+                <div
+                  class="md:col-span-2 bg-bg-primary border border-bg-tertiary rounded-[10px] p-4 text-sm"
+                >
+                  {#if previewEntries.length === 0}
+                    <p class="text-fg-muted">
+                      This client has no unbilled entries in this period.
+                    </p>
+                  {:else}
+                    <p class="text-fg-primary">
+                      {previewEntries.length} unbilled
+                      {previewEntries.length === 1 ? "entry" : "entries"}
+                      in this period: {@render previewTotal()}
+                    </p>
+                  {/if}
+                </div>
+              {/if}
+            {/if}
+          </div>
+
+          <div class="mb-4">
+            <span class="block text-sm font-medium text-fg-secondary mb-2"
+              >Quick Select</span
+            >
+            <div class="flex flex-wrap gap-2">
+              <ChipButton
+                type="button"
+                selected={useAllEntries}
+                aria-pressed={useAllEntries}
+                onclick={() => (useAllEntries = !useAllEntries)}
+              >
+                All Unbilled Entries
+              </ChipButton>
+              <ChipButton type="button" onclick={() => setDateRange(6)}>
+                Last 7 Days
+              </ChipButton>
+              <ChipButton type="button" onclick={() => setDateRange(13)}>
+                Last 14 Days
+              </ChipButton>
+              <ChipButton type="button" onclick={() => setDateRange("month")}>
+                Last Month
+              </ChipButton>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onclick={() => (showCreateForm = false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" tone="purple" disabled={!canCreateInvoice}>
+              <Plus class="w-4 h-4" />
+              {createForm.processing ? "Creating..." : "Create Invoice"}
+            </Button>
+          </div>
+        </form>
+      </SectionCard>
+    </div>
+  {/if}
+
+  {#if unbilledEntries.length > 0}
+    <SectionCard
+      title={`Unbilled Time Entries (${unbilledEntries.length})`}
+      description="These entries haven't been included in any invoice yet."
+      icon={Clock}
+      iconColor="text-bright-yellow"
+      bodyClass="divide-y divide-bg-tertiary max-h-96 overflow-y-auto"
+    >
+      {#each unbilledEntries as entry}
+        <div class="p-4 flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium truncate">
+                {entry.description || "No description"}
+              </p>
+              {#if entry.billable}
+                <DollarSign class="w-4 h-4 text-bright-green" />
+              {/if}
+            </div>
+            <div
+              class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted mt-1"
+            >
+              <span>{formatDate(entry.start_at.slice(0, 10))}</span>
+              {#if entry.project}
+                <span class="flex items-center gap-1">
+                  <span
+                    class="w-2 h-2 rounded-full"
+                    style="background-color: {entry.project.color}"
+                  ></span>
+                  {entry.project.name}
+                </span>
+              {/if}
+              {#if entry.project?.client}
+                <span>{entry.project.client.name}</span>
+              {:else}
+                <span class="text-bright-yellow"
+                  >No client · can't be invoiced</span
+                >
+              {/if}
+              <span>{entry.formattedDuration}</span>
+              <span>({entry.hours.toFixed(2)} hours)</span>
+            </div>
+          </div>
         </div>
-      {/if}
-    {/snippet}
-  </ConfirmDeleteModal>
+      {/each}
+    </SectionCard>
+  {/if}
 </PageLayout>

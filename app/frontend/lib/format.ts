@@ -29,43 +29,27 @@ export function formatTimestamp(timestamp: string): string {
   });
 }
 
-export function getStatusColor(status: string): string {
-  switch (status) {
-    case "draft":
-      return "text-fg-muted";
-    case "issued":
-      return "text-bright-blue";
-    case "paid":
-      return "text-bright-green";
-    default:
-      return "text-fg-muted";
-  }
+/**
+ * Format cents as US dollars (e.g., "$1,234.50")
+ */
+export function formatCurrency(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
 }
 
-export function getStatusBg(status: string): string {
-  switch (status) {
-    case "draft":
-      return "bg-bg-tertiary";
-    case "issued":
-      return "bg-bright-blue/20";
-    case "paid":
-      return "bg-bright-green/20";
-    default:
-      return "bg-bg-tertiary";
-  }
-}
+const STATUS_CLASSES: Record<string, string> = {
+  draft: "text-fg-muted bg-bg-tertiary",
+  issued: "text-bright-blue bg-bright-blue/20",
+  paid: "text-bright-green bg-bright-green/20",
+};
 
+/**
+ * Text and background classes for an invoice status
+ */
 export function getStatusClasses(status: string): string {
-  switch (status) {
-    case "draft":
-      return "text-fg-muted bg-bg-tertiary";
-    case "issued":
-      return "text-bright-blue bg-bright-blue/20";
-    case "paid":
-      return "text-bright-green bg-bright-green/20";
-    default:
-      return "text-fg-muted bg-bg-tertiary";
-  }
+  return STATUS_CLASSES[status] ?? STATUS_CLASSES.draft;
 }
 
 /**

@@ -5,6 +5,7 @@
     iconColor?: string;
     children: import("svelte").Snippet;
     headerActions?: import("svelte").Snippet;
+    breadcrumb?: import("svelte").Snippet;
   }
 
   let {
@@ -13,11 +14,15 @@
     iconColor = "text-bright-blue",
     children,
     headerActions,
+    breadcrumb,
   }: Props = $props();
 </script>
 
 <div class="flex-1 p-4 sm:p-6 overflow-auto">
   <div class="max-w-5xl mx-auto space-y-6">
+    {#if breadcrumb}
+      <div class="-mb-2">{@render breadcrumb()}</div>
+    {/if}
     <div
       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
     >
