@@ -12,46 +12,46 @@ module Api
           .includes(:client, :invoice_lines)
           .order(created_at: :desc)
 
-        render json: {
-          invoices: invoices.map { |invoice| invoice_json(invoice) }
-        }
+        render json: invoices.map { |invoice| serialize_invoice(invoice) }
       end
 
       def show
-        render json: {
-          invoice: invoice_json(@invoice, include_lines: true)
-        }
+        render json: serialize_invoice(@invoice, include_lines: true)
       end
 
       def create
         authorize Invoice.new(workspace: current_workspace)
 
-        client = current_workspace.clients.find(invoice_params[:client_id])
+        attrs = api_params(:invoice, :client_id, :period_start, :period_end, :rate_cents)
+        client = find_referenced!(current_workspace.clients, :client_id, attrs[:client_id])
 
         invoice = Invoice.generate_from_time_entries(
           current_workspace,
           client,
-          Date.parse(invoice_params[:period_start]),
-          Date.parse(invoice_params[:period_end]),
-          invoice_params[:rate_cents].to_i,
+          parse_date!(:period_start, attrs[:period_start]),
+          parse_date!(:period_end, attrs[:period_end]),
+          parse_rate!(attrs[:rate_cents]),
           current_user
         )
 
         if invoice.nil?
-          render json: { error: "No unbilled entries found for this client in the selected date range" }, status: :unprocessable_entity
+          render json: { error: "unprocessable_entity", message: "No unbilled entries found for this client in the selected date range" }, status: :unprocessable_entity
           return
         end
 
-        render json: { invoice: invoice_json(invoice, include_lines: true) }, status: :created
+        render json: serialize_invoice(invoice, include_lines: true), status: :created
       end
 
       def update
         authorize @invoice
 
-        if @invoice.update(update_params)
-          render json: { invoice: invoice_json(@invoice, include_lines: true) }
+        attrs = api_params(:invoice, :status)
+        raise InvalidParameter, "status is required" unless attrs.key?(:status)
+
+        if @invoice.update(attrs)
+          render json: serialize_invoice(@invoice, include_lines: true)
         else
-          render json: { error: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render json: { error: "unprocessable_entity", message: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
@@ -69,32 +69,49 @@ module Api
           .find_by_hashid!(params[:id])
       end
 
-      def invoice_params
-        params.require(:invoice).permit(:client_id, :period_start, :period_end, :rate_cents)
+      def parse_date!(field, value)
+        raise ArgumentError unless value.to_s.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+        Date.iso8601(value.to_s)
+      rescue ArgumentError
+        raise InvalidParameter, "#{field} must be a valid date (YYYY-MM-DD)"
       end
 
-      def update_params
-        params.require(:invoice).permit(:status)
+      def parse_rate!(value)
+        return current_workspace.invoice_setting&.billable_rate_cents || 0 if value.nil?
+
+        rate = Integer(value.to_s, 10, exception: false)
+        raise InvalidParameter, "rate_cents must be a non-negative integer" if rate.nil? || rate.negative?
+
+        rate
       end
 
-      def invoice_json(invoice, include_lines: false)
-        json = invoice.as_json(
-          only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on, :notes ],
-          methods: [ :hashid ],
-          include: {
-            client: { only: [ :id, :name, :billing_address ] }
-          }
-        ).merge(
+      def serialize_invoice(invoice, include_lines: false)
+        client = invoice.client
+        json = {
+          id: invoice.hashid,
+          number: invoice.invoice_number,
+          status: invoice.status,
+          total_cents: invoice.total_cents,
           total_amount: invoice.formatted_total,
-          line_count: invoice.invoice_lines.size
-        )
+          period_start: invoice.period_start,
+          period_end: invoice.period_end,
+          issued_on: invoice.issued_on,
+          notes: invoice.notes,
+          line_count: invoice.invoice_lines.size,
+          client: { id: Client.encode_id(client.id), name: client.name, email: client.email, billing_address: client.billing_address }
+        }
 
         if include_lines
           json[:invoice_lines] = invoice.invoice_lines.map do |line|
-            line.as_json(only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ]).merge(
-              amount: line.formatted_amount,
-              rate: line.formatted_rate
-            )
+            {
+              description: line.description,
+              qty_hours: line.qty_hours&.to_f,
+              rate_cents: line.rate_cents,
+              amount_cents: line.amount_cents,
+              rate: line.formatted_rate,
+              amount: line.formatted_amount
+            }
           end
         end
 

@@ -2,7 +2,7 @@ require "test_helper"
 
 class ApiV1Test < ActionDispatch::IntegrationTest
   setup do
-    scopes = "read time_entries projects tags clients"
+    scopes = "read time_entries projects tags clients invoices"
     app = OauthApplication.create!(name: "Test client", redirect_uri: "https://example.com/callback", workspace: workspaces(:one), scopes: scopes)
     @token = Doorkeeper::AccessToken.create!(application: app, resource_owner_id: users(:one).id, scopes: scopes).token
   end
@@ -103,15 +103,52 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_nil cleared["email"]
   end
 
-  test "invoices include the notes they were created with" do
-    invoice = invoices(:one)
-    invoice.update!(notes: "**Net 30**")
+  test "invoices follow the documented contract" do
+    workspace_id = workspaces(:one).hashid
+    client_id = Client.encode_id(clients(:one).id)
+    invoice_settings(:one).update!(notes: "**Net 30**", billable_rate_cents: 9_000)
+    TimeEntry.create!(user: users(:one), workspace: workspaces(:one), project: projects(:one), description: "Design",
+      start_at: Time.zone.parse("2026-06-12 08:00"), end_at: Time.zone.parse("2026-06-12 09:30"), billable: true)
 
-    body = api(:get, "/#{workspaces(:one).hashid}/invoices/#{invoice.hashid}")
+    invoice = api(:post, "/#{workspace_id}/invoices", { client_id: client_id, period_start: "2026-06-01", period_end: "2026-06-30" })
+    assert_response :created
+    assert_equal client_id, invoice["client"]["id"]
+    assert_equal "**Net 30**", invoice["notes"]
+    assert_equal 13_500, invoice["total_cents"]
+    assert_equal [ 1.5 ], invoice["invoice_lines"].pluck("qty_hours")
 
-    assert_response :success
-    assert_equal "**Net 30**", body["invoice"]["notes"]
-    assert_equal "**Net 30**", api(:get, "/#{workspaces(:one).hashid}/invoices")["invoices"].first["notes"]
+    assert_equal invoice, api(:get, "/#{workspace_id}/invoices/#{invoice["id"]}")
+    assert_includes api(:get, "/#{workspace_id}/invoices").pluck("id"), invoice["id"]
+
+    assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
+
+    api(:delete, "/#{workspace_id}/invoices/#{invoice["id"]}")
+    assert_response :no_content
+  end
+
+  test "invalid invoice input is rejected with 422" do
+    workspace_id = workspaces(:one).hashid
+    valid = { client_id: Client.encode_id(clients(:one).id), period_start: "2026-01-01", period_end: "2026-01-31" }
+
+    assert_no_difference -> { Invoice.count } do
+      api(:post, "/#{workspace_id}/invoices", valid.merge(client_id: Client.encode_id(clients(:two).id)))
+      assert_response :unprocessable_entity
+
+      api(:post, "/#{workspace_id}/invoices", valid.merge(period_start: "January"))
+      assert_response :unprocessable_entity
+
+      assert_match "period_end", api(:post, "/#{workspace_id}/invoices", valid.merge(period_end: "20260131"))["message"]
+
+      api(:post, "/#{workspace_id}/invoices", valid.merge(rate_cents: -5))
+      assert_response :unprocessable_entity
+
+      assert_match "rate_cents", api(:post, "/#{workspace_id}/invoices", valid.merge(rate_cents: ""))["message"]
+    end
+
+    api(:patch, "/#{workspace_id}/invoices/#{invoices(:one).hashid}", { status: "sent" })
+    assert_response :unprocessable_entity
+    assert_equal "status is required", api(:patch, "/#{workspace_id}/invoices/#{invoices(:one).hashid}", {})["message"]
+    assert_equal "draft", invoices(:one).reload.status
   end
 
   private

@@ -392,6 +392,7 @@ paths:
     get:
       tags: [Invoices]
       summary: List invoices
+      description: Lists the workspace's invoices, newest first
       operationId: listInvoices
       parameters:
         - $ref: "#/components/parameters/WorkspaceId"
@@ -409,7 +410,10 @@ paths:
     post:
       tags: [Invoices]
       summary: Create invoice
+      description: Creates a draft invoice from your unbilled time entries for the client's projects in the period. Requires the `invoices` scope.
       operationId: createInvoice
+      security:
+        - oauth2: [invoices]
       parameters:
         - $ref: "#/components/parameters/WorkspaceId"
       requestBody:
@@ -424,9 +428,83 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Invoice"
+                $ref: "#/components/schemas/InvoiceWithLines"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /{workspace_id}/invoices/{id}:
+    get:
+      tags: [Invoices]
+      summary: Get invoice
+      operationId: getInvoice
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Invoice details with line items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceWithLines"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Invoices]
+      summary: Update invoice status
+      description: Moves an invoice between draft, issued and paid. Leaving draft sets `issued_on` to today. Requires the `invoices` scope.
+      operationId: updateInvoice
+      security:
+        - oauth2: [invoices]
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceUpdate"
+      responses:
+        "200":
+          description: Invoice updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceWithLines"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+    delete:
+      tags: [Invoices]
+      summary: Delete invoice
+      description: Deletes the invoice; its time entries become unbilled again. Requires the `invoices` scope.
+      operationId: deleteInvoice
+      security:
+        - oauth2: [invoices]
+      parameters:
+        - $ref: "#/components/parameters/WorkspaceId"
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: Invoice deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   securitySchemes:
@@ -474,6 +552,28 @@ components:
               error:
                 type: string
                 example: unauthorized
+    Forbidden:
+      description: The access token lacks the required scope (`insufficient_scope`, with `error_description`), or your workspace role can't perform this action (`forbidden`, with `message`)
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - type: object
+                properties:
+                  error:
+                    type: string
+                    const: insufficient_scope
+                  error_description:
+                    type: string
+                    example: "Required scope: invoices"
+              - type: object
+                properties:
+                  error:
+                    type: string
+                    const: forbidden
+                  message:
+                    type: string
+                    example: You are not authorized to perform this action
     NotFound:
       description: Resource not found
       content:
@@ -485,14 +585,18 @@ components:
                 type: string
                 example: not_found
     UnprocessableEntity:
-      description: Validation error
+      description: Invalid parameters or failed validation
       content:
         application/json:
           schema:
             type: object
             properties:
-              errors:
-                type: object
+              error:
+                type: string
+                example: unprocessable_entity
+              message:
+                type: string
+                example: client_id "abc123" does not exist in this workspace
 
   schemas:
     User:
@@ -619,6 +723,8 @@ components:
         email:
           type: string
           nullable: true
+        billing_address:
+          type: [string, "null"]
 
     ClientInput:
       type: object
@@ -627,6 +733,8 @@ components:
           type: string
         email:
           type: string
+        billing_address:
+          type: [string, "null"]
       required:
         - name
 
@@ -661,13 +769,25 @@ components:
           description: Hashid
           example: "1nv01c"
         number:
-          type: string
+          type: integer
+          description: Invoice number, sequential within the workspace
+          example: 42
         status:
           type: string
-          enum: [draft, sent, paid, overdue, cancelled]
+          enum: [draft, issued, paid]
         total_cents:
           type: integer
-        due_date:
+          example: 80750
+        total_amount:
+          type: string
+          example: "$807.50"
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        issued_on:
           type: string
           format: date
         notes:
@@ -675,20 +795,70 @@ components:
           readOnly: true
           description: Markdown notes printed under the totals on the invoice PDF, such as payment terms or bank details. Copied from the workspace's billing settings when the invoice is created, so later changes to the settings don't affect it.
           example: "**Payment due within 30 days.**\n- Bank: Monzo"
+        line_count:
+          type: integer
         client:
           $ref: "#/components/schemas/Client"
+
+    InvoiceWithLines:
+      allOf:
+        - $ref: "#/components/schemas/Invoice"
+        - type: object
+          properties:
+            invoice_lines:
+              type: array
+              items:
+                $ref: "#/components/schemas/InvoiceLine"
+
+    InvoiceLine:
+      type: object
+      properties:
+        description:
+          type: string
+        qty_hours:
+          type: [number, "null"]
+          example: 1.5
+        rate_cents:
+          type: [integer, "null"]
+          example: 9500
+        amount_cents:
+          type: integer
+          example: 14250
+        rate:
+          type: [string, "null"]
+          example: "$95.00"
+        amount:
+          type: string
+          example: "$142.50"
 
     InvoiceInput:
       type: object
       properties:
         client_id:
           type: string
-        due_date:
+          description: Client hashid
+        period_start:
           type: string
           format: date
-        time_entry_ids:
-          type: array
-          items:
-            type: string
+          description: First day of the period whose unbilled time entries are invoiced
+        period_end:
+          type: string
+          format: date
+          description: Last day of the period (inclusive)
+        rate_cents:
+          type: [integer, "null"]
+          minimum: 0
+          description: Hourly rate in cents. Omit it or send null to use the workspace's billable rate.
       required:
         - client_id
+        - period_start
+        - period_end
+
+    InvoiceUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, issued, paid]
+      required:
+        - status
