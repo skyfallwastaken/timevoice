@@ -150,7 +150,7 @@
   flash={$page.props.flash}
 >
   {#snippet headerActions()}
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center sm:justify-end gap-2">
       {#if showLetterOpenerHint && isDevMode}
         <a
           href={routes.devTools.letterOpener}
