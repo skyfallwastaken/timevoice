@@ -143,7 +143,11 @@
   >
     <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField id="project-name" label="Project Name">
+        <FormField
+          id="project-name"
+          label="Project Name"
+          error={createForm.errors.name}
+        >
           {#snippet children({ describedBy })}
             <TextInput
               id="project-name"
@@ -166,7 +170,7 @@
             >
               <option value="">No Client</option>
               {#each clients as client}
-                <option value={client.id}>{client.name}</option>
+                <option value={client.id.toString()}>{client.name}</option>
               {/each}
             </SelectInput>
           {/snippet}
@@ -234,7 +238,9 @@
                     >
                       <option value="">No Client</option>
                       {#each clients as client}
-                        <option value={client.id}>{client.name}</option>
+                        <option value={client.id.toString()}
+                          >{client.name}</option
+                        >
                       {/each}
                     </SelectInput>
                   {/snippet}
@@ -277,7 +283,7 @@
             <ListRow class={isLast ? "rounded-b-[10px]" : ""}>
               {#snippet leading()}
                 <span
-                  class="w-4 h-4 rounded-full"
+                  class="block w-4 h-4 rounded-full"
                   style="background-color: {project.color}"
                 ></span>
               {/snippet}

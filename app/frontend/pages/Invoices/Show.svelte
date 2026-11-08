@@ -348,9 +348,9 @@
           <thead class="text-fg-muted">
             <tr class="border-b border-bg-tertiary">
               <th class="text-left font-medium py-2">Description</th>
-              <th class="text-right font-medium py-2">Hours</th>
-              <th class="text-right font-medium py-2">Rate</th>
-              <th class="text-right font-medium py-2">Amount</th>
+              <th class="text-right font-medium py-2 pl-4">Hours</th>
+              <th class="text-right font-medium py-2 pl-4">Rate</th>
+              <th class="text-right font-medium py-2 pl-4">Amount</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-bg-tertiary">
@@ -361,11 +361,15 @@
                     >{line.description || "No description"}</span
                   >
                 </td>
-                <td class="py-3 text-right font-tabular"
+                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
                   >{Number(line.qty_hours).toFixed(2)}</td
                 >
-                <td class="py-3 text-right font-tabular">{line.rate}</td>
-                <td class="py-3 text-right font-tabular">{line.amount}</td>
+                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                  >{line.rate}</td
+                >
+                <td class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                  >{line.amount}</td
+                >
               </tr>
             {/each}
           </tbody>

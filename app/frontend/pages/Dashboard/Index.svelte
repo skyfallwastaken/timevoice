@@ -57,6 +57,8 @@
   });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  // A pending search would otherwise navigate back here after leaving.
+  $effect(() => () => clearTimeout(searchTimer));
   function applyFilters({ debounce = false } = {}) {
     clearTimeout(searchTimer);
     const run = () =>

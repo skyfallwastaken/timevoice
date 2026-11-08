@@ -143,9 +143,21 @@
       cachedAt.clear();
     });
 
-    const stopNavigate = router.on("navigate", (event) => {
+    // "success" fires for every response, including redirects back to the
+    // same page after a change and the request behind an instant visit;
+    // "navigate" misses those and fires for renders from this cache.
+    const stopSuccess = router.on("success", (event) => {
       const { url, props } = event.detail.page;
-      if (hrefs.includes(url)) cache(url, props, performance.now());
+      if (hrefs.includes(url)) {
+        cache(url, props, performance.now());
+        return;
+      }
+      // A change made on a filtered or nested URL (?view=…, /invoices/:id)
+      // can change the sidebar page's props too.
+      const href = hrefs.find(
+        (h) => url.startsWith(`${h}?`) || url.startsWith(`${h}/`),
+      );
+      if (href) untrack(() => refreshPageCache([href]));
     });
     const refresh = () => untrack(() => refreshPageCache(hrefs));
     refresh();
@@ -153,7 +165,7 @@
       if (document.visibilityState === "visible") refresh();
     }, 60_000);
     return () => {
-      stopNavigate();
+      stopSuccess();
       clearInterval(timer);
     };
   });

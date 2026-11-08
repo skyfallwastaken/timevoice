@@ -141,7 +141,11 @@
         if (createForm.name) handleCreate();
       }}
     >
-      <FormField id="client-name" label="Client Name">
+      <FormField
+        id="client-name"
+        label="Client Name"
+        error={createForm.errors.name}
+      >
         {#snippet children({ describedBy })}
           <TextInput
             id="client-name"
