@@ -81,7 +81,7 @@ module Api
         return current_workspace.invoice_setting&.billable_rate_cents || 0 if value.nil?
 
         rate = Integer(value.to_s, 10, exception: false)
-        raise InvalidParameter, "rate_cents must be a non-negative integer" if rate.nil? || rate.negative?
+        raise InvalidParameter, "rate_cents must be an integer from 0 to #{Invoice::MAX_RATE_CENTS}" unless rate&.between?(0, Invoice::MAX_RATE_CENTS)
 
         rate
       end

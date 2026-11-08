@@ -342,7 +342,7 @@ class InvoicePdf
   end
 
   def invoice_number
-    "#{@invoice.id.to_s(16).upcase.rjust(8, '0')}-#{@invoice.id.to_s.rjust(4, '0')}"
+    @invoice.invoice_number.to_s
   end
 
   def sanitize_text(text)

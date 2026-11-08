@@ -848,6 +848,7 @@ components:
         rate_cents:
           type: [integer, "null"]
           minimum: 0
+          maximum: 1000000
           description: Hourly rate in cents. Omit it or send null to use the workspace's billable rate.
       required:
         - client_id

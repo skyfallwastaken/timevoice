@@ -5,7 +5,8 @@ class SessionsController < ApplicationController
   layout "auth"
 
   def new
-    redirect_to root_path if current_user
+    return redirect_to(root_path) if current_user
+
     render inertia: "Sessions/New"
   end
 

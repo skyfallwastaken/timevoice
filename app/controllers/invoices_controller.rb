@@ -111,7 +111,16 @@ class InvoicesController < ApplicationController
       end_date = Date.parse(attrs[:period_end])
     end
 
-    rate_cents = attrs[:rate_cents].presence || current_workspace.invoice_setting&.billable_rate_cents || 0
+    rate_cents = if attrs[:rate_cents].present?
+      Integer(attrs[:rate_cents].to_s, 10, exception: false)
+    else
+      current_workspace.invoice_setting&.billable_rate_cents || 0
+    end
+
+    unless rate_cents&.between?(0, Invoice::MAX_RATE_CENTS)
+      redirect_with_error invoices_path, "Billable rate must be a valid amount.", field: :rate_cents
+      return
+    end
 
     invoice = Invoice.generate_from_time_entries(
       current_workspace,

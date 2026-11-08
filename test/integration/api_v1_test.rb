@@ -26,6 +26,9 @@ class ApiV1Test < ActionDispatch::IntegrationTest
 
     running = api(:post, "/#{workspace_id}/time_entries/start", { description: "Running" })
     assert_nil running["ended_at"]
+    restarted = api(:post, "/#{workspace_id}/time_entries/start", { description: "Running again" })
+    assert_equal [ restarted["id"] ], TimeEntry.running.map { |e| TimeEntry.encode_id(e.id) }
+    running = restarted
     stopped = api(:patch, "/#{workspace_id}/time_entries/#{running["id"]}/stop")
     assert_response :success
     assert_not_nil stopped["ended_at"]
@@ -149,6 +152,13 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_equal "status is required", api(:patch, "/#{workspace_id}/invoices/#{invoices(:one).hashid}", {})["message"]
     assert_equal "draft", invoices(:one).reload.status
+  end
+
+  test "a client with invoices is not deleted" do
+    api(:delete, "/#{workspaces(:one).hashid}/clients/#{Client.encode_id(clients(:one).id)}")
+
+    assert_response :unprocessable_entity
+    assert Client.exists?(clients(:one).id)
   end
 
   private

@@ -50,7 +50,7 @@ class DashboardController < ApplicationController
 
   def calendar_props
     week_start = begin
-      params[:week_start].present? ? Date.parse(params[:week_start]).beginning_of_week : Date.current.beginning_of_week
+      params[:week_start].present? ? Date.parse(params[:week_start].to_s).beginning_of_week : Date.current.beginning_of_week
     rescue ArgumentError
       Date.current.beginning_of_week
     end

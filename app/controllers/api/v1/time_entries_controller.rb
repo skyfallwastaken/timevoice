@@ -37,7 +37,7 @@ module Api
         time_entry = current_user.time_entries.build(time_entry_attrs)
         time_entry.workspace = current_workspace
 
-        if time_entry.save
+        if time_entry.save_stopping_running_entries
           render json: serialize_time_entry(time_entry), status: :created
         else
           render json: { error: "unprocessable_entity", message: time_entry.errors.full_messages.join(", ") }, status: :unprocessable_entity
@@ -70,7 +70,7 @@ module Api
         time_entry = current_user.time_entries.build(time_entry_attrs.merge(start_at: Time.current, end_at: nil))
         time_entry.workspace = current_workspace
 
-        if time_entry.save
+        if time_entry.save_stopping_running_entries
           render json: serialize_time_entry(time_entry), status: :created
         else
           render json: { error: "unprocessable_entity", message: time_entry.errors.full_messages.join(", ") }, status: :unprocessable_entity

@@ -5,7 +5,7 @@ class InvoiceSetting < ApplicationRecord
 
   belongs_to :workspace
 
-  validates :billable_rate_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :billable_rate_cents, presence: true, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: Invoice::MAX_RATE_CENTS }
   validates :sender_name, presence: true
   validates :workspace_id, uniqueness: true
   validates :notes, length: { maximum: NOTES_MAX_LENGTH }

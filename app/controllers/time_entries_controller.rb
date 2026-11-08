@@ -14,12 +14,7 @@ class TimeEntriesController < ApplicationController
     @time_entry = current_user.time_entries.build(time_entry_params)
     @time_entry.workspace = current_workspace
 
-    saved = TimeEntry.transaction do
-      workspace_entries.running.find_each(&:stop!) if @time_entry.running?
-      @time_entry.save || raise(ActiveRecord::Rollback)
-    end
-
-    if saved
+    if @time_entry.save_stopping_running_entries
       assign_tags_to_record(@time_entry, params[:time_entry][:tag_ids], current_workspace)
       redirect_back fallback_location: root_path, notice: @time_entry.running? ? "Timer started!" : "Entry created!"
     else

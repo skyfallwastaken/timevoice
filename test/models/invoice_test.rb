@@ -1,6 +1,14 @@
 require "test_helper"
 
 class InvoiceTest < ActiveSupport::TestCase
+  test "an invoice can't be renumbered to a blank or taken number" do
+    invoice = invoices(:one)
+    invoices(:two).update!(workspace: invoice.workspace)
+
+    assert_not invoice.update(invoice_number: invoices(:two).invoice_number)
+    assert_not invoice.update(invoice_number: "")
+  end
+
   test "generate_from_time_entries filters to the provided user and keeps the notes it was created with" do
     owner = User.create!(
       email: "invoice-owner@example.com",
