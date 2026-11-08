@@ -7,7 +7,7 @@ class TimeEntry < ApplicationRecord
   belongs_to :user
   belongs_to :workspace
   belongs_to :project, optional: true
-  has_many :time_entry_tags, dependent: :destroy
+  has_many :time_entry_tags, dependent: :delete_all
   has_many :tags, through: :time_entry_tags
   has_many :invoice_lines, dependent: :nullify
   has_many :invoices, through: :invoice_lines

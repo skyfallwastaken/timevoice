@@ -7,10 +7,10 @@ module TagAssignable
     return unless tag_ids_param.present?
 
     tag_ids = Array(tag_ids_param).map(&:to_i)
-    valid_tags = workspace.tags.where(id: tag_ids)
+    valid_tags = workspace.tags.where(id: tag_ids).to_a
 
-    if valid_tags.count != tag_ids.uniq.count
-      invalid_count = tag_ids.uniq.count - valid_tags.count
+    if valid_tags.size != tag_ids.uniq.count
+      invalid_count = tag_ids.uniq.count - valid_tags.size
       Rails.logger.warn("#{self.class.name}: #{invalid_count} invalid tag_ids provided by user #{current_user.id} in workspace #{workspace.id}")
     end
 

@@ -55,10 +55,10 @@ class TimeEntriesController < ApplicationController
     added_tags = current_workspace.tags.where(id: changes[:add_tag_ids])
 
     TimeEntry.transaction do
-      @time_entries.each do |entry|
-        entry.update!(attributes)
-        entry.tags << (added_tags - entry.tags)
-      end
+      @time_entries.each { |entry| entry.update!(attributes) }
+
+      new_tags = @time_entries.flat_map { |entry| (added_tags - entry.tags).map { |tag| { time_entry_id: entry.id, tag_id: tag.id } } }
+      TimeEntryTag.insert_all(new_tags) if new_tags.any?
     end
 
     redirect_back fallback_location: root_path, notice: "#{helpers.pluralize(@time_entries.size, 'entry')} updated!"
@@ -96,7 +96,7 @@ class TimeEntriesController < ApplicationController
   private
 
   def set_selected_time_entries
-    @time_entries = policy_scope(TimeEntry).where(id: Array(params[:ids])).includes(:tags).to_a
+    @time_entries = policy_scope(TimeEntry).where(id: Array(params[:ids])).includes(:tags).with_attached_files.to_a
     @time_entries.each { |entry| authorize entry, :update? }
   end
 

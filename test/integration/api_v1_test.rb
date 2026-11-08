@@ -127,7 +127,7 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_equal [ 1.5 ], invoice["invoice_lines"].pluck("qty_hours")
 
     assert_equal invoice, api(:get, "/#{workspace_id}/invoices/#{invoice["id"]}")
-    assert_includes api(:get, "/#{workspace_id}/invoices").pluck("id"), invoice["id"]
+    assert_equal invoice.except("invoice_lines"), api(:get, "/#{workspace_id}/invoices").find { |listed| listed["id"] == invoice["id"] }
 
     assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
 

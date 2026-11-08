@@ -11,7 +11,7 @@ class Invoice < ApplicationRecord
 
   belongs_to :workspace
   belongs_to :client
-  has_many :invoice_lines, dependent: :destroy
+  has_many :invoice_lines, dependent: :delete_all
   has_many :time_entries, through: :invoice_lines, source: :time_entry
 
   validates :period_start, presence: true
@@ -55,6 +55,7 @@ class Invoice < ApplicationRecord
 
     entries = entries.in_date_range(period_start_date, period_end_date) if period_start_date && period_end_date
     entries = entries.where(user: user) if user
+    entries = entries.to_a
 
     return nil if entries.empty?
 
@@ -62,33 +63,29 @@ class Invoice < ApplicationRecord
       invoice = create!(
         workspace: workspace,
         client: client,
-        period_start: period_start_date || entries.minimum(:start_at).to_date,
-        period_end: period_end_date || entries.maximum(:start_at).to_date,
+        period_start: period_start_date || entries.map(&:start_at).min.to_date,
+        period_end: period_end_date || entries.map(&:start_at).max.to_date,
         issued_on: Date.current,
         status: STATUS_DRAFT,
         total_cents: 0,
         notes: workspace.invoice_setting&.notes
       )
 
-      total = 0
-
-      entries.each do |entry|
+      lines = entries.map do |entry|
         hours = entry.duration_hours
-        amount = (hours * rate_cents).round
 
-        InvoiceLine.create!(
+        InvoiceLine.new(
           invoice: invoice,
           time_entry: entry,
           description: entry.description,
           qty_hours: hours,
           rate_cents: rate_cents,
-          amount_cents: amount
-        )
-
-        total += amount
+          amount_cents: (hours * rate_cents).round
+        ).tap(&:validate!)
       end
 
-      invoice.update!(total_cents: total)
+      InvoiceLine.insert_all!(lines.map { |line| line.attributes.except("id", "created_at", "updated_at") })
+      invoice.update!(total_cents: lines.sum(&:amount_cents))
       invoice
     end
   end
