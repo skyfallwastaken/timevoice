@@ -5,7 +5,7 @@ class InvoiceMailer < ApplicationMailer
     @sender_name = invoice.workspace.invoice_setting&.sender_name || "Your Company"
 
     pdf = InvoicePdf.new(invoice, invoice.workspace.invoice_setting).generate
-    @filename = invoice_filename(invoice)
+    @filename = invoice.filename("pdf")
 
     attachments[@filename] = {
       mime_type: "application/pdf",
@@ -17,13 +17,5 @@ class InvoiceMailer < ApplicationMailer
       cc: cc.presence,
       subject: "You received a #{invoice.formatted_total} invoice from #{@sender_name}"
     )
-  end
-
-  private
-
-  def invoice_filename(invoice)
-    client_name = invoice.client.name.parameterize
-    date_range = "#{invoice.period_start.strftime('%Y%m%d')}-#{invoice.period_end.strftime('%Y%m%d')}"
-    "invoice-#{client_name}-#{date_range}.pdf"
   end
 end

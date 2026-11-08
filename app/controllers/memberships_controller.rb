@@ -49,7 +49,7 @@ class MembershipsController < ApplicationController
       SendInviteEmailJob.perform_later(invite_id: invite.id)
       redirect_to settings_workspace_path, notice: "Invitation sent to #{email}."
     else
-      redirect_to settings_workspace_path, alert: invite.errors.full_messages.join(", "), inertia: { errors: invite.errors }
+      redirect_with_record_errors settings_workspace_path, invite
     end
   end
 

@@ -11,12 +11,7 @@ class ProjectsController < ApplicationController
     @clients = current_workspace.clients.order(:name)
 
     render inertia: "Projects/Index", props: {
-      projects: @projects.map { |project|
-        project.as_json(
-          only: [ :id, :name, :color, :billable_default ],
-          include: { client: { only: [ :id, :name ] } }
-        )
-      },
+      projects: @projects.map(&:as_props),
       clients: @clients.as_json(only: [ :id, :name ]),
       colors: Project::GRUVBOX_COLORS
     }
@@ -28,7 +23,7 @@ class ProjectsController < ApplicationController
     if @project.save
       redirect_to projects_path, notice: "Project created successfully!"
     else
-      redirect_to projects_path, alert: @project.errors.full_messages.join(", "), inertia: { errors: @project.errors }
+      redirect_with_record_errors projects_path, @project
     end
   end
 
@@ -36,7 +31,7 @@ class ProjectsController < ApplicationController
     if @project.update(project_params)
       redirect_to projects_path, notice: "Project updated successfully!"
     else
-      redirect_to projects_path, alert: @project.errors.full_messages.join(", "), inertia: { errors: @project.errors }
+      redirect_with_record_errors projects_path, @project
     end
   end
 

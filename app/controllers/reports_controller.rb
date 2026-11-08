@@ -14,8 +14,7 @@ class ReportsController < ApplicationController
       flash.now[:notice] = "Reports cover at most 5 years, so this one starts on #{start_date.strftime("%b %-d, %Y")}."
     end
 
-    @entries = current_user.time_entries
-      .where(workspace: current_workspace)
+    @entries = policy_scope(TimeEntry)
       .completed
       .in_date_range(start_date, end_date)
       .includes(:tags, project: :client)
@@ -25,24 +24,14 @@ class ReportsController < ApplicationController
     @totals = calculate_totals(@entries, start_date..end_date)
 
     render inertia: "Reports/Index", props: {
-      entries: @entries.map { |entry|
-        entry.as_json(
-          only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
-          include: {
-            project: { only: [ :id, :name, :color ] },
-            tags: { only: [ :id, :name ] }
-          }
-        ).merge(formattedDuration: entry.formatted_duration)
-      },
+      entries: @entries.map(&:as_props),
       totals: @totals,
       dateRange: {
         start: start_date.to_s,
         end: end_date.to_s
       },
       projectId: params[:project_id].presence,
-      projects: current_workspace.projects.includes(:client).order(:name).map { |p|
-        p.as_json(only: [ :id, :name, :color ], include: { client: { only: [ :id, :name ] } })
-      }
+      projects: current_workspace.projects.includes(:client).order(:name).map(&:as_props)
     }
   end
 

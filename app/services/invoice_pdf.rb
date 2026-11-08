@@ -2,6 +2,8 @@ require "prawn"
 require "prawn/table"
 
 class InvoicePdf
+  include CurrencyFormatter
+
   BRAND_COLOR = "6366F1"
   TEXT_PRIMARY = "1A1A1A"
   TEXT_SECONDARY = "666666"
@@ -163,9 +165,9 @@ class InvoicePdf
 
       table_data << [
         description,
-        format_currency(line.rate_cents),
+        format_cents(line.rate_cents || 0),
         format("%.2f", hours),
-        format_currency(line.amount_cents)
+        format_cents(line.amount_cents)
       ]
     end
 
@@ -195,8 +197,8 @@ class InvoicePdf
     totals_width = 200
 
     totals_data = [
-      [ "Subtotal", format_currency(@invoice.total_cents) ],
-      [ "Total Due", "#{format_currency(@invoice.total_cents)} USD" ]
+      [ "Subtotal", format_cents(@invoice.total_cents) ],
+      [ "Total Due", "#{format_cents(@invoice.total_cents)} USD" ]
     ]
 
     @document.bounding_box([ @document.bounds.width - totals_width, @document.cursor ], width: totals_width) do
@@ -327,12 +329,6 @@ class InvoicePdf
 
   def markdown_text(fragments, **options)
     @document.formatted_text(fragments, color: TEXT_SECONDARY, leading: 4, **options)
-  end
-
-  def format_currency(cents)
-    return "$0.00" if cents.nil?
-
-    "$#{format("%.2f", cents / 100.0)}"
   end
 
   def format_date(date)

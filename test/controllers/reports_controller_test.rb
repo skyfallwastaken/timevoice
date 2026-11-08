@@ -62,4 +62,12 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 3600, totals["daily"]["2021-11-09"]["total"]
     assert_equal 0, totals["daily"]["2021-12-01"]["total"]
   end
+
+  test "projects include billable_default" do
+    projects(:one).update_column(:billable_default, true)
+
+    get "/#{@workspace.hashid}/reports"
+
+    assert_equal [ true ], inertia_props["projects"].pluck("billable_default")
+  end
 end

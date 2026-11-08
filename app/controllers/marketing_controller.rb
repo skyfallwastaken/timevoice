@@ -4,9 +4,9 @@ class MarketingController < ApplicationController
 
   def home
     if current_user
-      target_workspace = current_user.last_used_workspace || current_user.workspaces.first
+      target_workspace = current_user.default_workspace
       if target_workspace
-        redirect_to "/#{target_workspace.hashid}/timer"
+        redirect_to workspace_timer_path(target_workspace)
         return
       end
     end

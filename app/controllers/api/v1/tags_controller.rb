@@ -5,6 +5,7 @@ module Api
     class TagsController < BaseController
       before_action :require_workspace!
       before_action :set_tag, only: [ :show, :update, :destroy ]
+      before_action -> { require_scope! :tags }, only: [ :create, :update, :destroy ]
 
       def index
         tags = current_workspace.tags.order(:name)
@@ -17,33 +18,24 @@ module Api
       end
 
       def create
-        require_scope!(:tags)
-        return if performed?
-
         tag = current_workspace.tags.build(tag_attrs)
 
         if tag.save
           render json: serialize_tag(tag), status: :created
         else
-          render json: { error: "unprocessable_entity", message: tag.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(tag)
         end
       end
 
       def update
-        require_scope!(:tags)
-        return if performed?
-
         if @tag.update(tag_attrs)
           render json: serialize_tag(@tag)
         else
-          render json: { error: "unprocessable_entity", message: @tag.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@tag)
         end
       end
 
       def destroy
-        require_scope!(:tags)
-        return if performed?
-
         @tag.destroy
         head :no_content
       end
@@ -51,8 +43,7 @@ module Api
       private
 
       def set_tag
-        tag_id = Tag.decode_id(params[:id])
-        @tag = current_workspace.tags.find_by!(id: tag_id)
+        @tag = current_workspace.tags.find_by_hashid!(params[:id])
       end
 
       def tag_attrs

@@ -96,9 +96,9 @@ class ApplicationController < ActionController::Base
     return unless current_user
 
     if request.path == "/"
-      target_workspace = current_user.last_used_workspace || current_user.workspaces.first
+      target_workspace = current_user.default_workspace
       if target_workspace
-        redirect_to "/#{target_workspace.hashid}/timer"
+        redirect_to workspace_timer_path(target_workspace)
         return
       else
         redirect_to signin_path, alert: "No workspace found. Please contact support."
@@ -111,7 +111,7 @@ class ApplicationController < ActionController::Base
     if current_user.workspaces.any?
       first_workspace = current_user.workspaces.first
       session[:workspace_id] = first_workspace.id
-      redirect_to "/#{first_workspace.hashid}/timer"
+      redirect_to workspace_timer_path(first_workspace)
     else
       redirect_to signin_path, alert: "No workspace found. Please contact support."
     end
@@ -132,7 +132,7 @@ class ApplicationController < ActionController::Base
   def running_entry_json
     return unless current_user && current_workspace
 
-    current_user.time_entries.running.where(workspace: current_workspace)
+    policy_scope(TimeEntry).running
       .eager_load(:project, :tags).order(:start_at).to_a.last
       &.as_json(
         only: [ :id, :description, :start_at, :billable ],
@@ -145,6 +145,14 @@ class ApplicationController < ActionController::Base
 
   def redirect_with_error(location, message, field: :base)
     redirect_to location, alert: message, inertia: { errors: { field => message } }
+  end
+
+  def redirect_with_record_errors(location, record)
+    redirect_to location, alert: record.errors.full_messages.join(", "), inertia: { errors: record.errors }
+  end
+
+  def redirect_back_with_record_errors(record, fallback_location: root_path)
+    redirect_back fallback_location: fallback_location, alert: record.errors.full_messages.join(", "), inertia: { errors: record.errors }
   end
 
   def user_not_authorized

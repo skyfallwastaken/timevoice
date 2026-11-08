@@ -15,9 +15,9 @@ class WorkspacesController < ApplicationController
       workspace.memberships.create!(user: current_user, role: :owner)
 
       session[:workspace_id] = workspace.id
-      redirect_to "/#{workspace.hashid}/timer", notice: "Workspace created successfully."
+      redirect_to workspace_timer_path(workspace), notice: "Workspace created successfully."
     else
-      redirect_back(fallback_location: root_path, alert: workspace.errors.full_messages.join(", "), inertia: { errors: workspace.errors })
+      redirect_back_with_record_errors workspace
     end
   end
 
@@ -28,7 +28,7 @@ class WorkspacesController < ApplicationController
     authorize workspace, :show?
 
     session[:workspace_id] = workspace.id
-    redirect_to "/#{workspace.hashid}/timer"
+    redirect_to workspace_timer_path(workspace)
   rescue ActiveRecord::RecordNotFound
     redirect_back(fallback_location: root_path, alert: "Workspace not found.")
   end

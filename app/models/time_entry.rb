@@ -29,8 +29,6 @@ class TimeEntry < ApplicationRecord
   scope :running, -> { where(end_at: nil) }
   scope :completed, -> { where.not(end_at: nil) }
   scope :billable, -> { where(billable: true) }
-  scope :today, -> { where(start_at: Time.current.beginning_of_day..Time.current.end_of_day) }
-  scope :this_week, -> { where(start_at: Time.current.beginning_of_week..Time.current.end_of_week) }
   scope :in_date_range, ->(start_date, end_date) { where(start_at: start_date.beginning_of_day..end_date.end_of_day) }
   scope :unbilled, -> {
     completed
@@ -75,6 +73,29 @@ class TimeEntry < ApplicationRecord
     else
       "#{minutes}:#{seconds.to_s.rjust(2, '0')}"
     end
+  end
+
+  def as_props(with_files: false)
+    props = as_json(
+      only: [ :id, :description, :start_at, :end_at, :duration_seconds, :billable ],
+      include: {
+        project: { only: [ :id, :name, :color ] },
+        tags: { only: [ :id, :name ] }
+      }
+    ).merge(formattedDuration: formatted_duration)
+    return props unless with_files
+
+    props.merge(
+      files: files.map { |file|
+        {
+          id: file.id,
+          blob_id: file.blob_id,
+          filename: file.filename.to_s,
+          byte_size: file.byte_size,
+          content_type: file.content_type
+        }
+      }
+    )
   end
 
   def duration_hours

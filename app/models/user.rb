@@ -55,6 +55,10 @@ class User < ApplicationRecord
     workspace
   end
 
+  def default_workspace
+    last_used_workspace || workspaces.first
+  end
+
   def current_workspace
     @current_workspace ||= workspaces.first
   end

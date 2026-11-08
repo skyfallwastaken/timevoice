@@ -5,6 +5,7 @@ module Api
     class ClientsController < BaseController
       before_action :require_workspace!
       before_action :set_client, only: [ :show, :update, :destroy ]
+      before_action -> { require_scope! :clients }, only: [ :create, :update, :destroy ]
 
       def index
         clients = current_workspace.clients.order(:name)
@@ -17,45 +18,35 @@ module Api
       end
 
       def create
-        require_scope!(:clients)
-        return if performed?
-
         client = current_workspace.clients.build(client_attrs)
 
         if client.save
           render json: serialize_client(client), status: :created
         else
-          render json: { error: "unprocessable_entity", message: client.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(client)
         end
       end
 
       def update
-        require_scope!(:clients)
-        return if performed?
-
         if @client.update(client_attrs)
           render json: serialize_client(@client)
         else
-          render json: { error: "unprocessable_entity", message: @client.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@client)
         end
       end
 
       def destroy
-        require_scope!(:clients)
-        return if performed?
-
         if @client.destroy
           head :no_content
         else
-          render json: { error: "unprocessable_entity", message: @client.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@client)
         end
       end
 
       private
 
       def set_client
-        client_id = Client.decode_id(params[:id])
-        @client = current_workspace.clients.find_by!(id: client_id)
+        @client = current_workspace.clients.find_by_hashid!(params[:id])
       end
 
       def client_attrs

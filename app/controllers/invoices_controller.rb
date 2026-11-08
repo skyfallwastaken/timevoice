@@ -21,8 +21,7 @@ class InvoicesController < ApplicationController
 
     @clients = current_workspace.clients.order(:name)
 
-    @unbilled_entries = current_user.time_entries
-      .where(workspace: current_workspace)
+    @unbilled_entries = policy_scope(TimeEntry)
       .unbilled
       .includes(:tags, project: :client)
       .order(start_at: :desc)
@@ -153,7 +152,7 @@ class InvoicesController < ApplicationController
     if @invoice.update(invoice_params)
       redirect_back fallback_location: invoices_path, notice: "Invoice updated successfully!"
     else
-      redirect_back fallback_location: invoices_path, alert: @invoice.errors.full_messages.join(", "), inertia: { errors: @invoice.errors }
+      redirect_back_with_record_errors @invoice, fallback_location: invoices_path
     end
   end
 
@@ -170,21 +169,13 @@ class InvoicesController < ApplicationController
 
     pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
 
-    client_name = @invoice.client.name
-    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
-    filename = "Invoice to #{client_name} - #{date_range}.pdf"
-
     send_data pdf,
-      filename: filename,
+      filename: @invoice.filename("pdf"),
       type: "application/pdf",
       disposition: "inline"
   end
 
   def csv
-    client_name = @invoice.client.name
-    date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"
-    filename = "Invoice to #{client_name} - #{date_range}.csv"
-
     data = CSV.generate do |csv|
       csv << [ "Description", "Hours", "Amount" ]
       @invoice.invoice_lines.each do |line|
@@ -193,7 +184,7 @@ class InvoicesController < ApplicationController
     end
 
     send_data data,
-      filename: filename,
+      filename: @invoice.filename("csv"),
       type: "text/csv",
       disposition: "attachment"
   end

@@ -92,8 +92,4 @@ class InvitesController < ApplicationController
       nil
     end
   end
-
-  def workspace_root_path(workspace)
-    "/#{workspace.hashid}"
-  end
 end

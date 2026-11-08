@@ -10,8 +10,7 @@ module Api
       end
 
       def show
-        workspace_id = Workspace.decode_id(params[:id])
-        workspace = current_user.workspaces.find_by!(id: workspace_id)
+        workspace = current_user.workspaces.find_by_hashid!(params[:id])
 
         render json: serialize_workspace(workspace)
       end
