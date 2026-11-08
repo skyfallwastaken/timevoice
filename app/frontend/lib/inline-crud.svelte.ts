@@ -123,13 +123,14 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
 
   /** Enter saves and Escape cancels; attach to the edit row's wrapper. */
   function editKeydown(event: KeyboardEvent, id: number) {
+    // Keys pressed while an IME is composing belong to the IME.
+    if (event.isComposing) return;
     const target = event.target as HTMLElement;
     if (event.key === "Escape") {
       event.preventDefault();
       cancelEditing();
     } else if (
       event.key === "Enter" &&
-      !event.isComposing &&
       target.tagName !== "TEXTAREA" &&
       target.tagName !== "BUTTON"
     ) {

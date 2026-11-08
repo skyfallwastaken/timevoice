@@ -40,7 +40,7 @@
   const confirmed = $derived(!confirmText || typed === confirmText);
 
   function confirmFromInput(event: KeyboardEvent) {
-    if (event.key !== "Enter" || !confirmed) return;
+    if (event.key !== "Enter" || event.isComposing || !confirmed) return;
     event.preventDefault();
     onConfirm(typed);
     open = false;
