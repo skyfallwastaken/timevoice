@@ -237,9 +237,14 @@
         autocomplete="off"
         class="block w-full py-2 field-sizing-content resize-none bg-transparent border-b-2 border-bg-tertiary focus:border-bright-purple text-xl font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-dim outline-none transition-colors duration-150"
         oninput={(e) => {
-          const value = e.currentTarget.value;
-          if (value.includes("\n"))
-            d.description = value.replace(/\s*\n\s*/g, " ");
+          const field = e.currentTarget;
+          if (!field.value.includes("\n")) return;
+          const oneLine = (text: string) => text.replace(/\s*\n\s*/g, " ");
+          const caret = oneLine(
+            field.value.slice(0, field.selectionEnd),
+          ).length;
+          field.value = d.description = oneLine(field.value);
+          field.setSelectionRange(caret, caret);
         }}
         onkeydown={(e) => {
           if (e.key !== "Enter" || e.isComposing) return;
