@@ -110,7 +110,11 @@ class TimeEntry < ApplicationRecord
   end
 
   def project_in_workspace
-    errors.add(:project, "must belong to this workspace") if project && project.workspace != workspace
+    return unless project
+
+    # Compare ids when both are saved, and the records themselves when not.
+    same = workspace_id && project.workspace_id ? project.workspace_id == workspace_id : project.workspace == workspace
+    errors.add(:project, "must belong to this workspace") unless same
   end
 
   def one_running_entry

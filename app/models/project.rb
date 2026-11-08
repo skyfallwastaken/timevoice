@@ -25,6 +25,9 @@ class Project < ApplicationRecord
   private
 
   def client_in_workspace
-    errors.add(:client, "must belong to this workspace") if client && client.workspace != workspace
+    return unless client
+
+    same = workspace_id && client.workspace_id ? client.workspace_id == workspace_id : client.workspace == workspace
+    errors.add(:client, "must belong to this workspace") unless same
   end
 end
