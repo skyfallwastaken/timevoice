@@ -15,7 +15,7 @@ class ReportsController < ApplicationController
       .order(start_at: :asc)
     @entries = @entries.where(project_id: params[:project_id]) if params[:project_id].present?
 
-    @totals = calculate_totals(@entries)
+    @totals = calculate_totals(@entries, start_date..end_date)
 
     render inertia: "Reports/Index", props: {
       entries: @entries.map { |entry|
