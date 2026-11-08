@@ -326,7 +326,7 @@
                 <Check aria-hidden="true" /> Mark paid
               </DropdownMenu.Item>
             {/if}
-            {#if invoice.status === "paid"}
+            {#if invoice.status === "paid" && page.props.canEdit}
               <DropdownMenu.Item
                 class="px-3 py-2 gap-2"
                 onSelect={() => (showMarkUnpaidModal = true)}
