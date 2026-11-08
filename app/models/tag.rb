@@ -1,5 +1,6 @@
 class Tag < ApplicationRecord
   include Displayable
+  extend Hashidable::ClassMethods
 
   belongs_to :workspace
   has_many :time_entry_tags, dependent: :destroy

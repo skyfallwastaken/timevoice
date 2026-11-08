@@ -641,6 +641,7 @@ components:
           type: string
         color:
           type: string
+          nullable: true
 
     TagInput:
       type: object

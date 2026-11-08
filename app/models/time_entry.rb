@@ -1,4 +1,6 @@
 class TimeEntry < ApplicationRecord
+  extend Hashidable::ClassMethods
+
   SECONDS_PER_HOUR = 3600
   SECONDS_PER_MINUTE = 60
   MIN_BILLABLE_SECONDS = 36

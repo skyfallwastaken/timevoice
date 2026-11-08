@@ -9,21 +9,21 @@ module Api
       def index
         clients = current_workspace.clients.order(:name)
 
-        render json: clients.as_json(only: [ :id, :name, :billing_address ])
+        render json: clients.map { |client| serialize_client(client) }
       end
 
       def show
-        render json: @client.as_json(only: [ :id, :name, :billing_address ])
+        render json: serialize_client(@client)
       end
 
       def create
         require_scope!(:clients)
         return if performed?
 
-        client = current_workspace.clients.build(client_params)
+        client = current_workspace.clients.build(client_attrs)
 
         if client.save
-          render json: client.as_json(only: [ :id, :name, :billing_address ]), status: :created
+          render json: serialize_client(client), status: :created
         else
           render json: { error: "unprocessable_entity", message: client.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -33,8 +33,8 @@ module Api
         require_scope!(:clients)
         return if performed?
 
-        if @client.update(client_params)
-          render json: @client.as_json(only: [ :id, :name, :billing_address ])
+        if @client.update(client_attrs)
+          render json: serialize_client(@client)
         else
           render json: { error: "unprocessable_entity", message: @client.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -55,8 +55,12 @@ module Api
         @client = current_workspace.clients.find_by!(id: client_id)
       end
 
-      def client_params
-        params.require(:client).permit(:name, :billing_address)
+      def client_attrs
+        api_params(:client, :name, :billing_address)
+      end
+
+      def serialize_client(client)
+        { id: Client.encode_id(client.id), name: client.name, billing_address: client.billing_address }
       end
     end
   end

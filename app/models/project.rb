@@ -1,4 +1,6 @@
 class Project < ApplicationRecord
+  extend Hashidable::ClassMethods
+
   belongs_to :workspace
   belongs_to :client, optional: true
   has_many :time_entries, dependent: :nullify
