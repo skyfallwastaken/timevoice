@@ -26,9 +26,13 @@
   let billable = $state("keep");
   let addTagIds = $state<number[]>([]);
   let processing = $state(false);
+  // Saving clears the selection as the dialog closes, so show the count it
+  // opened with while it fades out.
+  let count = $state(0);
 
   $effect(() => {
     if (open) {
+      count = ids.length;
       project = "keep";
       billable = "keep";
       addTagIds = [];
@@ -62,7 +66,7 @@
 
 <Modal
   {open}
-  title={`Edit ${ids.length} ${ids.length === 1 ? "entry" : "entries"}`}
+  title={`Edit ${count} ${count === 1 ? "entry" : "entries"}`}
   onclose={onClose}
   maxWidth="max-w-lg"
 >
@@ -125,8 +129,8 @@
     <div class="flex justify-end gap-2">
       <Button variant="ghost" onclick={onClose}>Cancel</Button>
       <Button tone="purple" disabled={!hasChanges || processing} onclick={save}>
-        Update {ids.length}
-        {ids.length === 1 ? "entry" : "entries"}
+        Update {count}
+        {count === 1 ? "entry" : "entries"}
       </Button>
     </div>
   {/snippet}

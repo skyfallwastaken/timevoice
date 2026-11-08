@@ -96,7 +96,6 @@
 
   function closeCreateModal() {
     showCreateModal = false;
-    $createForm.reset();
   }
 
   function submitCreateWorkspace() {
@@ -105,6 +104,9 @@
       .post(routes.workspaces.create, {
         onSuccess: () => {
           closeCreateModal();
+          // Keep the blank defaults the next open resets to; Inertia otherwise
+          // adopts the submitted values as the new defaults.
+          $createForm.defaults({});
         },
       });
   }

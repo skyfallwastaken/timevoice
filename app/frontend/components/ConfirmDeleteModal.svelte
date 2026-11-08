@@ -27,6 +27,18 @@
     confirmLabel = title,
     details,
   }: Props = $props();
+
+  // Callers often clear the item as the dialog closes, so keep showing what it
+  // opened with while it fades out.
+  const text = () => ({
+    title,
+    itemName,
+    warningMessage,
+    actionVerb,
+    confirmLabel,
+  });
+  let lastShown = text();
+  const shown = $derived.by(() => (open ? (lastShown = text()) : lastShown));
 </script>
 
 <AlertDialog.Root
@@ -40,19 +52,19 @@
   >
     <div class="p-4 border-b border-bg-tertiary">
       <AlertDialog.Title class="font-semibold text-base"
-        >{title}</AlertDialog.Title
+        >{shown.title}</AlertDialog.Title
       >
     </div>
     <div class="p-4 space-y-4">
       <AlertDialog.Description class="text-fg-primary text-sm">
-        Are you sure you want to {actionVerb}
-        <span class="font-semibold">{itemName}</span>?
+        Are you sure you want to {shown.actionVerb}
+        <span class="font-semibold">{shown.itemName}</span>?
       </AlertDialog.Description>
       {#if details}
         {@render details()}
       {/if}
       <p class="text-sm text-fg-muted">
-        {warningMessage}
+        {shown.warningMessage}
       </p>
     </div>
     <div
@@ -65,7 +77,7 @@
       </AlertDialogPrimitive.Cancel>
       <AlertDialogPrimitive.Action onclick={onConfirm}>
         {#snippet child({ props })}
-          <Button tone="red" {...props}>{confirmLabel}</Button>
+          <Button tone="red" {...props}>{shown.confirmLabel}</Button>
         {/snippet}
       </AlertDialogPrimitive.Action>
     </div>

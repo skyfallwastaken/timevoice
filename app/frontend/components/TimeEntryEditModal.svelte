@@ -39,8 +39,10 @@
 
   let showDeleteModal = $state(false);
 
+  // Fill the form on open, not reset it on close, so it keeps its values
+  // while the dialog fades out.
   $effect(() => {
-    if (entry) {
+    if (open && entry) {
       $editForm.description = entry.description || "";
       $editForm.project_id = entry.project?.id?.toString() || "";
       $editForm.tag_ids = (entry.tags || []).map((t) => t.id);
@@ -114,10 +116,7 @@
       })
       .patch(routes.timeEntries.update(workspaceId, entry.id), {
         preserveScroll: true,
-        onSuccess: () => {
-          onClose();
-          $editForm.reset();
-        },
+        onSuccess: onClose,
       });
   }
 
@@ -143,14 +142,9 @@
       },
     });
   }
-
-  function handleClose() {
-    onClose();
-    $editForm.reset();
-  }
 </script>
 
-<Modal {open} title="Edit Entry" onclose={handleClose} maxWidth="max-w-lg">
+<Modal {open} title="Edit Entry" onclose={onClose} maxWidth="max-w-lg">
   <div>
     <FormField id="edit-description" label="Description">
       {#snippet children({ describedBy })}
@@ -312,7 +306,7 @@
         <Button
           variant="ghost"
           type="button"
-          onclick={handleClose}
+          onclick={onClose}
           disabled={$editForm.processing}
         >
           Cancel

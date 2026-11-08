@@ -340,15 +340,22 @@
         preserveState: true,
         onSuccess: () => {
           closeQuickEdit();
-          $form.reset();
+          // Keep the blank defaults the next open resets to; Inertia otherwise
+          // adopts the submitted values as the new defaults.
+          $form.defaults({});
         },
       });
   }
 
-  // The dashed placeholder stays while the new entry's details are filled in.
+  // The dashed placeholder stays while the new entry's details are filled in,
+  // and until the popover has faded out so its contents don't change mid-fade.
+  // A drag started during the fade owns the new selection.
   function closeQuickEdit() {
     showQuickEdit = false;
-    selection = null;
+  }
+
+  function clearClosedSelection(open: boolean) {
+    if (!open && !gesture) selection = null;
   }
 
   const clock = (minute: number) => {
@@ -589,6 +596,7 @@
 <Popover.Root
   open={showQuickEdit}
   onOpenChange={(open) => !open && closeQuickEdit()}
+  onOpenChangeComplete={clearClosedSelection}
 >
   <Popover.Content
     customAnchor={placeholder}

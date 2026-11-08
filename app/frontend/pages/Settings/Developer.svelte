@@ -79,7 +79,9 @@
       preserveScroll: true,
       onSuccess: () => {
         showCreateModal = false;
-        $createForm.reset();
+        // Keep the blank defaults the next open resets to; Inertia otherwise
+        // adopts the submitted values as the new defaults.
+        $createForm.defaults({});
       },
     });
   }
@@ -101,7 +103,6 @@
         preserveScroll: true,
         onSuccess: () => {
           showEditModal = false;
-          selectedApp = null;
         },
       },
     );
@@ -121,7 +122,6 @@
       },
     );
     showDeleteModal = false;
-    selectedApp = null;
   }
 
   function openSecretModal(app: OAuthApp) {
@@ -139,7 +139,6 @@
       },
     );
     showSecretModal = false;
-    selectedApp = null;
   }
 
   async function copyToClipboard(text: string, field: string) {
@@ -436,7 +435,6 @@
     maxWidth="max-w-lg"
     onclose={() => {
       showCreateModal = false;
-      $createForm.reset();
     }}
   >
     <FormField id="app-name" label="Application Name" required>
@@ -547,7 +545,6 @@
           variant="ghost"
           onclick={() => {
             showCreateModal = false;
-            $createForm.reset();
           }}
           disabled={$createForm.processing}
         >
@@ -574,7 +571,6 @@
     maxWidth="max-w-lg"
     onclose={() => {
       showEditModal = false;
-      selectedApp = null;
     }}
   >
     <FormField id="edit-app-name" label="Application Name" required>
@@ -683,7 +679,6 @@
           variant="ghost"
           onclick={() => {
             showEditModal = false;
-            selectedApp = null;
           }}
           disabled={$editForm.processing}
         >
@@ -711,7 +706,6 @@
     onConfirm={confirmDelete}
     onClose={() => {
       showDeleteModal = false;
-      selectedApp = null;
     }}
   />
 
@@ -721,7 +715,6 @@
     title="Regenerate Client Secret"
     onclose={() => {
       showSecretModal = false;
-      selectedApp = null;
     }}
   >
     <div class="space-y-4">
@@ -743,7 +736,6 @@
           variant="ghost"
           onclick={() => {
             showSecretModal = false;
-            selectedApp = null;
           }}
         >
           Cancel

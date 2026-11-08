@@ -254,8 +254,10 @@
     }
   }
 
-  // Single-entry actions
+  // Single-entry actions. Closing a dialog keeps its entry so the dialog still
+  // shows it while fading out.
   let editingEntry = $state<TimeEntry | null>(null);
+  let showEdit = $state(false);
   let entryToDelete = $state<TimeEntry | null>(null);
   let showDeleteModal = $state(false);
   let showBulkEdit = $state(false);
@@ -263,10 +265,11 @@
 
   function openEdit(entry: TimeEntry) {
     editingEntry = entry;
+    showEdit = true;
   }
 
   function closeEdit() {
-    editingEntry = null;
+    showEdit = false;
   }
 
   function openDeleteModal(entry: TimeEntry) {
@@ -276,7 +279,6 @@
 
   function closeDeleteModal() {
     showDeleteModal = false;
-    entryToDelete = null;
   }
 
   function confirmDeleteEntry() {
@@ -326,7 +328,7 @@
     if (
       event.key === "Escape" &&
       selecting &&
-      !editingEntry &&
+      !showEdit &&
       !showDeleteModal &&
       !showBulkEdit &&
       !showBulkDelete
@@ -815,7 +817,7 @@
   entry={editingEntry}
   {projects}
   {tags}
-  open={editingEntry !== null}
+  open={showEdit}
   onClose={closeEdit}
   onDelete={openDeleteModal}
 />

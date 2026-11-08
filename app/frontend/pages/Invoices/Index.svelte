@@ -201,7 +201,6 @@
 
   function closeDeleteModal() {
     showDeleteModal = false;
-    invoiceToDelete = null;
   }
 
   function confirmDeleteInvoice() {

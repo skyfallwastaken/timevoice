@@ -94,8 +94,10 @@
         preserveScroll: true,
         onSuccess: () => {
           showInviteModal = false;
-          $inviteForm.reset();
           turnstileToken = "";
+          // Keep the blank defaults the next open resets to; Inertia otherwise
+          // adopts the submitted values as the new defaults.
+          $inviteForm.defaults({});
         },
       });
   }
@@ -405,7 +407,6 @@
     title="Invite Member"
     onclose={() => {
       showInviteModal = false;
-      $inviteForm.reset();
     }}
   >
     <FormField id="invite-email" label="Email">
@@ -455,7 +456,6 @@
           variant="ghost"
           onclick={() => {
             showInviteModal = false;
-            $inviteForm.reset();
           }}
           disabled={$inviteForm.processing}
         >
