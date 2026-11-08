@@ -76,7 +76,8 @@ class SettingsController < ApplicationController
     end
 
     render inertia: "Settings/Billing", props: {
-      invoiceSettings: settings_json
+      invoiceSettings: settings_json,
+      notesMaxLength: InvoiceSetting::NOTES_MAX_LENGTH
     }
   end
 

@@ -7,6 +7,10 @@ class InvoicePdf
   TEXT_SECONDARY = "666666"
   TEXT_MUTED = "999999"
   BORDER_COLOR = "EEEEEE"
+  SAFE_LINK = /\A(https?:|mailto:)/i
+  NOTES_MARKDOWN_OPTIONS = {
+    extension: { strikethrough: true, autolink: true, table: false, tasklist: false, tagfilter: false, shortcodes: false }
+  }.freeze
 
   def initialize(invoice, invoice_setting)
     @invoice = invoice
@@ -37,7 +41,9 @@ class InvoicePdf
     @document.font_families.update(
       "PublicSans" => {
         normal: File.join(font_path, "PublicSans-Regular.ttf"),
-        bold: File.join(font_path, "PublicSans-Bold.ttf")
+        bold: File.join(font_path, "PublicSans-Bold.ttf"),
+        italic: File.join(font_path, "PublicSans-Italic.ttf"),
+        bold_italic: File.join(font_path, "PublicSans-BoldItalic.ttf")
       }
     )
 
@@ -216,6 +222,7 @@ class InvoicePdf
     return if notes.blank?
 
     @document.move_down 35
+    @document.start_new_page if @document.cursor < 80
 
     @document.stroke_color BORDER_COLOR
     @document.stroke_horizontal_rule
@@ -227,10 +234,75 @@ class InvoicePdf
 
     @document.move_down 8
 
-    @document.text notes,
-      size: 9,
-      color: TEXT_SECONDARY,
-      leading: 4
+    @document.font_size(9) do
+      render_markdown_blocks(Commonmarker.parse(notes, options: NOTES_MARKDOWN_OPTIONS))
+    end
+  end
+
+  def render_markdown_blocks(parent)
+    parent.each_with_index do |node, index|
+      @document.move_down 6 if index.positive?
+      render_markdown_block(node)
+    end
+  end
+
+  def render_markdown_block(node)
+    case node.type
+    when :paragraph
+      markdown_text(markdown_fragments(node))
+    when :heading
+      markdown_text(markdown_fragments(node, styles: [ :bold ], color: TEXT_PRIMARY), size: 10)
+    when :list
+      node.each_with_index do |item, index|
+        @document.move_down(node.list_tight ? 2 : 6) if index.positive?
+        marker = node.list_type == :ordered ? "#{node.list_start + index}." : "•"
+        @document.float { markdown_text([ { text: marker } ]) }
+        @document.indent(14) { render_markdown_blocks(item) }
+      end
+    when :block_quote
+      top, page = @document.cursor, @document.page_number
+      @document.indent(12) { render_markdown_blocks(node) }
+      @document.stroke_vertical_line(top, @document.cursor, at: 2) if @document.page_number == page
+    when :thematic_break
+      @document.move_down 2
+      @document.stroke_horizontal_rule
+      @document.move_down 2
+    when :code_block
+      markdown_text([ { text: node.string_content.chomp } ])
+    when :html_block
+      markdown_text([ { text: node.to_commonmark.chomp } ])
+    end
+  end
+
+  def markdown_fragments(node, styles: [], color: nil, link: nil)
+    node.flat_map do |child|
+      case child.type
+      when :text, :html_inline
+        text = child.type == :text ? child.string_content : child.to_commonmark.chomp
+        [ { text: text, styles: styles, color: color, link: link }.compact ]
+      when :code
+        [ { text: child.string_content, styles: styles, color: TEXT_PRIMARY, link: link }.compact ]
+      when :softbreak, :linebreak
+        [ { text: "\n" } ]
+      when :strong
+        markdown_fragments(child, styles: styles | [ :bold ], color: color, link: link)
+      when :emph
+        markdown_fragments(child, styles: styles | [ :italic ], color: color, link: link)
+      when :strikethrough
+        markdown_fragments(child, styles: styles | [ :strikethrough ], color: color, link: link)
+      when :link
+        url = child.url if child.url.match?(SAFE_LINK)
+        markdown_fragments(child, styles: styles, color: url ? BRAND_COLOR : color, link: url)
+      when :image
+        markdown_fragments(child, styles: styles, color: color, link: link)
+      else
+        []
+      end
+    end
+  end
+
+  def markdown_text(fragments, **options)
+    @document.formatted_text(fragments, color: TEXT_SECONDARY, leading: 4, **options)
   end
 
   def format_currency(cents)
