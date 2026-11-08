@@ -1,11 +1,18 @@
 class ReportsController < ApplicationController
   include ReportCalculable
 
+  MAX_RANGE = 5.years
+
   def index
     authorize current_workspace, :show?
 
     start_date = parse_date(params[:start_date]) || Time.current.beginning_of_week.to_date
     end_date = parse_date(params[:end_date]) || Time.current.end_of_week.to_date
+    earliest_start = end_date - MAX_RANGE + 1.day
+    if start_date < earliest_start
+      start_date = earliest_start
+      flash.now[:notice] = "Reports cover at most 5 years, so this one starts on #{start_date.strftime("%b %-d, %Y")}."
+    end
 
     @entries = current_user.time_entries
       .where(workspace: current_workspace)

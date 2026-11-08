@@ -27,6 +27,10 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
       user: @user, workspace: @workspace, description: "Review",
       start_at: Time.utc(2026, 11, 4, 9), end_at: Time.utc(2026, 11, 4, 10)
     )
+    TimeEntry.create!(
+      user: @user, workspace: @workspace, description: "Kickoff",
+      start_at: Time.utc(2026, 10, 3, 9), end_at: Time.utc(2026, 10, 3, 9, 30)
+    )
 
     get "/#{@workspace.hashid}/reports", params: { start_date: "2026-10-01", end_date: "2026-12-31" }
 
@@ -35,6 +39,27 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2026-10-01", totals["daily"].keys.first
     assert_equal "2026-12-28", totals["daily"].keys.last
     assert_equal 14, totals["daily"].size
+    assert_equal 1800, totals["daily"]["2026-10-01"]["total"]
+    assert_equal 0, totals["daily"]["2026-10-05"]["total"]
     assert_equal 3600, totals["daily"]["2026-11-02"]["total"]
+  end
+
+  test "ranges over 5 years are clamped and bucketed by month" do
+    TimeEntry.create!(
+      user: @user, workspace: @workspace, description: "Old work",
+      start_at: Time.utc(2021, 11, 20, 9), end_at: Time.utc(2021, 11, 20, 10)
+    )
+
+    get "/#{@workspace.hashid}/reports", params: { start_date: "1900-01-15", end_date: "2026-11-08" }
+
+    assert_equal "2021-11-09", inertia_props.dig("dateRange", "start")
+    assert_match "at most 5 years", inertia_props.dig("flash", "notice")
+    totals = inertia_props["totals"]
+    assert_equal "month", totals["bucket"]
+    assert_equal 61, totals["daily"].size
+    assert_equal "2021-11-09", totals["daily"].keys.first
+    assert_equal "2026-11-01", totals["daily"].keys.last
+    assert_equal 3600, totals["daily"]["2021-11-09"]["total"]
+    assert_equal 0, totals["daily"]["2021-12-01"]["total"]
   end
 end
