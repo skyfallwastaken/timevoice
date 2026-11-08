@@ -2,6 +2,11 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
+# Build the Vite test assets once here, before parallel workers fork; otherwise
+# each worker's first page render starts its own build and they race on
+# public/vite-test (missing manifest, "Directory not empty").
+ViteRuby.commands.build || abort("Vite build failed")
+
 module ActiveSupport
   class TestCase
     parallelize(workers: :number_of_processors)
