@@ -162,12 +162,23 @@
     return `${hour % 12 || 12} ${suffix}`;
   }
 
+  // When the days don't all fit (phones), widen the columns so a whole
+  // number of them fill the view; scrolling then always ends on a column edge.
+  const HOURS_WIDTH = 64;
+  const MIN_COLUMN = 104;
+  let viewWidth = $state(0);
+  let columnWidth = $derived.by(() => {
+    const room = viewWidth - HOURS_WIDTH;
+    const fits = Math.max(1, Math.floor(room / MIN_COLUMN));
+    return viewWidth && fits < dayCount ? room / fits : null;
+  });
+
   // Start scrolled to the first tracked hour of the week, or 8 AM, with
-  // today's column in view.
+  // today's column at the left edge, or the week's first day otherwise.
   let scroller: HTMLDivElement | null = $state(null);
   let scrolledWeek = "";
   $effect(() => {
-    if (!scroller || scrolledWeek === weekStart) return;
+    if (!scroller || !viewWidth || scrolledWeek === weekStart) return;
     scrolledWeek = weekStart;
     const firstHour = Math.min(
       8,
@@ -175,9 +186,8 @@
     );
     scroller.scrollTop = Math.max(0, (firstHour - 1) * HOUR - 12);
     const today = scroller.querySelector<HTMLElement>("[data-today]");
-    if (today && today.offsetLeft + today.offsetWidth > scroller.clientWidth) {
-      scroller.scrollLeft = today.offsetLeft - 64;
-    }
+    scroller.scrollLeft =
+      today && columnWidth ? Number(today.dataset.dayIndex) * columnWidth : 0;
   });
 
   // Drag on an empty part of a day to select a time for a new entry, or click
@@ -340,8 +350,16 @@
   onpointercancel={cancelDrag}
 />
 
-<div bind:this={scroller} class="h-full overflow-auto">
-  <div style="min-width: calc(4rem + {dayCount} * 6.5rem)">
+<div
+  bind:this={scroller}
+  bind:clientWidth={viewWidth}
+  class="h-full overflow-auto snap-x snap-mandatory scroll-pl-16"
+>
+  <div
+    style="min-width: {columnWidth
+      ? `${HOURS_WIDTH + dayCount * columnWidth}px`
+      : `calc(4rem + ${dayCount} * 6.5rem)`}"
+  >
     <div
       class="sticky top-0 z-30 grid bg-bg-primary border-b border-bg-tertiary"
       style="grid-template-columns: {columns}"
@@ -396,7 +414,7 @@
         {@const isToday = toDateString(day) === todayKey}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="relative border-l border-bg-tertiary select-none {isToday
+          class="relative snap-start border-l border-bg-tertiary select-none {isToday
             ? 'bg-bright-purple/[0.03]'
             : ''}"
           style="height: {24 *

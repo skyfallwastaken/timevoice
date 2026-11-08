@@ -27,6 +27,22 @@ class TimeEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 10 * 60, later.reload.duration_seconds
   end
 
+  test "editing the running timer keeps it running" do
+    entry = TimeEntry.create!(user: @user, workspace: @workspace, description: "Draft", start_at: 10.minutes.ago)
+
+    patch "/#{@workspace.hashid}/time_entries/#{entry.id}", params: {
+      time_entry: { description: "", project_id: projects(:one).id, billable: true, tag_ids: [ tags(:one).id ] }
+    }
+
+    entry.reload
+    assert entry.running?
+    assert_equal [ "", projects(:one).id, true, [ tags(:one).id ] ], [ entry.description, entry.project_id, entry.billable, entry.tag_ids ]
+
+    patch "/#{@workspace.hashid}/time_entries/#{entry.id}", params: { time_entry: { tag_ids: [ "" ] } }, as: :json
+    assert_empty entry.reload.tags
+    assert entry.running?
+  end
+
   test "attaching a file to an entry keeps its other attachments and adds the file once" do
     entry = time_entries(:one)
     entry.files.attach(io: StringIO.new("a"), filename: "first.txt")

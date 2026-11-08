@@ -5,7 +5,7 @@
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { routes } from "../../lib/routes";
-  import SelectInput from "../../components/SelectInput.svelte";
+  import EmptyState from "../../components/EmptyState.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import TimeEntryEditor from "../../components/TimeEntryEditor.svelte";
   import TimeEntryBulkEditModal from "../../components/TimeEntryBulkEditModal.svelte";
@@ -28,13 +28,16 @@
     ChevronDown,
     CalendarDays,
     List,
+    Clock,
+    SearchX,
   } from "@lucide/svelte";
   import { formatDuration, formatHours, toDateString } from "../../lib/format";
   import {
     draftFromEntry,
     type TimeEntryDraft,
   } from "../../lib/time-entry-form";
-  import type { Project, Tag, TimeEntry } from "../../types";
+  import type { Snippet } from "svelte";
+  import type { Project, RecentDescription, Tag, TimeEntry } from "../../types";
 
   let projects = $derived((page.props.projects as Project[]) || []);
   let tags = $derived((page.props.tags as Tag[]) || []);
@@ -44,14 +47,20 @@
   let weekStart = $derived((page.props.weekStart as string) || "");
   let hasEntries = $derived(!!page.props.hasEntries);
   let entryLimit = $derived((page.props.entryLimit as number) || 0);
+  let recentDescriptions = $derived(
+    (page.props.recentDescriptions as RecentDescription[]) || [],
+  );
 
   const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  type Filters = { range: string; project_id: string; q: string };
+  // `date` is the first day of the period the list shows; empty means the
+  // range preset relative to today.
+  type Filters = { range: string; date: string; project_id: string; q: string };
 
   const initialFilters = (page.props.filters as Partial<Filters>) || {};
   let filters = $state<Filters>({
     range: initialFilters.range ?? "this_week",
+    date: initialFilters.date ?? "",
     project_id: initialFilters.project_id ?? "",
     q: initialFilters.q ?? "",
   });
@@ -66,6 +75,7 @@
         routes.dashboard.index(workspaceId),
         {
           range: filters.range,
+          date: filters.date || undefined,
           project_id: filters.project_id || undefined,
           q: filters.q.trim() || undefined,
         },
@@ -116,23 +126,117 @@
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   }
 
-  let weekLabel = $derived.by(() => {
-    if (!weekStart) return "";
-    const start = new Date(`${weekStart}T00:00:00`);
-    const thisWeek = new Date();
-    thisWeek.setHours(0, 0, 0, 0);
-    thisWeek.setDate(thisWeek.getDate() - ((thisWeek.getDay() + 6) % 7));
+  // Where each range preset starts, relative to today.
+  function presetStart(range: string) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    if (range === "this_month") date.setDate(1);
+    if (range === "this_week" || range === "last_week")
+      date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    if (range === "last_week") date.setDate(date.getDate() - 7);
+    return date;
+  }
+
+  function weekLabelFor(start: Date, days: number) {
     const weeksAway = Math.round(
-      (start.getTime() - thisWeek.getTime()) / (7 * 86400000),
+      (start.getTime() - presetStart("this_week").getTime()) / (7 * 86400000),
     );
     if (weeksAway === 0) return "This week";
     if (weeksAway === -1) return "Last week";
     const end = new Date(start);
-    end.setDate(start.getDate() + dayCount - 1);
+    end.setDate(start.getDate() + days - 1);
     const short = (date: Date) =>
       date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     return `${short(start)} – ${short(end)}`;
+  }
+
+  let weekLabel = $derived(
+    weekStart ? weekLabelFor(new Date(`${weekStart}T00:00:00`), dayCount) : "",
+  );
+
+  // The list's period: a day, week or month the arrows step through.
+  const rangePresets = [
+    { value: "today", label: "Today" },
+    { value: "this_week", label: "This week" },
+    { value: "last_week", label: "Last week" },
+    { value: "this_month", label: "This month" },
+    { value: "all", label: "All dates" },
+  ];
+  const periodKindOf = (range: string) =>
+    range === "today"
+      ? "day"
+      : range === "this_month"
+        ? "month"
+        : range === "all"
+          ? null
+          : "week";
+  let periodKind = $derived(periodKindOf(filters.range));
+  let periodStart = $derived(
+    filters.date
+      ? new Date(`${filters.date}T00:00:00`)
+      : presetStart(filters.range),
+  );
+  let periodLabel = $derived.by(() => {
+    if (periodKind === "day") return dayLabel(toDateString(periodStart));
+    if (periodKind === "week") return weekLabelFor(periodStart, 7);
+    if (periodKind === "month") {
+      const thisMonth = presetStart("this_month");
+      const monthsAway =
+        (periodStart.getFullYear() - thisMonth.getFullYear()) * 12 +
+        periodStart.getMonth() -
+        thisMonth.getMonth();
+      if (monthsAway === 0) return "This month";
+      if (monthsAway === -1) return "Last month";
+      return periodStart.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+    return "All dates";
   });
+  // The preset the period matches, if any, so the menu can check it.
+  let activePreset = $derived(
+    rangePresets.find(
+      ({ value }) =>
+        periodKindOf(value) === periodKind &&
+        (!periodKind || presetStart(value).getTime() === periodStart.getTime()),
+    )?.value ?? "",
+  );
+
+  function selectPreset(range: string) {
+    filters.range = range;
+    filters.date = "";
+    applyFilters();
+  }
+
+  function shiftPeriod(step: number) {
+    if (!periodKind) return;
+    const next = new Date(periodStart);
+    if (periodKind === "day") next.setDate(next.getDate() + step);
+    if (periodKind === "week") next.setDate(next.getDate() + step * 7);
+    if (periodKind === "month") next.setMonth(next.getMonth() + step);
+    filters.date = toDateString(next);
+    applyFilters();
+  }
+
+  function clearFilters() {
+    filters.q = "";
+    filters.project_id = "";
+    applyFilters();
+  }
+
+  // "this week", "yesterday", "for Oct 26 – Nov 1"; empty for all dates.
+  let periodPhrase = $derived(
+    !periodKind
+      ? ""
+      : /^(Today|Yesterday|This|Last)/.test(periodLabel)
+        ? periodLabel.toLowerCase()
+        : `for ${periodLabel}`,
+  );
+
+  let filterProject = $derived(
+    projects.find((p) => String(p.id) === String(filters.project_id)),
+  );
 
   // What the Logged bar sums: the visible calendar days, or the listed entries.
   let loggedEntries = $derived.by(() => {
@@ -163,14 +267,6 @@
   let loggedTotal = $derived(
     loggedByProject.reduce((sum, row) => sum + row.seconds, 0),
   );
-
-  const rangeLabels: Record<string, string> = {
-    today: "today",
-    this_week: "this week",
-    last_week: "last week",
-    this_month: "this month",
-    all: "",
-  };
 
   // Entries arrive newest first; group them by the local day they started.
   let groups = $derived.by(() => {
@@ -357,13 +453,112 @@
     }
   }
 
+  const stepperLabel =
+    "flex flex-1 @3xl:flex-none items-center justify-center gap-2 h-full @3xl:w-52 px-3 border-x border-bg-tertiary text-base md:text-sm font-medium font-tabular hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary transition-colors";
+  const toolbarButton =
+    "inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-base md:text-sm font-medium hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary transition-colors";
+
   const checkboxReveal =
     "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<TimerInput runningEntry={page.props.runningEntry} {projects} {tags} />
+{#snippet stepper(
+  unit: string,
+  shift: (step: number) => void,
+  label: Snippet,
+  disabled = false,
+)}
+  <div
+    class="flex items-center w-full @3xl:w-auto h-8 rounded-lg border border-bg-tertiary bg-bg-primary"
+  >
+    <button
+      type="button"
+      class="grid place-items-center w-8 h-full rounded-l-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors disabled:opacity-40 disabled:pointer-events-none"
+      aria-label="Previous {unit}"
+      {disabled}
+      onclick={() => shift(-1)}
+    >
+      <ChevronLeft class="size-4" aria-hidden="true" />
+    </button>
+    {@render label()}
+    <button
+      type="button"
+      class="grid place-items-center w-8 h-full rounded-r-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors disabled:opacity-40 disabled:pointer-events-none"
+      aria-label="Next {unit}"
+      {disabled}
+      onclick={() => shift(1)}
+    >
+      <ChevronRight class="size-4" aria-hidden="true" />
+    </button>
+  </div>
+{/snippet}
+
+{#snippet calendarWeek()}
+  <button
+    type="button"
+    class={stepperLabel}
+    title="Go to this week"
+    onclick={() => visit({ view: "calendar" })}
+  >
+    <CalendarDays class="size-4 text-fg-muted" aria-hidden="true" />
+    {weekLabel}
+    <span class="text-fg-muted font-normal"
+      >· W{isoWeek(new Date(`${weekStart}T00:00:00`))}</span
+    >
+  </button>
+{/snippet}
+
+{#snippet listPeriod()}
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger>
+      {#snippet child({ props })}
+        <button
+          {...props}
+          id="filter-date"
+          type="button"
+          class={stepperLabel}
+          aria-label="Date range: {periodLabel}"
+        >
+          <CalendarDays class="size-4 text-fg-muted" aria-hidden="true" />
+          <span class="truncate">{periodLabel}</span>
+          {#if periodKind === "week"}
+            <span class="text-fg-muted font-normal shrink-0"
+              >· W{isoWeek(periodStart)}</span
+            >
+          {/if}
+          <ChevronDown
+            class="size-4 text-fg-muted shrink-0 ml-auto"
+            aria-hidden="true"
+          />
+        </button>
+      {/snippet}
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content align="center" class="min-w-44">
+      <DropdownMenu.RadioGroup
+        value={activePreset}
+        onValueChange={selectPreset}
+      >
+        {#each rangePresets as preset (preset.value)}
+          <DropdownMenu.RadioItem
+            value={preset.value}
+            closeOnSelect
+            class="px-2 py-1.5 rounded-[5px]"
+            >{preset.label}</DropdownMenu.RadioItem
+          >
+        {/each}
+      </DropdownMenu.RadioGroup>
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+{/snippet}
+
+<TimerInput
+  runningEntry={page.props.runningEntry}
+  {projects}
+  {tags}
+  {recentDescriptions}
+/>
 
 <div class="@container shrink-0 bg-bg-secondary border-b border-bg-tertiary">
   <div
@@ -376,38 +571,7 @@
         : "Filter entries"}
   >
     {#if view === "calendar"}
-      <div
-        class="flex items-center w-full @3xl:w-auto h-8 rounded-lg border border-bg-tertiary bg-bg-primary"
-      >
-        <button
-          type="button"
-          class="grid place-items-center w-8 h-full rounded-l-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
-          aria-label="Previous week"
-          onclick={() => shiftWeek(-1)}
-        >
-          <ChevronLeft class="size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          class="flex flex-1 @3xl:flex-none items-center justify-center gap-2 h-full @3xl:w-52 px-3 border-x border-bg-tertiary text-base md:text-sm font-medium font-tabular hover:bg-bg-tertiary transition-colors"
-          title="Go to this week"
-          onclick={() => visit({ view: "calendar" })}
-        >
-          <CalendarDays class="size-4 text-fg-muted" aria-hidden="true" />
-          {weekLabel}
-          <span class="text-fg-muted font-normal"
-            >· W{isoWeek(new Date(`${weekStart}T00:00:00`))}</span
-          >
-        </button>
-        <button
-          type="button"
-          class="grid place-items-center w-8 h-full rounded-r-[7px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
-          aria-label="Next week"
-          onclick={() => shiftWeek(1)}
-        >
-          <ChevronRight class="size-4" aria-hidden="true" />
-        </button>
-      </div>
+      {@render stepper("week", shiftWeek, calendarWeek)}
     {:else}
       <div class="contents @3xl:flex @3xl:flex-1 @3xl:items-center @3xl:gap-2">
         {#if selecting}
@@ -450,34 +614,76 @@
             </button>
           </div>
         {:else}
-          <label class="sr-only" for="filter-date">Date range</label>
-          <div class="grow basis-[calc(50%-0.5rem)] @3xl:grow-0 @3xl:basis-36">
-            <SelectInput
-              id="filter-date"
-              bind:value={filters.range}
-              onchange={() => applyFilters()}
-              class="h-8 rounded-lg py-0 bg-bg-primary"
-            >
-              <option value="today">Today</option>
-              <option value="this_week">This week</option>
-              <option value="last_week">Last week</option>
-              <option value="this_month">This month</option>
-              <option value="all">All dates</option>
-            </SelectInput>
+          <div class="basis-full @3xl:basis-auto">
+            {@render stepper(
+              periodKind ?? "period",
+              shiftPeriod,
+              listPeriod,
+              !periodKind,
+            )}
           </div>
-          <label class="sr-only" for="filter-project">Project</label>
           <div class="grow basis-[calc(50%-0.5rem)] @3xl:grow-0 @3xl:basis-44">
-            <SelectInput
-              id="filter-project"
-              bind:value={filters.project_id}
-              onchange={() => applyFilters()}
-              class="h-8 rounded-lg py-0 bg-bg-primary"
-            >
-              <option value="">All projects</option>
-              {#each projects as project}
-                <option value={project.id}>{project.name}</option>
-              {/each}
-            </SelectInput>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                {#snippet child({ props })}
+                  <button
+                    {...props}
+                    id="filter-project"
+                    type="button"
+                    class="{toolbarButton} w-full"
+                    aria-label="Project: {filterProject?.name ??
+                      'All projects'}"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      {#if filterProject}
+                        <span
+                          class="size-2 shrink-0 rounded-full"
+                          style="background-color: {filterProject.color}"
+                          aria-hidden="true"
+                        ></span>
+                      {/if}
+                      <span class="truncate"
+                        >{filterProject?.name ?? "All projects"}</span
+                      >
+                    </span>
+                    <ChevronDown
+                      class="size-4 shrink-0 text-fg-muted"
+                      aria-hidden="true"
+                    />
+                  </button>
+                {/snippet}
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="start" class="min-w-52">
+                <DropdownMenu.RadioGroup
+                  value={filterProject ? String(filterProject.id) : "all"}
+                  onValueChange={(value) => {
+                    filters.project_id = value === "all" ? "" : value;
+                    applyFilters();
+                  }}
+                >
+                  <DropdownMenu.RadioItem
+                    value="all"
+                    closeOnSelect
+                    class="px-2 py-1.5 rounded-[5px]"
+                    >All projects</DropdownMenu.RadioItem
+                  >
+                  {#each projects as project (project.id)}
+                    <DropdownMenu.RadioItem
+                      value={String(project.id)}
+                      closeOnSelect
+                      class="gap-2 px-2 py-1.5 rounded-[5px]"
+                    >
+                      <span
+                        class="size-2 shrink-0 rounded-full"
+                        style="background-color: {project.color}"
+                        aria-hidden="true"
+                      ></span>
+                      <span class="truncate">{project.name}</span>
+                    </DropdownMenu.RadioItem>
+                  {/each}
+                </DropdownMenu.RadioGroup>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           </div>
         {/if}
         <div class="relative flex-1 min-w-40 {selecting ? '@3xl:hidden' : ''}">
@@ -509,7 +715,7 @@
               <button
                 {...props}
                 type="button"
-                class="inline-flex @max-3xl:flex-1 items-center justify-between gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-base md:text-sm font-medium hover:bg-bg-tertiary transition-colors"
+                class="{toolbarButton} @max-3xl:flex-1"
               >
                 {dayCount} days
                 <ChevronDown class="size-4 text-fg-muted" aria-hidden="true" />
@@ -608,24 +814,28 @@
 {:else}
   <div class="flex-1 overflow-auto">
     <div class="px-4 md:px-6 py-4">
-      {#if !hasEntries}
-        <div
-          class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
-        >
-          <p class="text-fg-primary font-medium">No time tracked yet</p>
-          <p class="mt-1">
-            Type what you're working on above and press Enter to start the
-            timer.
-          </p>
-        </div>
-      {:else if recentEntries.length === 0}
-        <div
-          class="p-8 text-center text-fg-muted bg-bg-secondary border border-bg-tertiary rounded-[10px]"
-        >
-          {#if filters.q || filters.project_id}
-            <p>No time entries match your filters.</p>
+      {#if !hasEntries || recentEntries.length === 0}
+        <div class="bg-bg-secondary border border-bg-tertiary rounded-[10px]">
+          {#if !hasEntries}
+            <EmptyState
+              icon={Clock}
+              title="No time tracked yet"
+              description="Type what you're working on above and press Enter to start the timer."
+            />
+          {:else if filters.q || filters.project_id}
+            <EmptyState
+              icon={SearchX}
+              title="No matching entries"
+              description="Nothing {periodPhrase} matches your search or project filter."
+              actionLabel="Clear filters"
+              onAction={clearFilters}
+            />
           {:else}
-            <p>No time entries {rangeLabels[filters.range]}.</p>
+            <EmptyState
+              icon={CalendarDays}
+              title="Nothing tracked {periodPhrase}"
+              description="Use the arrows to look at another period, or start a timer above."
+            />
           {/if}
         </div>
       {:else}

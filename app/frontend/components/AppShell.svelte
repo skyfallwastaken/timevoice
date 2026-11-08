@@ -14,6 +14,7 @@
     X,
     Plus,
     Workflow,
+    Square,
   } from "@lucide/svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
@@ -26,6 +27,8 @@
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
   import { routes } from "../lib/routes";
+  import { formatDuration } from "../lib/format";
+  import type { RunningEntry } from "../types";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import { Toaster } from "$lib/components/ui/sonner/index.js";
   import { toast } from "svelte-sonner";
@@ -171,6 +174,50 @@
   });
 
   const workspaces = $derived(page.props.auth?.workspaces || []);
+
+  // The running timer, shown in the tab title on every page and in the
+  // sidebar and mobile header off the Timer page, which has its own.
+  const runningEntry = $derived(
+    (page.props.runningEntry as RunningEntry | null | undefined) ?? null,
+  );
+  const showRunningTimer = $derived(
+    !!runningEntry && page.component !== "Dashboard/Index",
+  );
+  let now = $state(Date.now());
+  $effect(() => {
+    if (!runningEntry) return;
+    now = Date.now();
+    const interval = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(interval);
+  });
+  const runningElapsed = $derived(
+    runningEntry
+      ? formatDuration(
+          Math.max(
+            0,
+            Math.floor(
+              (now - new Date(runningEntry.start_at).getTime()) / 1000,
+            ),
+          ),
+        )
+      : "",
+  );
+  $effect(() => {
+    document.title = runningEntry
+      ? `${[runningElapsed, runningEntry.description].filter(Boolean).join(" · ")} – Timevoice`
+      : "Timevoice";
+  });
+
+  let stopping = $state(false);
+  function stopRunningTimer() {
+    if (!runningEntry || stopping) return;
+    stopping = true;
+    router.patch(
+      routes.timeEntries.stop(currentWorkspaceHashid, runningEntry.id),
+      {},
+      { preserveScroll: true, onFinish: () => (stopping = false) },
+    );
+  }
 
   let mobileNavOpen = $state(false);
   let showCreateModal = $state(false);
@@ -324,6 +371,54 @@
   </DropdownMenu.Root>
 {/snippet}
 
+{#snippet runningTimer()}
+  {#if runningEntry}
+    <div
+      class="flex items-center gap-2 p-2 pl-3 rounded-[10px] bg-bg-tertiary"
+      data-running-timer
+    >
+      <Link
+        href={routes.dashboard.index(currentWorkspaceHashid)}
+        class="flex-1 min-w-0 rounded-[6px] focus-visible:ring-2 focus-visible:ring-bright-blue"
+        aria-label="Running timer: {runningEntry.description ||
+          'No description'}, {runningElapsed}"
+      >
+        <p class="flex items-center gap-1.5 text-sm font-medium min-w-0">
+          <span
+            class="size-2 shrink-0 rounded-full {runningEntry.project
+              ? ''
+              : 'bg-fg-dim'}"
+            style={runningEntry.project
+              ? `background-color: ${runningEntry.project.color}`
+              : undefined}
+            aria-hidden="true"
+          ></span>
+          <span
+            class="truncate {runningEntry.description ? '' : 'text-fg-muted'}"
+            >{runningEntry.description || "No description"}</span
+          >
+        </p>
+        <p class="flex items-center gap-1.5 text-xs text-fg-muted min-w-0">
+          <span class="font-tabular text-fg-primary">{runningElapsed}</span>
+          {#if runningEntry.project}
+            <span class="truncate">· {runningEntry.project.name}</span>
+          {/if}
+        </p>
+      </Link>
+      <button
+        type="button"
+        onclick={stopRunningTimer}
+        disabled={stopping}
+        class="size-8 shrink-0 grid place-items-center rounded-full bg-bright-red hover:bg-accent-red text-bg-primary transition-colors duration-150 disabled:opacity-50"
+        aria-label="Stop timer"
+        title="Stop timer"
+      >
+        <Square class="size-3 fill-current" aria-hidden="true" />
+      </button>
+    </div>
+  {/if}
+{/snippet}
+
 {#snippet userProfile()}
   <div class="flex items-center gap-3 px-3 py-2">
     {#if user?.avatar_url}
@@ -376,14 +471,51 @@
         <Menu class="w-5 h-5" aria-hidden="true" />
       </IconButton>
 
-      <div class="min-w-0 text-center">
-        <p class="text-sm font-semibold truncate">
-          {workspace?.name || "Workspace"}
-        </p>
-        <p class="text-xs text-fg-muted truncate">{user?.name || ""}</p>
-      </div>
+      {#if showRunningTimer && runningEntry}
+        <Link
+          href={routes.dashboard.index(currentWorkspaceHashid)}
+          class="flex-1 min-w-0 px-3 text-center"
+          aria-label="Running timer: {runningEntry.description ||
+            'No description'}, {runningElapsed}"
+          data-running-timer
+        >
+          <p
+            class="flex items-center justify-center gap-1.5 text-sm font-semibold font-tabular"
+          >
+            <span
+              class="size-2 shrink-0 rounded-full {runningEntry.project
+                ? ''
+                : 'bg-fg-dim'}"
+              style={runningEntry.project
+                ? `background-color: ${runningEntry.project.color}`
+                : undefined}
+              aria-hidden="true"
+            ></span>
+            {runningElapsed}
+          </p>
+          <p class="text-xs text-fg-muted truncate">
+            {runningEntry.description || "No description"}
+          </p>
+        </Link>
+        <button
+          type="button"
+          onclick={stopRunningTimer}
+          disabled={stopping}
+          class="size-9 shrink-0 grid place-items-center rounded-full bg-bright-red hover:bg-accent-red text-bg-primary transition-colors duration-150 disabled:opacity-50"
+          aria-label="Stop timer"
+        >
+          <Square class="size-3.5 fill-current" aria-hidden="true" />
+        </button>
+      {:else}
+        <div class="min-w-0 text-center">
+          <p class="text-sm font-semibold truncate">
+            {workspace?.name || "Workspace"}
+          </p>
+          <p class="text-xs text-fg-muted truncate">{user?.name || ""}</p>
+        </div>
 
-      <div class="w-9 shrink-0" aria-hidden="true"></div>
+        <div class="w-9 shrink-0" aria-hidden="true"></div>
+      {/if}
     </div>
   </header>
 
@@ -480,6 +612,12 @@
             <span class="text-sm font-medium">Jobs</span>
           </a>
         </div>
+      </div>
+    {/if}
+
+    {#if showRunningTimer}
+      <div class="px-4 pb-4">
+        {@render runningTimer()}
       </div>
     {/if}
 

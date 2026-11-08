@@ -29,8 +29,19 @@
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { cn } from "$lib/utils.js";
   import { toast } from "svelte-sonner";
+  import type { Project, RecentDescription, RunningEntry, Tag } from "../types";
 
-  let { runningEntry, projects = [], tags = [] } = $props();
+  let {
+    runningEntry,
+    projects = [],
+    tags = [],
+    recentDescriptions = [],
+  }: {
+    runningEntry: RunningEntry | null;
+    projects?: Project[];
+    tags?: Tag[];
+    recentDescriptions?: RecentDescription[];
+  } = $props();
 
   const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
@@ -50,6 +61,7 @@
       form.tag_ids = runningEntry.tags?.map((t: { id: number }) => t.id) ?? [];
       form.billable = runningEntry.billable ?? false;
       lastSyncedEntryId = runningEntry.id;
+      sentDescription = null;
     } else if (!runningEntry && lastSyncedEntryId !== null) {
       lastSyncedEntryId = null;
     }
@@ -370,11 +382,26 @@
       });
   }
 
-  function stopTimer({
-    keepForm = false,
-    endAt,
-    onDone,
-  }: { keepForm?: boolean; endAt?: Date; onDone?: () => void } = {}) {
+  type StopOptions = { keepForm?: boolean; endAt?: Date; onDone?: () => void };
+
+  // Pending edits are saved first. If that fails, a manual stop keeps the
+  // timer running so the typed description isn't lost; a finished countdown
+  // still stops, keeping its description in the form.
+  function stopTimer(options: StopOptions = {}) {
+    if (!runningEntry) return;
+    saveDescription((saved) => {
+      if (saved || options.keepForm) {
+        sendStop(options);
+      } else {
+        finishing = false;
+        toast.error(
+          "Couldn't save your changes, so the timer is still running.",
+        );
+      }
+    });
+  }
+
+  function sendStop({ keepForm = false, endAt, onDone }: StopOptions) {
     if (!runningEntry) return;
 
     const formData = new FormData();
@@ -424,14 +451,179 @@
     form.project_id = project?.id ?? null;
     if (project?.billable_default) form.billable = true;
     showProjectDropdown = false;
+    saveRunning({ project_id: form.project_id, billable: form.billable });
   }
 
   function toggleTag(tagId: number) {
     form.tag_ids = toggleSelectedTag(form.tag_ids, tagId);
+    saveRunning({ tag_ids: form.tag_ids });
+  }
+
+  function toggleBillable() {
+    form.billable = !form.billable;
+    saveRunning({ billable: form.billable });
+  }
+
+  // The running timer saves each change as it's made. The description saves
+  // after a pause in typing, on Enter, or when the field loses focus. Saves
+  // run in the background so they don't cancel, or get cancelled by, a visit,
+  // and one at a time: changes made while one is in flight are merged into
+  // the next, so an older request can't overwrite a newer change.
+  let descriptionSave: ReturnType<typeof setTimeout> | undefined;
+  let saveInFlight = false;
+  let pendingFields: Partial<RecentDescription> = {};
+  let saveFailed = false;
+  let afterSaves: ((saved: boolean) => void)[] = [];
+  // The description last sent to the server, which the runningEntry prop
+  // lags behind while that save is in flight; null until one is sent, or
+  // after one fails.
+  let sentDescription: string | null = null;
+
+  function saveRunning(
+    fields: Partial<RecentDescription>,
+    onSaved?: (saved: boolean) => void,
+  ) {
+    pendingFields = { ...pendingFields, ...fields };
+    if (onSaved) afterSaves.push(onSaved);
+    if (!saveInFlight) sendPendingFields();
+  }
+
+  function sendPendingFields() {
+    const { tag_ids, ...fields } = pendingFields;
+    pendingFields = {};
+    if (!runningEntry || (!tag_ids && !Object.keys(fields).length)) {
+      const callbacks = afterSaves;
+      const saved = !saveFailed;
+      afterSaves = [];
+      saveFailed = false;
+      callbacks.forEach((callback) => callback(saved));
+      return;
+    }
+    saveInFlight = true;
+    if (fields.description !== undefined) sentDescription = fields.description;
+    let saved = false;
+    router.patch(
+      routes.timeEntries.update(workspaceId, runningEntry.id),
+      {
+        time_entry: {
+          ...fields,
+          // An empty list leaves the tags unchanged; [""] clears them.
+          ...(tag_ids && { tag_ids: tag_ids.length ? tag_ids : [""] }),
+        },
+      },
+      {
+        async: true,
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => (saved = true),
+        onFinish: () => {
+          saveInFlight = false;
+          if (!saved) {
+            saveFailed = true;
+            sentDescription = null;
+          }
+          sendPendingFields();
+        },
+      },
+    );
+  }
+
+  function saveDescription(onSaved?: (saved: boolean) => void) {
+    clearTimeout(descriptionSave);
+    descriptionSave = undefined;
+    const latest =
+      pendingFields.description ??
+      sentDescription ??
+      runningEntry?.description ??
+      "";
+    const changed = !!runningEntry && form.description !== latest;
+    saveRunning(changed ? { description: form.description } : {}, onSaved);
+  }
+
+  $effect(() => () => {
+    if (descriptionSave) saveDescription();
+  });
+
+  // Suggestions from past entries; picking one fills in its details too.
+  let suggestionsOpen = $state(false);
+  let activeSuggestion = $state(-1);
+  let suggestions = $derived.by(() => {
+    const query = form.description.trim().toLowerCase();
+    if (!query) return [];
+    const matches = recentDescriptions.filter((recent) =>
+      recent.description.toLowerCase().includes(query),
+    );
+    const prefix = (recent: RecentDescription) =>
+      recent.description.toLowerCase().startsWith(query);
+    return [
+      ...matches.filter(prefix),
+      ...matches.filter((recent) => !prefix(recent)),
+    ].slice(0, 8);
+  });
+  let showSuggestions = $derived(suggestionsOpen && suggestions.length > 0);
+
+  function pickSuggestion(recent: RecentDescription) {
+    suggestionsOpen = false;
+    clearTimeout(descriptionSave);
+    descriptionSave = undefined;
+    form.description = recent.description;
+    form.project_id = projects.some((p) => p.id === recent.project_id)
+      ? recent.project_id
+      : null;
+    form.tag_ids = recent.tag_ids.filter((id) => tags.some((t) => t.id === id));
+    form.billable = recent.billable;
+    saveRunning({
+      description: form.description,
+      project_id: form.project_id,
+      tag_ids: form.tag_ids,
+      billable: form.billable,
+    });
+  }
+
+  function handleDescriptionInput() {
+    suggestionsOpen = true;
+    activeSuggestion = -1;
+    if (!runningEntry) return;
+    clearTimeout(descriptionSave);
+    descriptionSave = setTimeout(saveDescription, 600);
   }
 
   function handleDescriptionKeydown(event: KeyboardEvent) {
-    if (event.key !== "Enter" || isRunning || !form.description.trim()) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!suggestions.length) return;
+      event.preventDefault();
+      const count = suggestions.length;
+      if (!showSuggestions) {
+        suggestionsOpen = true;
+        activeSuggestion = event.key === "ArrowDown" ? 0 : count - 1;
+      } else {
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        activeSuggestion =
+          activeSuggestion === -1 && step === -1
+            ? count - 1
+            : (activeSuggestion + step + count) % count;
+      }
+      return;
+    }
+    if (event.key === "Escape" && showSuggestions) {
+      event.preventDefault();
+      event.stopPropagation();
+      suggestionsOpen = false;
+      return;
+    }
+    if (event.key !== "Enter") return;
+    if (showSuggestions && activeSuggestion >= 0) {
+      event.preventDefault();
+      pickSuggestion(suggestions[activeSuggestion]);
+      return;
+    }
+    suggestionsOpen = false;
+    if (isRunning) {
+      event.preventDefault();
+      saveDescription();
+      return;
+    }
+    if (!form.description.trim()) return;
     event.preventDefault();
     if (isManual) {
       addManualEntry();
@@ -501,22 +693,83 @@
     <label for="timer-description" class="sr-only"
       >{isManual ? "What did you work on?" : "What are you working on?"}</label
     >
-    <input
-      id="timer-description"
-      bind:value={form.description}
-      bind:this={descriptionInput}
-      placeholder={isManual
-        ? "What did you work on?"
-        : "What are you working on?"}
-      disabled={isRunning}
-      onkeydown={handleDescriptionKeydown}
-      class="flex-1 min-w-0 md:min-w-60 bg-transparent text-base md:text-lg font-extrabold text-fg-primary placeholder:font-bold placeholder:text-fg-muted outline-none h-9 disabled:opacity-100"
-      autocomplete="off"
-    />
+    <div class="relative flex-1 min-w-0 md:min-w-60">
+      <input
+        id="timer-description"
+        bind:value={form.description}
+        bind:this={descriptionInput}
+        placeholder={isManual
+          ? "What did you work on?"
+          : "What are you working on?"}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={showSuggestions}
+        aria-controls="timer-suggestions"
+        aria-activedescendant={showSuggestions && activeSuggestion >= 0
+          ? `timer-suggestion-${activeSuggestion}`
+          : undefined}
+        oninput={handleDescriptionInput}
+        onkeydown={handleDescriptionKeydown}
+        onblur={() => {
+          suggestionsOpen = false;
+          saveDescription();
+        }}
+        class="w-full bg-transparent text-base md:text-lg font-extrabold text-fg-primary placeholder:font-bold placeholder:text-fg-muted outline-none h-9"
+        autocomplete="off"
+      />
+      {#if showSuggestions}
+        <ul
+          id="timer-suggestions"
+          role="listbox"
+          aria-label="Past entries"
+          class="absolute left-0 top-full z-50 mt-1 w-full max-w-md p-1 rounded-[10px] border border-border bg-popover text-popover-foreground text-sm shadow-lg"
+        >
+          {#each suggestions as recent, i (recent.description)}
+            {@const project = projects.find((p) => p.id === recent.project_id)}
+            <!-- The input keeps focus and handles the keyboard. -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <li
+              id="timer-suggestion-{i}"
+              role="option"
+              aria-selected={i === activeSuggestion}
+              class="flex items-center gap-3 px-3 py-2 rounded-[5px] cursor-pointer {i ===
+              activeSuggestion
+                ? 'bg-muted'
+                : ''}"
+              onpointerdown={(e) => e.preventDefault()}
+              onpointermove={() => (activeSuggestion = i)}
+              onclick={() => pickSuggestion(recent)}
+            >
+              <span class="flex-1 min-w-0 truncate text-fg-primary"
+                >{recent.description}</span
+              >
+              {#if project}
+                <span
+                  class="flex items-center gap-1.5 min-w-0 max-w-40 text-fg-secondary"
+                >
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    style="background-color: {project.color}"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="truncate">{project.name}</span>
+                </span>
+              {/if}
+              {#if recent.billable}
+                <DollarSign
+                  class="size-3.5 shrink-0 text-bright-green"
+                  aria-label="Billable"
+                />
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
 
     <div class="flex items-center gap-1.5 flex-wrap lg:ml-auto max-lg:w-full">
       <Popover.Root bind:open={showProjectDropdown}>
-        <Popover.Trigger disabled={isRunning}>
+        <Popover.Trigger>
           {#snippet child({ props })}
             <button
               {...props}
@@ -597,7 +850,7 @@
       </Popover.Root>
 
       <Popover.Root bind:open={showTagDropdown}>
-        <Popover.Trigger disabled={isRunning}>
+        <Popover.Trigger>
           {#snippet child({ props })}
             <button
               {...props}
@@ -654,7 +907,6 @@
 
       <button
         type="button"
-        disabled={isRunning}
         class={cn(
           iconButton,
           form.billable &&
@@ -663,7 +915,7 @@
         aria-pressed={form.billable}
         aria-label="Billable"
         title={form.billable ? "Billable" : "Non-billable"}
-        onclick={() => (form.billable = !form.billable)}
+        onclick={toggleBillable}
       >
         <DollarSign class="w-4 h-4" aria-hidden="true" />
       </button>
