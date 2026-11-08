@@ -19,6 +19,7 @@
     Check,
     X,
     Ellipsis,
+    Undo2,
   } from "@lucide/svelte";
   import {
     formatCurrency,
@@ -62,6 +63,7 @@
   let showLetterOpenerHint = $state(false);
   let turnstileToken = $state("");
   let showDeleteModal = $state(false);
+  let showMarkUnpaidModal = $state(false);
   let editingNumber = $state(false);
   let editInvoiceNumber = $state(0);
 
@@ -104,7 +106,10 @@
         invoice: {
           ...props.invoice,
           status,
-          ...(status === "issued" && { issued_on: toDateString(new Date()) }),
+          ...(status === "issued" &&
+            props.invoice.status === "draft" && {
+              issued_on: toDateString(new Date()),
+            }),
         },
       }))
       .patch(
@@ -319,6 +324,14 @@
                 onSelect={() => updateInvoiceStatus("paid")}
               >
                 <Check aria-hidden="true" /> Mark paid
+              </DropdownMenu.Item>
+            {/if}
+            {#if invoice.status === "paid"}
+              <DropdownMenu.Item
+                class="px-3 py-2 gap-2"
+                onSelect={() => (showMarkUnpaidModal = true)}
+              >
+                <Undo2 aria-hidden="true" /> Mark as unpaid
               </DropdownMenu.Item>
             {/if}
             {#if invoice.status !== "paid"}
@@ -682,4 +695,18 @@
   warningMessage="Its time entry goes back to your unbilled entries and the invoice total is recalculated."
   onConfirm={removeLine}
   onClose={() => (showRemoveLineModal = false)}
+/>
+
+<ConfirmDeleteModal
+  bind:open={showMarkUnpaidModal}
+  title="Mark as unpaid"
+  actionVerb="reopen"
+  confirmTone="purple"
+  itemName={`Invoice #${invoice.invoice_number}`}
+  warningMessage="It moves back to Issued and counts as unpaid again. Its number, issue date and lines don't change."
+  onConfirm={() => {
+    showMarkUnpaidModal = false;
+    updateInvoiceStatus("issued");
+  }}
+  onClose={() => (showMarkUnpaidModal = false)}
 />

@@ -15,6 +15,7 @@
     onClose: () => void;
     actionVerb?: string;
     confirmLabel?: string;
+    confirmTone?: "blue" | "green" | "purple" | "yellow" | "red";
     details?: Snippet;
     /** When set, the confirm button stays disabled until this exact text is typed. */
     confirmText?: string;
@@ -29,6 +30,7 @@
     onClose,
     actionVerb = "delete",
     confirmLabel = title,
+    confirmTone = "red",
     details,
     confirmText,
   }: Props = $props();
@@ -114,7 +116,7 @@
       </AlertDialogPrimitive.Cancel>
       <AlertDialogPrimitive.Action onclick={() => onConfirm(typed)}>
         {#snippet child({ props })}
-          <Button tone="red" {...props} disabled={!confirmed}
+          <Button tone={confirmTone} {...props} disabled={!confirmed}
             >{shown.confirmLabel}</Button
           >
         {/snippet}
