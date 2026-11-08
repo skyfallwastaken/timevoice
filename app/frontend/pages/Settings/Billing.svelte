@@ -1,8 +1,9 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
-  import { page, Link } from "@inertiajs/svelte";
+  import { page, Link, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import { DollarSign, Settings } from "@lucide/svelte";
+  import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import SectionCard from "../../components/SectionCard.svelte";
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
@@ -38,7 +39,45 @@
       preserveScroll: true,
     });
   }
+
+  let isDirty = $derived(
+    form.isDirty || parseRate(rateInputValue) !== form.billable_rate_cents,
+  );
+  let pendingVisit = $state<string | null>(null);
+  let leaving = false;
+
+  // Ask before leaving with unsaved edits: in-app links get a confirm dialog,
+  // and closing or reloading the tab gets the browser's own prompt.
+  $effect(() =>
+    router.on("before", (event) => {
+      const { visit } = event.detail;
+      if (
+        leaving ||
+        !isDirty ||
+        visit.prefetch ||
+        visit.method !== "get" ||
+        visit.url.pathname === window.location.pathname
+      )
+        return;
+      pendingVisit = visit.url.href;
+      return false;
+    }),
+  );
+
+  function leavePage() {
+    const href = pendingVisit;
+    pendingVisit = null;
+    if (!href) return;
+    leaving = true;
+    router.visit(href, { onCancel: () => (leaving = false) });
+  }
 </script>
+
+<svelte:window
+  onbeforeunload={(event) => {
+    if (isDirty && !leaving) event.preventDefault();
+  }}
+/>
 
 <PageLayout title="Settings" icon={Settings}>
   <SectionCard class="overflow-hidden" bodyClass="p-0">
@@ -222,4 +261,15 @@
       </p>
     </div>
   </SectionCard>
+
+  <ConfirmDeleteModal
+    open={pendingVisit !== null}
+    title="Unsaved Changes"
+    itemName="this page"
+    actionVerb="leave"
+    warningMessage="Your billing settings haven't been saved. Leaving now discards your changes."
+    confirmLabel="Discard Changes"
+    onConfirm={leavePage}
+    onClose={() => (pendingVisit = null)}
+  />
 </PageLayout>
