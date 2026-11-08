@@ -57,8 +57,12 @@ module Api
 
       def destroy
         authorize @invoice
-        @invoice.destroy
-        head :no_content
+
+        if @invoice.destroy
+          head :no_content
+        else
+          render json: { error: "unprocessable_entity", message: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
+        end
       end
 
       private

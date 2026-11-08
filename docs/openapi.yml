@@ -494,7 +494,7 @@ paths:
     delete:
       tags: [Invoices]
       summary: Delete invoice
-      description: Deletes the invoice; its time entries become unbilled again. Requires the `invoices` scope.
+      description: Deletes a draft invoice; its time entries become unbilled again. Issued and paid invoices can't be deleted, so their entries can't be billed twice. Requires the `invoices` scope.
       operationId: deleteInvoice
       security:
         - oauth2: [invoices]
@@ -510,6 +510,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
 
 components:
   securitySchemes:

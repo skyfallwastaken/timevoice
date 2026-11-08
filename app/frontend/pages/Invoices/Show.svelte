@@ -261,14 +261,16 @@
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
-      <Button
-        variant="secondary"
-        type="button"
-        onclick={() => (showDeleteModal = true)}
-      >
-        <Trash2 class="w-4 h-4" />
-        Delete
-      </Button>
+      {#if invoice.status === "draft"}
+        <Button
+          variant="secondary"
+          type="button"
+          onclick={() => (showDeleteModal = true)}
+        >
+          <Trash2 class="w-4 h-4" />
+          Delete
+        </Button>
+      {/if}
       <Link href={routes.invoices.index(workspaceId)}>
         <Button variant="secondary">
           <ArrowLeft class="w-4 h-4" />

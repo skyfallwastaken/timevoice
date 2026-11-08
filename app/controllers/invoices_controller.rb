@@ -152,10 +152,11 @@ class InvoicesController < ApplicationController
   end
 
   def destroy
-    invoice_number = @invoice.invoice_number
-    @invoice.destroy
-
-    redirect_to invoices_path, notice: "Invoice ##{invoice_number} deleted successfully!"
+    if @invoice.destroy
+      redirect_to invoices_path, notice: "Invoice ##{@invoice.invoice_number} deleted successfully!"
+    else
+      redirect_back fallback_location: invoices_path, alert: @invoice.errors.full_messages.join(", ")
+    end
   end
 
   def pdf
