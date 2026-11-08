@@ -610,17 +610,19 @@
                       Mark Paid
                     </button>
                   {/if}
-                  <button
-                    type="button"
-                    class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bright-red/20 hover:text-bright-red text-fg-primary rounded-[10px] transition-colors duration-150"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      openDeleteModal(invoice);
-                    }}
-                  >
-                    <Trash2 class="w-4 h-4" />
-                    Delete
-                  </button>
+                  {#if invoice.status === "draft"}
+                    <button
+                      type="button"
+                      class="flex items-center justify-center gap-2 px-4 py-2 bg-bg-tertiary hover:bg-bright-red/20 hover:text-bright-red text-fg-primary rounded-[10px] transition-colors duration-150"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        openDeleteModal(invoice);
+                      }}
+                    >
+                      <Trash2 class="w-4 h-4" />
+                      Delete
+                    </button>
+                  {/if}
                 </div>
               </div>
             {/if}

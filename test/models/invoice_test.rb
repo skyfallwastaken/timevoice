@@ -1,6 +1,16 @@
 require "test_helper"
 
 class InvoiceTest < ActiveSupport::TestCase
+  test "deleting its workspace still deletes an issued invoice" do
+    invoice = invoices(:one)
+    invoice.update!(status: "issued")
+
+    assert_not invoice.destroy
+    invoice.workspace.destroy!
+
+    assert_not Invoice.exists?(invoice.id)
+  end
+
   test "an invoice can't be renumbered to a blank or taken number" do
     invoice = invoices(:one)
     invoices(:two).update!(workspace: invoice.workspace)

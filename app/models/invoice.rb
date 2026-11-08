@@ -25,6 +25,8 @@ class Invoice < ApplicationRecord
   scope :paid, -> { where(status: STATUS_PAID) }
 
   before_create :set_invoice_number
+  # Deleting an issued or paid invoice would make its entries billable again.
+  before_destroy :ensure_draft, unless: :destroyed_by_association
   before_save :stamp_issued_on, if: -> { status_changed? && status_was == STATUS_DRAFT }
 
   def total_amount
@@ -82,6 +84,13 @@ class Invoice < ApplicationRecord
   end
 
   private
+
+  def ensure_draft
+    return if status_in_database == STATUS_DRAFT
+
+    errors.add(:base, "Only draft invoices can be deleted")
+    throw :abort
+  end
 
   def stamp_issued_on
     self.issued_on = Date.current
