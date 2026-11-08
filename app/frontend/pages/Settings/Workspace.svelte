@@ -102,7 +102,9 @@
   }
 
   function confirmDeleteWorkspace() {
-    router.delete(routes.settings.deleteWorkspace(workspaceId));
+    router.delete(routes.settings.deleteWorkspace(workspaceId), {
+      data: { confirm_name: workspace.name },
+    });
     showDeleteModal = false;
   }
 
@@ -470,6 +472,7 @@
     bind:open={showDeleteModal}
     title="Delete Workspace"
     itemName={workspace?.name || "this workspace"}
+    confirmText={workspace?.name}
     warningMessage="This action cannot be undone. All data including time entries, projects, clients, and invoices will be permanently deleted."
     onConfirm={confirmDeleteWorkspace}
     onClose={() => (showDeleteModal = false)}

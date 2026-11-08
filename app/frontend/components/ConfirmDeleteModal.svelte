@@ -3,6 +3,7 @@
   import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
   import Button from "./Button.svelte";
+  import TextInput from "./TextInput.svelte";
 
   interface Props {
     open: boolean;
@@ -14,6 +15,8 @@
     actionVerb?: string;
     confirmLabel?: string;
     details?: Snippet;
+    /** When set, the confirm button stays disabled until this exact text is typed. */
+    confirmText?: string;
   }
 
   let {
@@ -26,7 +29,21 @@
     actionVerb = "delete",
     confirmLabel = title,
     details,
+    confirmText,
   }: Props = $props();
+
+  let typed = $state("");
+  $effect(() => {
+    if (open) typed = "";
+  });
+  const confirmed = $derived(!confirmText || typed === confirmText);
+
+  function confirmFromInput(event: KeyboardEvent) {
+    if (event.key !== "Enter" || !confirmed) return;
+    event.preventDefault();
+    onConfirm();
+    open = false;
+  }
 
   // Callers often clear the item as the dialog closes, so keep showing what it
   // opened with while it fades out.
@@ -66,6 +83,25 @@
       <p class="text-sm text-fg-muted">
         {shown.warningMessage}
       </p>
+      {#if confirmText}
+        <div>
+          <label
+            for="confirm-delete-text"
+            class="block text-sm font-medium text-fg-secondary mb-1"
+          >
+            Type <span class="font-semibold text-fg-primary">{confirmText}</span
+            > to confirm
+          </label>
+          <TextInput
+            id="confirm-delete-text"
+            tone="red"
+            bind:value={typed}
+            autocomplete="off"
+            spellcheck={false}
+            onkeydown={confirmFromInput}
+          />
+        </div>
+      {/if}
     </div>
     <div
       class="p-4 border-t border-bg-tertiary flex items-center justify-end gap-2"
@@ -77,7 +113,9 @@
       </AlertDialogPrimitive.Cancel>
       <AlertDialogPrimitive.Action onclick={onConfirm}>
         {#snippet child({ props })}
-          <Button tone="red" {...props}>{shown.confirmLabel}</Button>
+          <Button tone="red" {...props} disabled={!confirmed}
+            >{shown.confirmLabel}</Button
+          >
         {/snippet}
       </AlertDialogPrimitive.Action>
     </div>
