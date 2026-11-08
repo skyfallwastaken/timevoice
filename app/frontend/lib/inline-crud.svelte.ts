@@ -1,5 +1,6 @@
 import type { FormDataType } from "@inertiajs/core";
 import { page, router, useForm } from "@inertiajs/svelte";
+import { tick } from "svelte";
 
 type Named = { id: number; name: string };
 
@@ -47,13 +48,25 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
     Object.assign(editForm, options.toForm(record));
   }
 
+  // Closing an edit row unmounts the focused field; give focus back to the
+  // row's Edit button (marked with data-edit-id) unless it moved elsewhere.
+  function restoreFocus(id: number) {
+    tick().then(() => {
+      if (document.activeElement && document.activeElement !== document.body)
+        return;
+      document.querySelector<HTMLElement>(`[data-edit-id="${id}"]`)?.focus();
+    });
+  }
+
   function cancelEditing() {
+    const id = editingId;
     editingId = null;
     editForm.reset();
+    if (id !== null) restoreFocus(id);
   }
 
   function create() {
-    if (!workspaceId) return;
+    if (!workspaceId || createForm.processing) return;
     createForm
       .optimistic<Props>((props) => ({
         [key]: [
@@ -72,6 +85,7 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
   function update(id: number) {
     if (!workspaceId) return;
     editingId = null;
+    restoreFocus(id);
     let saved = false;
     editForm
       .optimistic<Props>((props) => ({
@@ -84,9 +98,13 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
           saved = true;
           if (editingId === null) editForm.reset();
         },
-        // Reopen the row on any failure, unless another row is being edited.
+        // Reopen the row on any failure, unless another row is being edited;
+        // then drop the errors so they don't show on that other row (the
+        // server's flash message still reports the failure).
         onFinish: () => {
-          if (!saved && editingId === null) editingId = id;
+          if (saved) return;
+          if (editingId === null) editingId = id;
+          else if (editingId !== id) editForm.clearErrors();
         },
       });
   }
@@ -103,7 +121,7 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
     toDelete = null;
   }
 
-  /** Enter saves and Escape cancels while focus is inside the edit row. */
+  /** Enter saves and Escape cancels; attach to the edit row's wrapper. */
   function editKeydown(event: KeyboardEvent, id: number) {
     const target = event.target as HTMLElement;
     if (event.key === "Escape") {

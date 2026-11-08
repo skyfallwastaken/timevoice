@@ -85,7 +85,10 @@
               bind:value={createForm.name}
               placeholder="Enter project name..."
               onkeydown={(e) =>
-                e.key === "Enter" && createForm.name && crud.create()}
+                e.key === "Enter" &&
+                !e.isComposing &&
+                createForm.name &&
+                crud.create()}
               aria-describedby={describedBy}
             />
           {/snippet}
@@ -139,7 +142,14 @@
         {#each projects as project, i}
           {@const isLast = i === projects.length - 1}
           {#if crud.editingId === project.id}
-            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
+            <!-- Keys bubble up from the row's fields: Enter saves, Escape cancels. -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <div
+              class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4"
+              role="group"
+              aria-label="Edit project"
+              onkeydown={(e) => crud.editKeydown(e, project.id)}
+            >
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   id="edit-project-name-{project.id}"
@@ -151,7 +161,6 @@
                       id="edit-project-name-{project.id}"
                       tone="green"
                       autofocus
-                      onkeydown={(e) => crud.editKeydown(e, project.id)}
                       bind:value={editForm.name}
                       aria-describedby={describedBy}
                     />
@@ -163,7 +172,6 @@
                       id="edit-project-client-{project.id}"
                       tone="green"
                       bind:value={editForm.client_id}
-                      onkeydown={(e) => crud.editKeydown(e, project.id)}
                       aria-describedby={describedBy}
                     >
                       <option value="">No Client</option>
@@ -230,6 +238,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit project"
+                  data-edit-id={project.id}
                   disabled={project.id < 0}
                   onclick={() => crud.startEditing(project)}
                 >

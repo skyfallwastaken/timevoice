@@ -124,7 +124,14 @@ Country"
         {#each clients as client, i}
           {@const isLast = i === clients.length - 1}
           {#if crud.editingId === client.id}
-            <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
+            <!-- Keys bubble up from the row's fields: Enter saves, Escape cancels. -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <div
+              class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4"
+              role="group"
+              aria-label="Edit client"
+              onkeydown={(e) => crud.editKeydown(e, client.id)}
+            >
               <FormField
                 id="edit-name-{client.id}"
                 label="Client Name"
@@ -135,7 +142,6 @@ Country"
                     id="edit-name-{client.id}"
                     tone="blue"
                     autofocus
-                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     bind:value={editForm.name}
                     aria-describedby={describedBy}
                   />
@@ -153,7 +159,6 @@ Country"
                     id="edit-email-{client.id}"
                     tone="blue"
                     bind:value={editForm.email}
-                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     placeholder="billing@example.com"
                     aria-describedby={describedBy}
                   />
@@ -166,7 +171,6 @@ Country"
                     id="edit-address-{client.id}"
                     tone="blue"
                     bind:value={editForm.billing_address}
-                    onkeydown={(e) => crud.editKeydown(e, client.id)}
                     rows={3}
                     aria-describedby={describedBy}
                   />
@@ -206,6 +210,7 @@ Country"
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit client"
+                  data-edit-id={client.id}
                   disabled={client.id < 0}
                   onclick={() => crud.startEditing(client)}
                 >

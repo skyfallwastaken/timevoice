@@ -43,7 +43,10 @@
             bind:value={createForm.name}
             placeholder="Enter tag name..."
             onkeydown={(e) =>
-              e.key === "Enter" && createForm.name && crud.create()}
+              e.key === "Enter" &&
+              !e.isComposing &&
+              createForm.name &&
+              crud.create()}
             aria-describedby={describedBy}
           />
         {/snippet}
@@ -74,10 +77,15 @@
         {#each tags as tagItem, i}
           {@const isLast = i === tags.length - 1}
           {#if crud.editingId === tagItem.id}
+            <!-- Keys bubble up from the row's fields: Enter saves, Escape cancels. -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <div
               class="p-4 {isLast
                 ? 'rounded-b-[10px]'
                 : ''} flex items-start gap-2"
+              role="group"
+              aria-label="Edit tag"
+              onkeydown={(e) => crud.editKeydown(e, tagItem.id)}
             >
               <div class="flex-1">
                 <FormField
@@ -92,7 +100,6 @@
                       tone="yellow"
                       bind:value={editForm.name}
                       autofocus
-                      onkeydown={(e) => crud.editKeydown(e, tagItem.id)}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
@@ -121,6 +128,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit tag"
+                  data-edit-id={tagItem.id}
                   disabled={tagItem.id < 0}
                   onclick={() => crud.startEditing(tagItem)}
                 >
