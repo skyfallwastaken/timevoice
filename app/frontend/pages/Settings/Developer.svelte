@@ -320,12 +320,13 @@
         size="sm"
         aria-label="Create new OAuth application"
         type="button"
+        class="whitespace-nowrap"
         onclick={() => {
           createForm.reset().clearErrors();
           showCreateModal = true;
         }}
       >
-        <Plus class="w-4 h-4" aria-hidden="true" />
+        <Plus class="w-4 h-4 hidden sm:block" aria-hidden="true" />
         New App
       </Button>
     {/snippet}
