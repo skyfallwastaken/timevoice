@@ -7,7 +7,11 @@ class InvoiceLine < ApplicationRecord
   validates :description, presence: true
   validates :amount_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :qty_hours, numericality: { greater_than: 0, less_than: 1000 }, allow_nil: true
-  validates :rate_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: Invoice::MAX_RATE_CENTS }, allow_nil: true
+  validates :rate_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :rate_cents, comparison: {
+    less_than_or_equal_to: Invoice::MAX_RATE_CENTS,
+    message: "must be at most #{ActiveSupport::NumberHelper.number_to_currency(Invoice::MAX_RATE_CENTS / 100.0)}/hour"
+  }, allow_nil: true
   validates :qty_hours, :rate_cents, presence: true, on: :update
 
   def amount

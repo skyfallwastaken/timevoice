@@ -23,6 +23,17 @@ class InvoiceLinesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 28_518, @invoice.reload.total_cents
   end
 
+  test "a blank or over-limit rate is rejected and the line is kept" do
+    patch line_path, params: { line: { rate_cents: nil } }
+    assert_equal "Rate can't be blank", flash[:alert]
+
+    patch line_path, params: { line: { rate_cents: Invoice::MAX_RATE_CENTS + 1 } }
+    assert_equal "Rate must be at most $10,000.00/hour", flash[:alert]
+
+    assert_equal 10_000, @line.reload.rate_cents
+    assert_equal 30_000, @invoice.reload.total_cents
+  end
+
   test "lines on an issued invoice can't be edited or removed" do
     @invoice.update!(status: Invoice::STATUS_ISSUED)
 
@@ -42,7 +53,19 @@ class InvoiceLinesControllerTest < ActionDispatch::IntegrationTest
 
     assert_not InvoiceLine.exists?(@line.id)
     assert TimeEntry.unbilled.exists?(@entry.id)
+    assert_equal "Line removed. Its time entry is unbilled again.", flash[:notice]
     assert_equal 10_000, @invoice.reload.total_cents
+  end
+
+  test "the only line on an invoice can't be removed" do
+    @invoice.invoice_lines.where.not(id: @line.id).destroy_all
+    @invoice.update!(total_cents: 20_000)
+
+    delete line_path
+
+    assert InvoiceLine.exists?(@line.id)
+    assert_equal "An invoice needs at least one line. Delete the invoice instead.", flash[:alert]
+    assert_equal 20_000, @invoice.reload.total_cents
   end
 
   private

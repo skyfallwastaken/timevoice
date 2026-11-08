@@ -11,7 +11,8 @@ class InvoiceLinesController < ApplicationController
 
   def destroy
     if @invoice.remove_line(@line)
-      redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: "Line removed. Its time entry is unbilled again."
+      unbilled = @line.time_entry_id && TimeEntry.unbilled.exists?(@line.time_entry_id)
+      redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: unbilled ? "Line removed. Its time entry is unbilled again." : "Line removed."
     else
       redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), alert: @line.errors.full_messages.to_sentence
     end

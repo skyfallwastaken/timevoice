@@ -149,7 +149,8 @@
         line: {
           description: lineDescription,
           qty_hours: lineHours,
-          rate_cents: parseRate(lineRate),
+          rate_cents:
+            String(lineRate ?? "").trim() === "" ? null : parseRate(lineRate),
         },
       },
       {
@@ -542,17 +543,19 @@
                         >
                           <Edit2 class="w-4 h-4" aria-hidden="true" />
                         </IconButton>
-                        <IconButton
-                          size="sm"
-                          tone="danger"
-                          aria-label="Remove line"
-                          onclick={() => {
-                            lineToRemove = line;
-                            showRemoveLineModal = true;
-                          }}
-                        >
-                          <Trash2 class="w-4 h-4" aria-hidden="true" />
-                        </IconButton>
+                        {#if invoice.lines.length > 1}
+                          <IconButton
+                            size="sm"
+                            tone="danger"
+                            aria-label="Remove line"
+                            onclick={() => {
+                              lineToRemove = line;
+                              showRemoveLineModal = true;
+                            }}
+                          >
+                            <Trash2 class="w-4 h-4" aria-hidden="true" />
+                          </IconButton>
+                        {/if}
                       </div>
                     </td>
                   {/if}
