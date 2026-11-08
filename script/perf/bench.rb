@@ -6,8 +6,8 @@ require "zlib"
 require "json"
 
 label = ARGV[0] || "run"
-runs = (ARGV[1] || 15).to_i
-abort "runs must be positive" unless runs.positive?
+runs = Integer(ARGV[1] || "15", 10, exception: false)
+abort "runs must be a positive integer" unless runs&.positive?
 Rails.logger.level = :warn
 ActiveRecord::Base.logger = nil
 # Inertia's devtools record and redact every response in development only.
