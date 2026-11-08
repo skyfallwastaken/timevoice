@@ -18,7 +18,7 @@ class TimeEntry < ApplicationRecord
   validates :description, presence: true, if: :completed?
   validate :file_count_limit
   validate :end_after_start
-  validate :project_in_workspace
+  validate :project_in_workspace, if: :project_id_changed?
   validate :one_running_entry, if: :running?
   validates :files, size: { less_than: 10.megabytes, message: "must be less than 10MB" }
 
@@ -58,7 +58,9 @@ class TimeEntry < ApplicationRecord
     return false unless running?
 
     ended = [ [ at || Time.current, Time.current ].min, start_at ].max
-    update!(end_at: ended, duration_seconds: (ended - start_at).to_i)
+    # Stopping only sets the end, so other fields (a timer started without a
+    # description, older data) can't block it.
+    update_columns(end_at: ended, duration_seconds: (ended - start_at).to_i, updated_at: Time.current)
   end
 
   def formatted_duration
@@ -108,7 +110,7 @@ class TimeEntry < ApplicationRecord
   end
 
   def project_in_workspace
-    errors.add(:project, "must belong to this workspace") if project && project.workspace_id != workspace_id
+    errors.add(:project, "must belong to this workspace") if project && project.workspace != workspace
   end
 
   def one_running_entry

@@ -6,8 +6,8 @@ class TimeEntryTest < ActiveSupport::TestCase
     @workspace = workspaces(:one)
   end
 
-  test "stopping a timer that starts in the future ends it at its start" do
-    entry = TimeEntry.create!(user: @user, workspace: @workspace, start_at: 1.hour.from_now, description: "Early")
+  test "a timer without a description, or one that starts in the future, can be stopped" do
+    entry = TimeEntry.create!(user: @user, workspace: @workspace, start_at: 1.hour.from_now)
 
     entry.stop!
 

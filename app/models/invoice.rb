@@ -6,6 +6,8 @@ class Invoice < ApplicationRecord
   STATUS_DRAFT = "draft".freeze
   STATUS_ISSUED = "issued".freeze
   STATUS_PAID = "paid".freeze
+  # $10,000/hour keeps line amounts within the integer columns.
+  MAX_RATE_CENTS = 1_000_000
 
   belongs_to :workspace
   belongs_to :client

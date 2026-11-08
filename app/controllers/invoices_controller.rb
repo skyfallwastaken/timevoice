@@ -117,7 +117,7 @@ class InvoicesController < ApplicationController
       current_workspace.invoice_setting&.billable_rate_cents || 0
     end
 
-    if rate_cents.nil? || rate_cents.negative?
+    unless rate_cents&.between?(0, Invoice::MAX_RATE_CENTS)
       redirect_with_error invoices_path, "Billable rate must be a valid amount.", field: :rate_cents
       return
     end
