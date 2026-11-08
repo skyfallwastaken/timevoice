@@ -165,8 +165,10 @@
   let periodLabel = $derived(formatPeriod(range));
 
   // Whole months step by their month count; anything else by its day count.
+  // Steps from the requested range, so quick repeated clicks add up.
   function shiftRange(direction: number) {
-    const { start, end } = range;
+    const start = startDate ?? range.start;
+    const end = endDate ?? range.end;
     if (start.getDate() === 1 && addDays(end, 1).getDate() === 1) {
       const months =
         (end.getFullYear() - start.getFullYear()) * 12 +
@@ -189,7 +191,23 @@
     }
   }
 
+  // Once a visit completes, the server's range is the source of truth again.
+  $effect(() => {
+    startDate = range.start;
+    endDate = range.end;
+  });
+
   let dateTimer: ReturnType<typeof setTimeout> | undefined;
+
+  // A pending date change must not run after another visit starts or the
+  // page is left, or it would navigate back to Reports.
+  $effect(() => {
+    const stop = router.on("start", () => clearTimeout(dateTimer));
+    return () => {
+      stop();
+      clearTimeout(dateTimer);
+    };
+  });
 
   function visit(next: DateRange) {
     clearTimeout(dateTimer);
@@ -241,7 +259,7 @@
   );
 
   let selectedProjectName = $derived(
-    projects.find((p) => String(p.id) === selectedProjectId)?.name,
+    projects.find((p) => String(p.id) === String(selectedProjectId))?.name,
   );
 </script>
 
