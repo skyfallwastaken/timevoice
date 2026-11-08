@@ -104,7 +104,7 @@
     bodyClass="p-4"
   >
     <div class="space-y-4">
-      <FormField id="tag-name" label="Tag Name">
+      <FormField id="tag-name" label="Tag Name" error={createForm.errors.name}>
         {#snippet children({ describedBy })}
           <TextInput
             id="tag-name"

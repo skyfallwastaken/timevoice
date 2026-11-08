@@ -259,7 +259,7 @@
                   {formatDuration(data.total)}
                 </span>
                 <div
-                  class="h-full rounded-t bg-bg-tertiary overflow-hidden flex flex-col justify-end"
+                  class="h-full rounded-t bg-fg-dim overflow-hidden flex flex-col justify-end"
                 >
                   <div
                     class="bg-bright-green"
@@ -286,7 +286,7 @@
           <span class="w-3 h-3 rounded-sm bg-bright-green"></span> Billable
         </span>
         <span class="flex items-center gap-1.5">
-          <span class="w-3 h-3 rounded-sm bg-bg-tertiary"></span> Non-billable
+          <span class="w-3 h-3 rounded-sm bg-fg-dim"></span> Non-billable
         </span>
       </div>
     </SectionCard>

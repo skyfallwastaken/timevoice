@@ -244,7 +244,7 @@
         aria-label="Invite new member"
         type="button"
         onclick={() => {
-          inviteForm.reset();
+          inviteForm.reset().clearErrors();
           showInviteModal = true;
         }}
         disabled={!canInvite}
@@ -407,7 +407,7 @@
       showInviteModal = false;
     }}
   >
-    <FormField id="invite-email" label="Email">
+    <FormField id="invite-email" label="Email" error={inviteForm.errors.email}>
       {#snippet children({ describedBy })}
         <TextInput
           id="invite-email"

@@ -25,6 +25,5 @@
     }
   },
 
-  "include": ["app/frontend/**/*.ts", "app/frontend/**/*.js", "app/frontend/**/*.svelte"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["app/frontend/**/*.ts", "app/frontend/**/*.js", "app/frontend/**/*.svelte"]
 }

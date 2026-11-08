@@ -88,6 +88,7 @@
 
   function openEditModal(app: OAuthApp) {
     selectedApp = app;
+    editForm.clearErrors();
     editForm.name = app.name;
     editForm.redirect_uri = app.redirect_uri;
     editForm.scopes = [...app.scopes];
@@ -222,7 +223,7 @@
         aria-label="Create new OAuth application"
         type="button"
         onclick={() => {
-          createForm.reset();
+          createForm.reset().clearErrors();
           showCreateModal = true;
         }}
       >
@@ -436,7 +437,12 @@
       showCreateModal = false;
     }}
   >
-    <FormField id="app-name" label="Application Name" required>
+    <FormField
+      id="app-name"
+      label="Application Name"
+      required
+      error={createForm.errors.name}
+    >
       {#snippet children({ describedBy })}
         <TextInput
           id="app-name"
@@ -451,6 +457,7 @@
     <FormField
       id="app-redirect"
       label="Redirect URI"
+      error={createForm.errors.redirect_uri}
       description="The callback URL where users will be redirected after authorization."
       required
     >
@@ -513,6 +520,7 @@
     <FormField
       id="app-scopes"
       label="Scopes"
+      error={createForm.errors.scopes}
       description="Select the permissions your application needs."
     >
       {#snippet children({ describedBy })}
@@ -572,7 +580,12 @@
       showEditModal = false;
     }}
   >
-    <FormField id="edit-app-name" label="Application Name" required>
+    <FormField
+      id="edit-app-name"
+      label="Application Name"
+      required
+      error={editForm.errors.name}
+    >
       {#snippet children({ describedBy })}
         <TextInput
           id="edit-app-name"
@@ -586,6 +599,7 @@
     <FormField
       id="edit-app-redirect"
       label="Redirect URI"
+      error={editForm.errors.redirect_uri}
       description="The callback URL where users will be redirected after authorization."
       required
     >
@@ -647,6 +661,7 @@
     <FormField
       id="edit-app-scopes"
       label="Scopes"
+      error={editForm.errors.scopes}
       description="Select the permissions your application needs."
     >
       {#snippet children({ describedBy })}

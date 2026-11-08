@@ -1,5 +1,6 @@
 <script lang="ts">
   import PageLayout from "../../components/PageLayout.svelte";
+  import { untrack } from "svelte";
   import { Link, page, router } from "@inertiajs/svelte";
   import { useForm } from "@inertiajs/svelte";
   import DatePicker from "../../components/DatePicker.svelte";
@@ -132,11 +133,23 @@
     client_id: "",
     period_start: "",
     period_end: "",
-    rate_cents:
-      (page.props.invoiceSettings as InvoiceSettings)?.billable_rate_cents || 0,
+    rate_cents: untrack(() => invoiceSettings.billable_rate_cents) || 0,
   });
 
   let rateInput = $state(formatRate(createForm.rate_cents));
+  let rateEdited = false;
+
+  // An instant visit first renders cached props, so follow the workspace rate
+  // when the fresh props arrive, unless the user has typed their own rate.
+  $effect(() => {
+    const rate = invoiceSettings.billable_rate_cents || 0;
+    untrack(() => {
+      createForm.defaults("rate_cents", rate);
+      if (rateEdited) return;
+      createForm.rate_cents = rate;
+      rateInput = formatRate(rate);
+    });
+  });
 
   let clientUnbilledEntries = $derived(
     unbilledEntries.filter(
@@ -172,6 +185,7 @@
       .post(routes.invoices.create(workspaceId), {
         onSuccess: () => {
           createForm.reset();
+          rateEdited = false;
           rateInput = formatRate(createForm.rate_cents);
           periodStartDate = null;
           periodEndDate = null;
@@ -322,7 +336,10 @@
                 type="number"
                 tone="purple"
                 bind:value={rateInput}
-                oninput={() => (createForm.rate_cents = parseRate(rateInput))}
+                oninput={() => {
+                  rateEdited = true;
+                  createForm.rate_cents = parseRate(rateInput);
+                }}
                 step="0.01"
                 min="0"
                 aria-describedby={describedBy}

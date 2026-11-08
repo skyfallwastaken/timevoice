@@ -140,7 +140,12 @@
     if (isManual) return;
     const target = event.target as HTMLElement;
     if (event.repeat) return;
-    if (target.closest("input, textarea, select, [contenteditable]")) return;
+    if (
+      target.closest(
+        "input, textarea, select, [contenteditable], [role=menu], [role=listbox]",
+      )
+    )
+      return;
     if (target.closest("[role=dialog]:not([data-timer-mode])")) return;
     const kind = timerKinds.find(
       (k) => k.shortcut === event.key.toUpperCase(),
@@ -266,8 +271,10 @@
   );
 
   let displayedSeconds = $derived(
-    isManual && manualRange
-      ? (manualRange.end.getTime() - manualRange.start.getTime()) / 1000
+    isManual
+      ? manualRange
+        ? (manualRange.end.getTime() - manualRange.start.getTime()) / 1000
+        : 0
       : !isRunning
         ? idleSeconds
         : activeTarget
@@ -298,7 +305,9 @@
       return;
     }
     const startTime = new Date(runningEntry.start_at).getTime();
-    const tick = () => (elapsed = Math.floor((Date.now() - startTime) / 1000));
+    // A start slightly in the future (clock skew, another device) shows 0.
+    const tick = () =>
+      (elapsed = Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
@@ -353,6 +362,7 @@
         preserveScroll: true,
         onSuccess: () => {
           resetForm();
+          manualDate = new Date(end);
           manualStart = timeOfDay(end);
           manualEnd = timeOfDay(end);
           descriptionInput?.focus();
