@@ -2,7 +2,7 @@ import { LaunchType, OAuth, getPreferenceValues, launchCommand } from "@raycast/
 import { OAuthService, getAccessToken } from "@raycast/utils";
 
 // The public (PKCE) OAuth application registered on timevoice.mahadk.com.
-const TIMEVOICE_CLIENT_ID = "";
+const TIMEVOICE_CLIENT_ID = "dizWuONAZf9JSgIlfkrTg90w-CJfiqcQGRwrzglsiks";
 
 const { clientId, baseUrl: rawBaseUrl, workspaceId: preferredWorkspaceId } = getPreferenceValues<Preferences>();
 export const baseUrl = (rawBaseUrl || "https://timevoice.mahadk.com").replace(/\/+$/, "");
