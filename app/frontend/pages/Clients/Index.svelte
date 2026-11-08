@@ -41,6 +41,7 @@
   });
 
   function startEditing(client: Client) {
+    $editForm.clearErrors();
     editingId = client.id;
     $editForm.name = client.name;
     $editForm.email = client.email || "";

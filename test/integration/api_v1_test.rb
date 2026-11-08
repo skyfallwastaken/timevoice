@@ -90,10 +90,17 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_equal "ap@acme.test, boss@acme.test", client["email"]
     assert_equal client, api(:get, "/#{workspace_id}/clients/#{client["id"]}")
 
+    api(:patch, "/#{workspace_id}/clients/#{client["id"]}", { email: "new@acme.test" })
+    assert_response :success
+    assert_equal "new@acme.test", api(:get, "/#{workspace_id}/clients/#{client["id"]}")["email"]
+
     api(:patch, "/#{workspace_id}/clients/#{client["id"]}", { email: "nope" })
     assert_response :unprocessable_entity
+    assert_equal "new@acme.test", Client.find_by_hashid(client["id"]).email
 
-    assert_nil api(:patch, "/#{workspace_id}/clients/#{client["id"]}", { email: nil })["email"]
+    cleared = api(:patch, "/#{workspace_id}/clients/#{client["id"]}", { email: nil })
+    assert_response :success
+    assert_nil cleared["email"]
   end
 
   private
