@@ -20,6 +20,7 @@
     ChevronUp,
   } from "@lucide/svelte";
   import {
+    dateFormatter,
     formatDuration,
     formatHours,
     formatShortDate,
@@ -242,10 +243,10 @@
     }, 300);
   }
 
+  const weekday = dateFormatter({ weekday: "short" });
+
   function formatDayOfWeek(dateStr: string): string {
-    return parseLocalDate(dateStr).toLocaleDateString("en-US", {
-      weekday: "short",
-    });
+    return weekday(parseLocalDate(dateStr));
   }
 
   const bucketTitle = { day: "Daily", week: "Weekly", month: "Monthly" };

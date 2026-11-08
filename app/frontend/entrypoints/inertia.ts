@@ -2,7 +2,18 @@ import "../assets/tailwind.css";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import { mount } from "svelte";
 import AppShell from "../components/AppShell.svelte";
+import * as DashboardIndex from "../pages/Dashboard/Index.svelte";
 import { syncThemeColor } from "../lib/theme";
+
+// The timer is the page most visits land on, so it ships in the main bundle;
+// every other page is a separate chunk loaded on first use.
+const pages: Record<string, () => Promise<ResolvedComponent>> = {
+  ...import.meta.glob<ResolvedComponent>([
+    "../pages/**/*.svelte",
+    "!../pages/Dashboard/Index.svelte",
+  ]),
+  "../pages/Dashboard/Index.svelte": async () => DashboardIndex,
+};
 
 // The server reads this to bucket entries into days in the browser's timezone.
 document.cookie = `tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}; path=/; max-age=31536000; samesite=lax`;
@@ -11,14 +22,11 @@ syncThemeColor();
 
 createInertiaApp({
   resolve: (name) => {
-    const pages = import.meta.glob<ResolvedComponent>("../pages/**/*.svelte", {
-      eager: true,
-    });
     const page = pages[`../pages/${name}.svelte`];
     if (!page) {
       console.error(`Missing Inertia page component: '${name}.svelte'`);
     }
-    return page;
+    return page();
   },
 
   layout: () => AppShell,
