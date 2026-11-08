@@ -52,3 +52,23 @@ export type TimeEntry = {
   tags: Tag[];
   files?: AttachedFile[];
 };
+
+export type RunningEntry = {
+  id: number;
+  description: string | null;
+  start_at: string;
+  billable: boolean;
+  project: {
+    id: number;
+    name: string;
+    color: string;
+  } | null;
+  tags: Tag[];
+};
+
+export type RecentDescription = {
+  description: string;
+  project_id: number | null;
+  tag_ids: number[];
+  billable: boolean;
+};
