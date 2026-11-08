@@ -1,6 +1,7 @@
 class DashboardController < ApplicationController
   ENTRY_RANGES = %w[today this_week last_week this_month all].freeze
   ENTRY_LIMIT = 200
+  RECENT_DESCRIPTION_LIMIT = 50
   VIEWS = %w[list calendar].freeze
 
   def index
@@ -11,22 +12,25 @@ class DashboardController < ApplicationController
 
     render inertia: "Dashboard/Index", props: {
       view: view,
-      runningEntry: running_entry_json,
       projects: current_workspace.projects.includes(:client).order(:name).map { |project|
         project.as_json(
           only: [ :id, :name, :color, :billable_default ],
           include: { client: { only: [ :id, :name ] } }
         )
       },
-      tags: current_workspace.tags.order(:name).as_json(only: [ :id, :name ])
+      tags: current_workspace.tags.order(:name).as_json(only: [ :id, :name ]),
+      recentDescriptions: recent_descriptions
     }.merge(view == "calendar" ? calendar_props : list_props)
   end
 
   private
 
   def list_props
+    range = params[:range].presence_in(ENTRY_RANGES) || "this_week"
+    period = range_bounds(range, list_anchor(range))
     filters = {
-      range: params[:range].presence_in(ENTRY_RANGES) || "this_week",
+      range: range,
+      date: period&.begin&.to_date&.to_s,
       project_id: params[:project_id].presence,
       q: params[:q].to_s.strip.presence
     }
@@ -36,7 +40,7 @@ class DashboardController < ApplicationController
       .includes(:project, :tags, files_attachments: :blob)
       .order(start_at: :desc)
       .limit(ENTRY_LIMIT)
-    entries = entries.where(start_at: range_bounds(filters[:range])) unless filters[:range] == "all"
+    entries = entries.where(start_at: period) if period
     entries = entries.where(project_id: filters[:project_id]) if filters[:project_id]
     entries = entries.where(TimeEntry.arel_table[:description].matches("%#{TimeEntry.sanitize_sql_like(filters[:q])}%")) if filters[:q]
 
@@ -71,13 +75,33 @@ class DashboardController < ApplicationController
     current_user.time_entries.where(workspace: current_workspace)
   end
 
-  def range_bounds(range)
+  # The list's arrows send a day in the period to show.
+  def list_anchor(range)
+    Date.parse(params[:date].to_s).in_time_zone
+  rescue ArgumentError
+    range == "last_week" ? 1.week.ago : Time.current
+  end
+
+  def range_bounds(range, anchor)
     case range
-    when "today" then Time.current.all_day
-    when "this_week" then Time.current.all_week
-    when "last_week" then 1.week.ago.all_week
-    when "this_month" then Time.current.all_month
+    when "today" then anchor.all_day
+    when "this_week", "last_week" then anchor.all_week
+    when "this_month" then anchor.all_month
     end
+  end
+
+  # The latest entry for each distinct description, newest first, in one query.
+  def recent_descriptions
+    ranked = workspace_entries.completed.where.not(description: [ nil, "" ]).select(
+      :id, :start_at,
+      "ROW_NUMBER() OVER (PARTITION BY LOWER(time_entries.description) ORDER BY time_entries.start_at DESC, time_entries.id DESC) AS position"
+    )
+    latest_ids = TimeEntry.from(ranked, :time_entries).where(position: 1)
+      .order(start_at: :desc).limit(RECENT_DESCRIPTION_LIMIT).select(:id)
+
+    TimeEntry.where(id: latest_ids).eager_load(:tags).order(start_at: :desc).map { |entry|
+      { description: entry.description, project_id: entry.project_id, tag_ids: entry.tags.map(&:id), billable: entry.billable }
+    }
   end
 
   def entry_json(entry)
@@ -97,16 +121,6 @@ class DashboardController < ApplicationController
           byte_size: file.byte_size,
           content_type: file.content_type
         }
-      }
-    )
-  end
-
-  def running_entry_json
-    workspace_entries.running.includes(:project, :tags).first&.as_json(
-      only: [ :id, :description, :start_at, :billable ],
-      include: {
-        project: { only: [ :id, :name, :color ] },
-        tags: { only: [ :id, :name ] }
       }
     )
   end

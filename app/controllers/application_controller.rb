@@ -27,6 +27,8 @@ class ApplicationController < ActionController::Base
     }
   }
 
+  inertia_share runningEntry: -> { running_entry_json }
+
   inertia_share rails_env: -> {
     Rails.env.to_s
   }
@@ -123,6 +125,22 @@ class ApplicationController < ActionController::Base
     end
 
     Time.use_zone(browser_zone || current_user&.timezone || "UTC", &)
+  end
+
+  # No limit, so eager loading the tags stays a single query; there is at
+  # most one running entry per user and workspace.
+  def running_entry_json
+    return unless current_user && current_workspace
+
+    current_user.time_entries.running.where(workspace: current_workspace)
+      .eager_load(:project, :tags).order(:start_at).to_a.last
+      &.as_json(
+        only: [ :id, :description, :start_at, :billable ],
+        include: {
+          project: { only: [ :id, :name, :color ] },
+          tags: { only: [ :id, :name ] }
+        }
+      )
   end
 
   def redirect_with_error(location, message, field: :base)
