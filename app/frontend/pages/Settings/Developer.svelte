@@ -353,30 +353,34 @@
           {@const isLast = i === applications.length - 1}
           <div class="p-4 space-y-3 {isLast ? 'rounded-b-[10px]' : ''}">
             <div class="flex items-start justify-between gap-4">
-              <div>
-                <h4 class="font-medium text-fg-primary">{app.name}</h4>
-                <p class="text-sm text-fg-muted mt-0.5">
-                  Created {formatTimestamp(app.created_at)}
+              <div class="min-w-0">
+                <h4 class="font-medium text-fg-primary break-words">
+                  {app.name}
+                </h4>
+                <p
+                  class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-muted mt-0.5"
+                >
+                  <span>Created {formatTimestamp(app.created_at)}</span>
                   {#if app.confidential}
                     <span
-                      class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-bright-blue/20 text-bright-blue rounded"
+                      class="px-1.5 py-0.5 text-xs font-medium bg-bright-blue/20 text-bright-blue rounded"
                       >Confidential</span
                     >
                   {:else}
                     <span
-                      class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-bright-purple/20 text-bright-purple rounded"
+                      class="px-1.5 py-0.5 text-xs font-medium bg-bright-purple/20 text-bright-purple rounded"
                       >Public (PKCE)</span
                     >
                   {/if}
                   {#if app.trust_level === "official"}
                     <span
-                      class="ml-1 px-1.5 py-0.5 text-xs font-medium bg-bright-green/20 text-bright-green rounded"
+                      class="px-1.5 py-0.5 text-xs font-medium bg-bright-green/20 text-bright-green rounded"
                       >Official</span
                     >
                   {/if}
                 </p>
               </div>
-              <div class="flex items-center gap-1">
+              <div class="flex items-center gap-1 shrink-0">
                 <IconButton
                   aria-label="Edit {app.name}"
                   onclick={() => openEditModal(app)}
@@ -412,11 +416,11 @@
               </div>
             </div>
 
-            <div class="grid gap-2 text-sm">
+            <div class="grid grid-cols-1 gap-2 text-sm">
               <div class="flex items-center gap-2">
                 <span class="text-fg-muted w-24 shrink-0">Client ID:</span>
                 <code
-                  class="flex-1 px-2 py-1 bg-bg-primary rounded font-mono text-xs truncate"
+                  class="flex-1 min-w-0 px-2 py-1 bg-bg-primary rounded font-mono text-xs truncate"
                   >{app.uid}</code
                 >
                 <IconButton
@@ -438,7 +442,7 @@
                 <span class="text-fg-muted w-24 shrink-0">Client Secret:</span>
                 {#if flash.new_secret && flash.secret_app_id === app.id}
                   <code
-                    class="flex-1 px-2 py-1 bg-bg-primary rounded font-mono text-xs truncate"
+                    class="flex-1 min-w-0 px-2 py-1 bg-bg-primary rounded font-mono text-xs truncate"
                     >{flash.new_secret}</code
                   >
                   <IconButton
@@ -465,7 +469,7 @@
               <div class="flex items-start gap-2">
                 <span class="text-fg-muted w-24 shrink-0">Redirect URI:</span>
                 <code
-                  class="flex-1 px-2 py-1 bg-bg-primary rounded font-mono text-xs break-all"
+                  class="flex-1 min-w-0 px-2 py-1 bg-bg-primary rounded font-mono text-xs break-all"
                   >{app.redirect_uri}</code
                 >
               </div>
