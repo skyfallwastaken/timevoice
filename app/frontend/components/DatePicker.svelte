@@ -3,7 +3,7 @@
   import { CalendarDays } from "@lucide/svelte";
   import { Calendar } from "$lib/components/ui/calendar/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
-  import { toDateString } from "../lib/format";
+  import { formatDate, toDateString } from "../lib/format";
   import { cn } from "$lib/utils.js";
 
   interface Props {
@@ -24,7 +24,7 @@
     max = null,
     placeholder = "Select date",
     class: className = "",
-    format = toDateString,
+    format = (date: Date) => formatDate(toDateString(date)),
     "aria-describedby": describedBy,
   }: Props = $props();
 
