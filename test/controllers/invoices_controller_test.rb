@@ -11,6 +11,7 @@ class InvoicesControllerTest < ActionDispatch::IntegrationTest
 
     delete @path
 
+    assert_redirected_to "/#{workspaces(:one).hashid}/invoices"
     assert Invoice.exists?(invoices(:one).id)
     assert_equal "Only draft invoices can be deleted", flash[:alert]
   end

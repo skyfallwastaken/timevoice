@@ -26,7 +26,9 @@ class Invoice < ApplicationRecord
 
   before_create :set_invoice_number
   # Deleting an issued or paid invoice would make its entries billable again.
-  before_destroy :ensure_draft, unless: :destroyed_by_association
+  # Runs before the lines are destroyed; re-reads the status under a lock so a
+  # concurrent issue can't slip past it.
+  before_destroy :ensure_draft, prepend: true, unless: :destroyed_by_association
   before_save :stamp_issued_on, if: -> { status_changed? && status_was == STATUS_DRAFT }
 
   def total_amount
@@ -86,7 +88,7 @@ class Invoice < ApplicationRecord
   private
 
   def ensure_draft
-    return if status_in_database == STATUS_DRAFT
+    return if self.class.lock.where(id: id).pick(:status) == STATUS_DRAFT
 
     errors.add(:base, "Only draft invoices can be deleted")
     throw :abort

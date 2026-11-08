@@ -134,6 +134,10 @@ class ApiV1Test < ActionDispatch::IntegrationTest
     assert_equal "Only draft invoices can be deleted", api(:delete, "/#{workspace_id}/invoices/#{invoice["id"]}")["message"]
     assert_response :unprocessable_entity
     assert Invoice.exists?(Invoice.decode_id(invoice["id"]))
+
+    api(:delete, "/#{workspace_id}/invoices/#{invoices(:one).hashid}")
+    assert_response :no_content
+    assert_not Invoice.exists?(invoices(:one).id)
   end
 
   test "invalid invoice input is rejected with 422" do

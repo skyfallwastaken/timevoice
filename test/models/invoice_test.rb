@@ -11,6 +11,16 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_not Invoice.exists?(invoice.id)
   end
 
+  test "a refused delete keeps the invoice's lines, even inside an outer transaction" do
+    invoice = invoices(:one)
+    invoice.update!(status: "issued")
+    invoice.invoice_lines.create!(description: "Work", qty_hours: 1, rate_cents: 100, amount_cents: 100, time_entry: time_entries(:one))
+
+    Invoice.transaction { assert_not invoice.destroy }
+
+    assert_equal 1, invoice.invoice_lines.count
+  end
+
   test "an invoice can't be renumbered to a blank or taken number" do
     invoice = invoices(:one)
     invoices(:two).update!(workspace: invoice.workspace)
