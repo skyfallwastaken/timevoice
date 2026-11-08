@@ -45,6 +45,7 @@
   });
 
   function startEditing(project: Project) {
+    editForm.clearErrors();
     editingId = project.id;
     editForm.name = project.name;
     editForm.client_id = project.client?.id?.toString() || "";
@@ -94,6 +95,7 @@
   function handleUpdate(projectId: number) {
     if (!workspaceId) return;
     editingId = null;
+    let saved = false;
     editForm
       .optimistic<{ projects: Project[] }>((props) => ({
         projects: props.projects
@@ -101,8 +103,14 @@
           .sort(byName),
       }))
       .patch(routes.projects.update(workspaceId, projectId), {
-        onSuccess: () => editForm.reset(),
-        onError: () => (editingId = projectId),
+        onSuccess: () => {
+          saved = true;
+          if (editingId === null) editForm.reset();
+        },
+        // Reopen the row on any failure, unless another row is being edited.
+        onFinish: () => {
+          if (!saved && editingId === null) editingId = projectId;
+        },
       });
   }
 
@@ -206,6 +214,7 @@
                 <FormField
                   id="edit-project-name-{project.id}"
                   label="Project Name"
+                  error={editForm.errors.name}
                 >
                   {#snippet children({ describedBy })}
                     <TextInput
@@ -294,6 +303,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit project"
+                  disabled={project.id < 0}
                   onclick={() => startEditing(project)}
                 >
                   <Edit2 class="w-4 h-4" />
@@ -301,6 +311,7 @@
                 <IconButton
                   tone="danger"
                   aria-label="Delete project"
+                  disabled={project.id < 0}
                   onclick={() => (projectToDelete = project)}
                 >
                   <Trash2 class="w-4 h-4" />

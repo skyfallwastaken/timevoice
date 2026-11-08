@@ -83,12 +83,19 @@
     },
   ];
 
-  // The latest props of each sidebar page, by path. A nav link with cached
+  // The latest props of each sidebar page, by URL. A nav link with cached
   // props is an instant visit: it renders the page from the cache at once
   // while the visit fetches fresh props. Pages without cached props yet use a
   // regular visit.
   const pageCache: Record<string, Record<string, unknown>> = $state({});
-  const pathOf = (url: string) => url.split("?")[0];
+  // When each entry was stored, so a slow refresh can't replace newer props.
+  const cachedAt = new Map<string, number>();
+
+  function cache(url: string, props: Record<string, unknown>, at: number) {
+    if ((cachedAt.get(url) ?? 0) > at) return;
+    cachedAt.set(url, at);
+    pageCache[url] = props;
+  }
 
   const instantPageProps =
     (href: string) => (_: unknown, shared: Record<string, unknown>) => ({
@@ -99,11 +106,11 @@
 
   // Fetches each sidebar page's props the way an Inertia visit would,
   // without touching the current page or Inertia's prefetch cache.
-  function refreshPageCache(workspaceHashid: string) {
-    for (const item of navItems) {
-      const href = item.href(workspaceHashid);
-      if (href === pathOf(page.url)) {
-        pageCache[href] = page.props;
+  function refreshPageCache(hrefs: string[]) {
+    for (const href of hrefs) {
+      const startedAt = performance.now();
+      if (href === page.url) {
+        cache(href, page.props, startedAt);
         continue;
       }
       fetch(href, {
@@ -119,7 +126,7 @@
             : null,
         )
         .then((fetched) => {
-          if (fetched?.props) pageCache[href] = fetched.props;
+          if (fetched?.props) cache(href, fetched.props, startedAt);
         })
         .catch(() => {});
     }
@@ -127,11 +134,17 @@
 
   // Refill the cache on load, on switching workspace, and every minute.
   $effect(() => {
-    const stopNavigate = router.on("navigate", (event) => {
-      pageCache[pathOf(event.detail.page.url)] = event.detail.page.props;
+    const hrefs = navItems.map((item) => item.href(currentWorkspaceHashid));
+    untrack(() => {
+      for (const url of Object.keys(pageCache)) delete pageCache[url];
+      cachedAt.clear();
     });
-    const workspaceHashid = currentWorkspaceHashid;
-    const refresh = () => untrack(() => refreshPageCache(workspaceHashid));
+
+    const stopNavigate = router.on("navigate", (event) => {
+      const { url, props } = event.detail.page;
+      if (hrefs.includes(url)) cache(url, props, performance.now());
+    });
+    const refresh = () => untrack(() => refreshPageCache(hrefs));
     refresh();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") refresh();
@@ -141,6 +154,7 @@
       clearInterval(timer);
     };
   });
+
   const workspaces = $derived(page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);

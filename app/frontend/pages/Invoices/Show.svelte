@@ -20,7 +20,7 @@
     X,
     ChevronDown,
   } from "@lucide/svelte";
-  import { formatDate, getStatusClasses } from "../../lib/format";
+  import { formatDate, getStatusClasses, toDateString } from "../../lib/format";
   import { routes } from "../../lib/routes";
   import Turnstile from "../../components/Turnstile.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
@@ -94,7 +94,11 @@
   function updateInvoiceStatus(status: string) {
     router
       .optimistic<{ invoice: Invoice }>((props) => ({
-        invoice: { ...props.invoice, status },
+        invoice: {
+          ...props.invoice,
+          status,
+          ...(status === "issued" && { issued_on: toDateString(new Date()) }),
+        },
       }))
       .patch(
         routes.invoices.update(workspaceId, invoice.hashid),

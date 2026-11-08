@@ -28,6 +28,7 @@
   });
 
   function startEditing(tagItem: TagType) {
+    editForm.clearErrors();
     editingId = tagItem.id;
     editForm.name = tagItem.name;
   }
@@ -58,6 +59,7 @@
   function handleUpdate(tagId: number) {
     if (!workspaceId) return;
     editingId = null;
+    let saved = false;
     editForm
       .optimistic<{ tags: TagType[] }>((props) => ({
         tags: props.tags
@@ -65,8 +67,14 @@
           .sort(byName),
       }))
       .patch(routes.tags.update(workspaceId, tagId), {
-        onSuccess: () => editForm.reset(),
-        onError: () => (editingId = tagId),
+        onSuccess: () => {
+          saved = true;
+          if (editingId === null) editForm.reset();
+        },
+        // Reopen the row on any failure, unless another row is being edited.
+        onFinish: () => {
+          if (!saved && editingId === null) editingId = tagId;
+        },
       });
   }
 
@@ -141,7 +149,12 @@
                 : ''} flex items-center gap-4"
             >
               <div class="flex-1">
-                <FormField id="edit-tag-{tagItem.id}" label="Tag Name" srOnly>
+                <FormField
+                  id="edit-tag-{tagItem.id}"
+                  label="Tag Name"
+                  srOnly
+                  error={editForm.errors.name}
+                >
                   {#snippet children({ describedBy })}
                     <TextInput
                       id="edit-tag-{tagItem.id}"
@@ -178,6 +191,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit tag"
+                  disabled={tagItem.id < 0}
                   onclick={() => startEditing(tagItem)}
                 >
                   <Edit2 class="w-4 h-4" />
@@ -185,6 +199,7 @@
                 <IconButton
                   tone="danger"
                   aria-label="Delete tag"
+                  disabled={tagItem.id < 0}
                   onclick={() => (tagToDelete = tagItem)}
                 >
                   <Trash2 class="w-4 h-4" />

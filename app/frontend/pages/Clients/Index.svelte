@@ -79,6 +79,7 @@
   function handleUpdate(clientId: number) {
     if (!workspaceId) return;
     editingId = null;
+    let saved = false;
     editForm
       .optimistic<{ clients: Client[] }>((props) => ({
         clients: props.clients
@@ -95,8 +96,14 @@
           .sort(byName),
       }))
       .patch(routes.clients.update(workspaceId, clientId), {
-        onSuccess: () => editForm.reset(),
-        onError: () => (editingId = clientId),
+        onSuccess: () => {
+          saved = true;
+          if (editingId === null) editForm.reset();
+        },
+        // Reopen the row on any failure, unless another row is being edited.
+        onFinish: () => {
+          if (!saved && editingId === null) editingId = clientId;
+        },
       });
   }
 
@@ -208,7 +215,11 @@ Country"
           {@const isLast = i === clients.length - 1}
           {#if editingId === client.id}
             <div class="p-4 {isLast ? 'rounded-b-[10px]' : ''} space-y-4">
-              <FormField id="edit-name-{client.id}" label="Client Name">
+              <FormField
+                id="edit-name-{client.id}"
+                label="Client Name"
+                error={editForm.errors.name}
+              >
                 {#snippet children({ describedBy })}
                   <TextInput
                     id="edit-name-{client.id}"
@@ -287,6 +298,7 @@ Country"
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit client"
+                  disabled={client.id < 0}
                   onclick={() => startEditing(client)}
                 >
                   <Edit2 class="w-4 h-4" />
@@ -294,6 +306,7 @@ Country"
                 <IconButton
                   tone="danger"
                   aria-label="Delete client"
+                  disabled={client.id < 0}
                   onclick={() => (clientToDelete = client)}
                 >
                   <Trash2 class="w-4 h-4" />
