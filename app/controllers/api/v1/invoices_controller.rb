@@ -45,7 +45,10 @@ module Api
       def update
         authorize @invoice
 
-        if @invoice.update(api_params(:invoice, :status))
+        attrs = api_params(:invoice, :status)
+        raise InvalidParameter, "status is required" unless attrs.key?(:status)
+
+        if @invoice.update(attrs)
           render json: serialize_invoice(@invoice, include_lines: true)
         else
           render json: { error: "unprocessable_entity", message: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
@@ -67,15 +70,17 @@ module Api
       end
 
       def parse_date!(field, value)
+        raise ArgumentError unless value.to_s.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
         Date.iso8601(value.to_s)
       rescue ArgumentError
         raise InvalidParameter, "#{field} must be a valid date (YYYY-MM-DD)"
       end
 
       def parse_rate!(value)
-        return current_workspace.invoice_setting&.billable_rate_cents || 0 if value.blank?
+        return current_workspace.invoice_setting&.billable_rate_cents || 0 if value.nil?
 
-        rate = Integer(value.to_s, exception: false)
+        rate = Integer(value.to_s, 10, exception: false)
         raise InvalidParameter, "rate_cents must be a non-negative integer" if rate.nil? || rate.negative?
 
         rate

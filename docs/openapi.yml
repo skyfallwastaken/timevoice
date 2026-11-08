@@ -412,6 +412,8 @@ paths:
       summary: Create invoice
       description: Creates a draft invoice from your unbilled time entries for the client's projects in the period. Requires the `invoices` scope.
       operationId: createInvoice
+      security:
+        - oauth2: [invoices]
       parameters:
         - $ref: "#/components/parameters/WorkspaceId"
       requestBody:
@@ -429,6 +431,8 @@ paths:
                 $ref: "#/components/schemas/InvoiceWithLines"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
@@ -456,6 +460,8 @@ paths:
       summary: Update invoice status
       description: Moves an invoice between draft, issued and paid. Leaving draft sets `issued_on` to today. Requires the `invoices` scope.
       operationId: updateInvoice
+      security:
+        - oauth2: [invoices]
       parameters:
         - $ref: "#/components/parameters/WorkspaceId"
         - $ref: "#/components/parameters/ResourceId"
@@ -474,6 +480,8 @@ paths:
                 $ref: "#/components/schemas/InvoiceWithLines"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
@@ -483,6 +491,8 @@ paths:
       summary: Delete invoice
       description: Deletes the invoice; its time entries become unbilled again. Requires the `invoices` scope.
       operationId: deleteInvoice
+      security:
+        - oauth2: [invoices]
       parameters:
         - $ref: "#/components/parameters/WorkspaceId"
         - $ref: "#/components/parameters/ResourceId"
@@ -491,6 +501,8 @@ paths:
           description: Invoice deleted
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -540,6 +552,19 @@ components:
               error:
                 type: string
                 example: unauthorized
+    Forbidden:
+      description: The access token lacks the required scope
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: insufficient_scope
+              error_description:
+                type: string
+                example: "Required scope: invoices"
     NotFound:
       description: Resource not found
       content:
@@ -789,7 +814,7 @@ components:
           type: integer
           example: 14250
         rate:
-          type: string
+          type: [string, "null"]
           example: "$95.00"
         amount:
           type: string

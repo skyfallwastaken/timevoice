@@ -137,12 +137,17 @@ class ApiV1Test < ActionDispatch::IntegrationTest
       api(:post, "/#{workspace_id}/invoices", valid.merge(period_start: "January"))
       assert_response :unprocessable_entity
 
+      assert_match "period_end", api(:post, "/#{workspace_id}/invoices", valid.merge(period_end: "20260131"))["message"]
+
       api(:post, "/#{workspace_id}/invoices", valid.merge(rate_cents: -5))
       assert_response :unprocessable_entity
+
+      assert_match "rate_cents", api(:post, "/#{workspace_id}/invoices", valid.merge(rate_cents: ""))["message"]
     end
 
     api(:patch, "/#{workspace_id}/invoices/#{invoices(:one).hashid}", { status: "sent" })
     assert_response :unprocessable_entity
+    assert_equal "status is required", api(:patch, "/#{workspace_id}/invoices/#{invoices(:one).hashid}", {})["message"]
     assert_equal "draft", invoices(:one).reload.status
   end
 
