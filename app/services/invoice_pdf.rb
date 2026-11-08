@@ -259,10 +259,15 @@ class InvoicePdf
 
       node.each_with_index do |item, index|
         @document.move_down(node.list_tight ? 2 : 6) if index.positive?
-        indent = room_to_indent?(width)
-        @document.float { markdown_text([ { text: markers[index] } ]) } if indent
-        @document.indent(indent ? width : 0) do
-          item.first_child ? render_markdown_blocks(item) : @document.move_down(@document.height_of(markers[index], leading: 4))
+        marker = [ { text: markers[index] } ]
+        if room_to_indent?(width)
+          @document.float { markdown_text(marker) }
+          @document.indent(width) do
+            item.first_child ? render_markdown_blocks(item) : @document.move_down(@document.height_of(markers[index], leading: 4))
+          end
+        else
+          markdown_text(marker)
+          render_markdown_blocks(item)
         end
       end
     when :block_quote

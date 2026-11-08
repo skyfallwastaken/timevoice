@@ -134,14 +134,13 @@
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div
               class="flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
-              role="radiogroup"
+              role="group"
               aria-label="Notes editor mode"
             >
               {#each [{ key: "write", label: "Write" }, { key: "preview", label: "Preview" }] as const as option (option.key)}
                 <button
                   type="button"
-                  role="radio"
-                  aria-checked={notesMode === option.key}
+                  aria-pressed={notesMode === option.key}
                   class="inline-flex items-center h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {notesMode ===
                   option.key
                     ? 'bg-bg-tertiary text-fg-primary'

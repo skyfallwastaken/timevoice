@@ -25,6 +25,7 @@ class InvoicePdfTest < ActiveSupport::TestCase
     lines = notes_pdf_lines("#{"> - " * 25}deep")
 
     assert lines.any? { |line| line.end_with?("deep") }
+    assert_includes lines, "•", "items too deep to indent should still get a marker"
   end
 
   test "omits the notes section when notes are blank" do

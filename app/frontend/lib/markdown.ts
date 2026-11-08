@@ -10,8 +10,10 @@ const md = new MarkdownIt({ html: false, linkify: true, breaks: true }).disable(
 );
 
 md.validateLink = () => true;
-md.renderer.rules.image = (tokens, idx) =>
-  md.utils.escapeHtml(tokens[idx].content);
+md.renderer.rules.image = (tokens, idx, options, env, self) =>
+  md.utils.escapeHtml(
+    self.renderInlineAsText(tokens[idx].children ?? [], options, env),
+  );
 md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
   const token = tokens[idx];
   if (SAFE_LINK.test(String(token.attrGet("href") ?? ""))) {
