@@ -61,7 +61,7 @@ module Api
         if @invoice.destroy
           head :no_content
         else
-          render json: { error: "unprocessable_entity", message: @invoice.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render_validation_error(@invoice)
         end
       end
 
