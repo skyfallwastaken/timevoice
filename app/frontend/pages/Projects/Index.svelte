@@ -9,8 +9,7 @@
   import SelectInput from "../../components/SelectInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page } from "@inertiajs/svelte";
-  import { useForm } from "@inertiajs/svelte";
+  import { page, router, useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import {
     FolderKanban,
@@ -20,21 +19,21 @@
     Check,
     X,
     Briefcase,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import type { Project, Client } from "../../types";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  let projects = $derived(($page.props.projects as Project[]) || []);
-  let clients = $derived(($page.props.clients as Client[]) || []);
-  let colors = $derived(($page.props.colors as string[]) || []);
+  let projects = $derived((page.props.projects as Project[]) || []);
+  let clients = $derived((page.props.clients as Client[]) || []);
+  let colors = $derived((page.props.colors as string[]) || []);
 
   let editingId: number | null = $state(null);
 
   let createForm = useForm({
     name: "",
     client_id: "",
-    color: ($page.props.colors as string[])?.[0] ?? "",
+    color: (page.props.colors as string[])?.[0] ?? "",
     billable_default: true,
   });
 
@@ -46,43 +45,85 @@
   });
 
   function startEditing(project: Project) {
+    editForm.clearErrors();
     editingId = project.id;
-    $editForm.name = project.name;
-    $editForm.client_id = project.client?.id?.toString() || "";
-    $editForm.color = project.color;
-    $editForm.billable_default = project.billable_default;
+    editForm.name = project.name;
+    editForm.client_id = project.client?.id?.toString() || "";
+    editForm.color = project.color;
+    editForm.billable_default = project.billable_default;
   }
 
   function cancelEditing() {
     editingId = null;
-    $editForm.reset();
+    editForm.reset();
   }
+
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name);
+
+  const withFormFields = (
+    project: Project,
+    form: typeof createForm,
+  ): Project => {
+    const client = clients.find((c) => String(c.id) === form.client_id);
+    return {
+      ...project,
+      name: form.name,
+      color: form.color,
+      billable_default: form.billable_default,
+      client: client && { id: client.id, name: client.name },
+    };
+  };
 
   function handleCreate() {
     if (!workspaceId) return;
-    $createForm.post(routes.projects.create(workspaceId), {
-      onSuccess: () => {
-        $createForm.reset();
-        $createForm.color = colors[0] ?? "";
-      },
-    });
+    createForm
+      .optimistic<{ projects: Project[] }>((props) => ({
+        projects: [
+          ...props.projects,
+          withFormFields({ id: -Date.now() } as Project, createForm),
+        ].sort(byName),
+      }))
+      .post(routes.projects.create(workspaceId), {
+        onSuccess: () => {
+          createForm.reset();
+          createForm.color = colors[0] ?? "";
+        },
+      });
   }
 
   function handleUpdate(projectId: number) {
     if (!workspaceId) return;
-    $editForm.patch(routes.projects.update(workspaceId, projectId), {
-      onSuccess: () => {
-        editingId = null;
-        $editForm.reset();
-      },
-    });
+    editingId = null;
+    let saved = false;
+    editForm
+      .optimistic<{ projects: Project[] }>((props) => ({
+        projects: props.projects
+          .map((p) => (p.id === projectId ? withFormFields(p, editForm) : p))
+          .sort(byName),
+      }))
+      .patch(routes.projects.update(workspaceId, projectId), {
+        onSuccess: () => {
+          saved = true;
+          if (editingId === null) editForm.reset();
+        },
+        // Reopen the row on any failure, unless another row is being edited.
+        onFinish: () => {
+          if (!saved && editingId === null) editingId = projectId;
+        },
+      });
   }
 
   let projectToDelete: Project | null = $state(null);
 
   function confirmDelete() {
     if (projectToDelete && workspaceId) {
-      $editForm.delete(routes.projects.delete(workspaceId, projectToDelete.id));
+      const { id } = projectToDelete;
+      router
+        .optimistic<{ projects: Project[] }>((props) => ({
+          projects: props.projects.filter((p) => p.id !== id),
+        }))
+        .delete(routes.projects.delete(workspaceId, id));
     }
     projectToDelete = null;
   }
@@ -93,7 +134,7 @@
   icon={FolderKanban}
   iconColor="text-bright-green"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Project"
@@ -108,10 +149,10 @@
             <TextInput
               id="project-name"
               tone="green"
-              bind:value={$createForm.name}
+              bind:value={createForm.name}
               placeholder="Enter project name..."
               onkeydown={(e) =>
-                e.key === "Enter" && $createForm.name && handleCreate()}
+                e.key === "Enter" && createForm.name && handleCreate()}
               aria-describedby={describedBy}
             />
           {/snippet}
@@ -121,7 +162,7 @@
             <SelectInput
               id="project-client"
               tone="green"
-              bind:value={$createForm.client_id}
+              bind:value={createForm.client_id}
               aria-describedby={describedBy}
             >
               <option value="">No Client</option>
@@ -133,13 +174,13 @@
         </FormField>
       </div>
 
-      <ColorPicker {colors} bind:value={$createForm.color} />
+      <ColorPicker {colors} bind:value={createForm.color} />
 
       <div class="flex items-center justify-between">
         <label class="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            bind:checked={$createForm.billable_default}
+            bind:checked={createForm.billable_default}
             class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
           />
           <span class="text-sm text-fg-secondary">Billable by default</span>
@@ -148,7 +189,7 @@
         <Button
           tone="green"
           onclick={handleCreate}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
           Create Project
@@ -173,12 +214,13 @@
                 <FormField
                   id="edit-project-name-{project.id}"
                   label="Project Name"
+                  error={editForm.errors.name}
                 >
                   {#snippet children({ describedBy })}
                     <TextInput
                       id="edit-project-name-{project.id}"
                       tone="green"
-                      bind:value={$editForm.name}
+                      bind:value={editForm.name}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
@@ -188,7 +230,7 @@
                     <SelectInput
                       id="edit-project-client-{project.id}"
                       tone="green"
-                      bind:value={$editForm.client_id}
+                      bind:value={editForm.client_id}
                       aria-describedby={describedBy}
                     >
                       <option value="">No Client</option>
@@ -200,13 +242,13 @@
                 </FormField>
               </div>
 
-              <ColorPicker {colors} bind:value={$editForm.color} />
+              <ColorPicker {colors} bind:value={editForm.color} />
 
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    bind:checked={$editForm.billable_default}
+                    bind:checked={editForm.billable_default}
                     class="w-4 h-4 rounded border-bg-tertiary bg-bg-primary text-bright-green focus:ring-bright-green"
                   />
                   <span class="text-sm text-fg-secondary"
@@ -225,7 +267,7 @@
                     tone="success"
                     aria-label="Save changes"
                     onclick={() => handleUpdate(project.id)}
-                    disabled={$editForm.processing}
+                    disabled={editForm.processing}
                   >
                     <Check class="w-5 h-5" />
                   </IconButton>
@@ -261,6 +303,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit project"
+                  disabled={project.id < 0}
                   onclick={() => startEditing(project)}
                 >
                   <Edit2 class="w-4 h-4" />
@@ -268,6 +311,7 @@
                 <IconButton
                   tone="danger"
                   aria-label="Delete project"
+                  disabled={project.id < 0}
                   onclick={() => (projectToDelete = project)}
                 >
                   <Trash2 class="w-4 h-4" />

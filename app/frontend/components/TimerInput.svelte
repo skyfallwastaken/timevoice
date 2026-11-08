@@ -12,7 +12,7 @@
     ArrowUp,
     ArrowDown,
     Coffee,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { router, useForm, page, Link } from "@inertiajs/svelte";
   import DatePicker from "./DatePicker.svelte";
   import {
@@ -30,7 +30,7 @@
 
   let { runningEntry, projects = [], tags = [] } = $props();
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   let form = useForm({
     description: "",
@@ -43,10 +43,10 @@
   let lastSyncedEntryId: number | null = null;
   $effect(() => {
     if (runningEntry && runningEntry.id !== lastSyncedEntryId) {
-      $form.description = runningEntry.description ?? "";
-      $form.project_id = runningEntry.project?.id ?? null;
-      $form.tag_ids = runningEntry.tags?.map((t: { id: number }) => t.id) ?? [];
-      $form.billable = runningEntry.billable ?? false;
+      form.description = runningEntry.description ?? "";
+      form.project_id = runningEntry.project?.id ?? null;
+      form.tag_ids = runningEntry.tags?.map((t: { id: number }) => t.id) ?? [];
+      form.billable = runningEntry.billable ?? false;
       lastSyncedEntryId = runningEntry.id;
     } else if (!runningEntry && lastSyncedEntryId !== null) {
       lastSyncedEntryId = null;
@@ -229,11 +229,11 @@
   });
 
   let selectedProject = $derived(
-    projects.find((p: { id: number }) => p.id === $form.project_id),
+    projects.find((p: { id: number }) => p.id === form.project_id),
   );
 
   let selectedTags = $derived(
-    tags.filter((t: { id: number }) => $form.tag_ids.includes(t.id)),
+    tags.filter((t: { id: number }) => form.tag_ids.includes(t.id)),
   );
 
   let isRunning = $derived(!!runningEntry);
@@ -300,27 +300,27 @@
   });
 
   function resetForm() {
-    $form.description = "";
-    $form.project_id = null;
-    $form.tag_ids = [];
-    $form.billable = false;
+    form.description = "";
+    form.project_id = null;
+    form.tag_ids = [];
+    form.billable = false;
   }
 
   function startTimer() {
-    if (!$form.description.trim()) return;
+    if (!form.description.trim()) return;
 
     endBreak();
-    $form.start_at = new Date().toISOString();
+    form.start_at = new Date().toISOString();
     setTarget(
       settings.kind === "up"
         ? null
         : {
-            start_at: $form.start_at,
+            start_at: form.start_at,
             kind: settings.kind,
             seconds: settings.kind === "down" ? settings.limit : settings.focus,
           },
     );
-    $form
+    form
       .transform((data) => ({ time_entry: data }))
       .post(routes.timeEntries.create(workspaceId), {
         preserveScroll: true,
@@ -332,11 +332,11 @@
   }
 
   function addManualEntry() {
-    if (!$form.description.trim() || !manualRange || displayedSeconds <= 0)
+    if (!form.description.trim() || !manualRange || displayedSeconds <= 0)
       return;
     const { start, end } = manualRange;
 
-    $form
+    form
       .transform((data) => ({
         time_entry: {
           ...data,
@@ -406,17 +406,17 @@
   function selectProject(
     project: { id: number; billable_default: boolean } | null,
   ) {
-    $form.project_id = project?.id ?? null;
-    if (project?.billable_default) $form.billable = true;
+    form.project_id = project?.id ?? null;
+    if (project?.billable_default) form.billable = true;
     showProjectDropdown = false;
   }
 
   function toggleTag(tagId: number) {
-    $form.tag_ids = toggleSelectedTag($form.tag_ids, tagId);
+    form.tag_ids = toggleSelectedTag(form.tag_ids, tagId);
   }
 
   function handleDescriptionKeydown(event: KeyboardEvent) {
-    if (event.key !== "Enter" || isRunning || !$form.description.trim()) return;
+    if (event.key !== "Enter" || isRunning || !form.description.trim()) return;
     event.preventDefault();
     if (isManual) {
       addManualEntry();
@@ -488,7 +488,7 @@
     >
     <input
       id="timer-description"
-      bind:value={$form.description}
+      bind:value={form.description}
       bind:this={descriptionInput}
       placeholder={isManual
         ? "What did you work on?"
@@ -556,7 +556,7 @@
                 {#each projects as project (project.id)}
                   <Command.Item
                     value={`${project.name} ${project.client?.name ?? ""}`}
-                    data-checked={$form.project_id === project.id}
+                    data-checked={form.project_id === project.id}
                     onSelect={() => selectProject(project)}
                     class="gap-3 px-3 py-2 rounded-[5px]"
                   >
@@ -624,7 +624,7 @@
                 {#each tags as tag (tag.id)}
                   <Command.Item
                     value={tag.name}
-                    data-checked={$form.tag_ids.includes(tag.id)}
+                    data-checked={form.tag_ids.includes(tag.id)}
                     onSelect={() => toggleTag(tag.id)}
                     class="px-3 py-2 rounded-[5px]"
                   >
@@ -642,13 +642,13 @@
         disabled={isRunning}
         class={cn(
           iconButton,
-          $form.billable &&
+          form.billable &&
             "bg-bright-green/15 text-bright-green hover:bg-bright-green/25 hover:text-bright-green",
         )}
-        aria-pressed={$form.billable}
+        aria-pressed={form.billable}
         aria-label="Billable"
-        title={$form.billable ? "Billable" : "Non-billable"}
-        onclick={() => ($form.billable = !$form.billable)}
+        title={form.billable ? "Billable" : "Non-billable"}
+        onclick={() => (form.billable = !form.billable)}
       >
         <DollarSign class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -882,7 +882,7 @@
         {:else if isManual}
           <button
             onclick={addManualEntry}
-            disabled={!$form.description.trim() || displayedSeconds <= 0}
+            disabled={!form.description.trim() || displayedSeconds <= 0}
             class="h-9 shrink-0 px-4 rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary text-sm font-semibold transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add
@@ -890,7 +890,7 @@
         {:else}
           <button
             onclick={startTimer}
-            disabled={!$form.description.trim()}
+            disabled={!form.description.trim()}
             class="size-9 shrink-0 grid place-items-center rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Start timer"
           >

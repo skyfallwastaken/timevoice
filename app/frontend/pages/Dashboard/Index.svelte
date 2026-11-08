@@ -29,26 +29,24 @@
     ChevronDown,
     CalendarDays,
     List,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { formatDuration, formatHours, toDateString } from "../../lib/format";
   import type { Project, Tag, TimeEntry } from "../../types";
 
-  let projects = $derived(($page.props.projects as Project[]) || []);
-  let tags = $derived(($page.props.tags as Tag[]) || []);
-  let recentEntries = $derived(
-    ($page.props.recentEntries as TimeEntry[]) || [],
-  );
-  let view = $derived(($page.props.view as "list" | "calendar") || "list");
-  let calendarEntries = $derived(($page.props.entries as TimeEntry[]) || []);
-  let weekStart = $derived(($page.props.weekStart as string) || "");
-  let hasEntries = $derived(!!$page.props.hasEntries);
-  let entryLimit = $derived(($page.props.entryLimit as number) || 0);
+  let projects = $derived((page.props.projects as Project[]) || []);
+  let tags = $derived((page.props.tags as Tag[]) || []);
+  let recentEntries = $derived((page.props.recentEntries as TimeEntry[]) || []);
+  let view = $derived((page.props.view as "list" | "calendar") || "list");
+  let calendarEntries = $derived((page.props.entries as TimeEntry[]) || []);
+  let weekStart = $derived((page.props.weekStart as string) || "");
+  let hasEntries = $derived(!!page.props.hasEntries);
+  let entryLimit = $derived((page.props.entryLimit as number) || 0);
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   type Filters = { range: string; project_id: string; q: string };
 
-  const initialFilters = ($page.props.filters as Partial<Filters>) || {};
+  const initialFilters = (page.props.filters as Partial<Filters>) || {};
   let filters = $state<Filters>({
     range: initialFilters.range ?? "this_week",
     project_id: initialFilters.project_id ?? "",
@@ -281,11 +279,21 @@
     showDeleteModal = false;
   }
 
+  // Drops entries from both views at once; Inertia restores them if the delete fails.
+  const withoutEntries =
+    (ids: number[]) =>
+    (props: { recentEntries?: TimeEntry[]; entries?: TimeEntry[] }) => ({
+      recentEntries: props.recentEntries?.filter((e) => !ids.includes(e.id)),
+      entries: props.entries?.filter((e) => !ids.includes(e.id)),
+    });
+
   function confirmDeleteEntry() {
     if (!entryToDelete || !workspaceId) return;
-    router.delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
-      preserveScroll: true,
-    });
+    router
+      .optimistic(withoutEntries([entryToDelete.id]))
+      .delete(routes.timeEntries.delete(workspaceId, entryToDelete.id), {
+        preserveScroll: true,
+      });
     if (editingEntry?.id === entryToDelete.id) closeEdit();
     closeDeleteModal();
   }
@@ -316,11 +324,14 @@
     createFrom(entry, { start_at: entry.start_at, end_at: entry.end_at! });
 
   function confirmBulkDelete() {
-    router.delete(routes.timeEntries.bulkDestroy(workspaceId), {
-      data: { ids: [...selected] },
-      preserveScroll: true,
-      onSuccess: clearSelection,
-    });
+    const ids = [...selected];
+    router
+      .optimistic(withoutEntries(ids))
+      .delete(routes.timeEntries.bulkDestroy(workspaceId), {
+        data: { ids },
+        preserveScroll: true,
+        onSuccess: clearSelection,
+      });
     showBulkDelete = false;
   }
 
@@ -343,7 +354,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<TimerInput runningEntry={$page.props.runningEntry} {projects} {tags} />
+<TimerInput runningEntry={page.props.runningEntry} {projects} {tags} />
 
 <div class="@container shrink-0 bg-bg-secondary border-b border-bg-tertiary">
   <div
@@ -575,15 +586,15 @@
 
 {#if view === "calendar"}
   <div class="flex-1 min-h-0 flex flex-col">
-    {#if $page.props.flash?.notice || $page.props.flash?.alert}
+    {#if page.props.flash?.notice || page.props.flash?.alert}
       <div class="px-4 md:px-6 pt-3 -mb-1">
-        <Flash flash={$page.props.flash} />
+        <Flash flash={page.props.flash} />
       </div>
     {/if}
     <div class="flex-1 min-h-0">
       <WeekCalendar
         entries={calendarEntries}
-        runningEntry={$page.props.runningEntry}
+        runningEntry={page.props.runningEntry}
         {projects}
         {tags}
         {weekStart}
@@ -595,7 +606,7 @@
 {:else}
   <div class="flex-1 overflow-auto">
     <div class="px-4 md:px-6 py-4">
-      <Flash flash={$page.props.flash} />
+      <Flash flash={page.props.flash} />
 
       {#if !hasEntries}
         <div

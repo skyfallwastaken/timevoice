@@ -4,7 +4,7 @@
 
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
-  import { Check, AlertTriangle, X } from "lucide-svelte";
+  import { Check, AlertTriangle, X } from "@lucide/svelte";
   import Button from "../../components/Button.svelte";
 
   type Scope = {
@@ -19,20 +19,18 @@
     owner_name: string;
   };
 
-  let application = $derived($page.props.application as Application);
-  let clientId = $derived($page.props.client_id as string);
-  let scopes = $derived(($page.props.scopes as Scope[]) || []);
-  let responseType = $derived($page.props.response_type as string);
-  let redirectUri = $derived($page.props.redirect_uri as string);
-  let oauthState = $derived($page.props.state as string | undefined);
-  let codeChallenge = $derived(
-    $page.props.code_challenge as string | undefined,
-  );
+  let application = $derived(page.props.application as Application);
+  let clientId = $derived(page.props.client_id as string);
+  let scopes = $derived((page.props.scopes as Scope[]) || []);
+  let responseType = $derived(page.props.response_type as string);
+  let redirectUri = $derived(page.props.redirect_uri as string);
+  let oauthState = $derived(page.props.state as string | undefined);
+  let codeChallenge = $derived(page.props.code_challenge as string | undefined);
   let codeChallengeMethod = $derived(
-    $page.props.code_challenge_method as string | undefined,
+    page.props.code_challenge_method as string | undefined,
   );
-  let csrfToken = $derived($page.props.csrf_token as string);
-  let user = $derived($page.props.auth?.user);
+  let csrfToken = $derived(page.props.csrf_token as string);
+  let user = $derived(page.props.auth?.user);
 
   let isSubmitting = $state(false);
   let authorizeForm = $state<HTMLFormElement | null>(null);

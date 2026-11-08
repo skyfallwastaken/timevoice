@@ -8,8 +8,7 @@
   import { routes } from "../../lib/routes";
 
   let flash = $derived(
-    ($page.props.flash as { notice?: string; alert?: string } | undefined) ||
-      {},
+    (page.props.flash as { notice?: string; alert?: string } | undefined) || {},
   );
 </script>
 
@@ -44,7 +43,7 @@
         <input
           type="hidden"
           name="authenticity_token"
-          value={$page.props.csrf_token as string}
+          value={page.props.csrf_token as string}
         />
         <button
           type="submit"

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Clock, DollarSign, Folder, Hash, Timer, X } from "lucide-svelte";
+  import { Clock, DollarSign, Folder, Hash, Timer, X } from "@lucide/svelte";
   import { useForm, page } from "@inertiajs/svelte";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import * as Command from "$lib/components/ui/command/index.js";
@@ -37,7 +37,7 @@
     dayCount = 7,
     onEntryClick,
   }: Props = $props();
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
   const HOUR = 52;
   const DAY_MINUTES = 24 * 60;
@@ -207,9 +207,9 @@
   });
 
   let selectedProject = $derived(
-    projects.find((p) => p.id === $form.project_id),
+    projects.find((p) => p.id === form.project_id),
   );
-  let selectedTags = $derived(tags.filter((t) => $form.tag_ids.includes(t.id)));
+  let selectedTags = $derived(tags.filter((t) => form.tag_ids.includes(t.id)));
 
   function minuteAt(event: PointerEvent, column: HTMLElement) {
     const y = event.clientY - column.getBoundingClientRect().top;
@@ -290,7 +290,7 @@
       selection.to = Math.min(DAY_MINUTES, selection.from + 30);
     // Re-dragging while the popover is open keeps what was already filled in.
     if (!showQuickEdit) {
-      $form.reset();
+      form.reset();
       showQuickEdit = true;
     }
   }
@@ -324,14 +324,14 @@
   }
 
   function saveQuickEntry() {
-    if (!$form.description.trim() || !selection) return;
+    if (!form.description.trim() || !selection) return;
     const { day, from, to } = selection;
     const at = (minute: number) => {
       const date = new Date(day);
       date.setHours(0, minute, 0, 0);
       return date.toISOString();
     };
-    $form
+    form
       .transform((data) => ({
         time_entry: { ...data, start_at: at(from), end_at: at(to) },
       }))
@@ -342,7 +342,7 @@
           closeQuickEdit();
           // Keep the blank defaults the next open resets to; Inertia otherwise
           // adopts the submitted values as the new defaults.
-          $form.defaults({});
+          form.defaults({});
         },
       });
   }
@@ -367,8 +367,8 @@
   };
 
   function selectProject(project: Project | null) {
-    $form.project_id = project?.id ?? null;
-    if (project?.billable_default) $form.billable = true;
+    form.project_id = project?.id ?? null;
+    if (project?.billable_default) form.billable = true;
     showProjectPicker = false;
   }
 
@@ -560,8 +560,8 @@
                 : ''}"
               onpointerdown={(e) => adjustSelection(e, "move")}
             >
-              {#if $form.description.trim()}
-                <span class="truncate font-semibold">{$form.description}</span>
+              {#if form.description.trim()}
+                <span class="truncate font-semibold">{form.description}</span>
               {/if}
               <span class="truncate"
                 >{clock(selection.from)} – {clock(shownTo)}</span
@@ -629,7 +629,7 @@
     <div class="px-4 pb-4 space-y-3">
       <input
         bind:this={descriptionInput}
-        bind:value={$form.description}
+        bind:value={form.description}
         id="quick-entry-description"
         type="text"
         aria-label="Description"
@@ -735,7 +735,7 @@
                     {#each projects as project (project.id)}
                       <Command.Item
                         value={`${project.name} ${project.client?.name ?? ""}`}
-                        data-checked={$form.project_id === project.id}
+                        data-checked={form.project_id === project.id}
                         onSelect={() => selectProject(project)}
                         class="gap-3 px-3 py-2 rounded-[5px]"
                       >
@@ -790,10 +790,10 @@
                     {#each tags as tag (tag.id)}
                       <Command.Item
                         value={tag.name}
-                        data-checked={$form.tag_ids.includes(tag.id)}
+                        data-checked={form.tag_ids.includes(tag.id)}
                         onSelect={() =>
-                          ($form.tag_ids = toggleSelectedTag(
-                            $form.tag_ids,
+                          (form.tag_ids = toggleSelectedTag(
+                            form.tag_ids,
                             tag.id,
                           ))}
                         class="px-3 py-2 rounded-[5px]"
@@ -811,26 +811,26 @@
             type="button"
             class={rowButton}
             role="switch"
-            aria-checked={$form.billable}
-            onclick={() => ($form.billable = !$form.billable)}
+            aria-checked={form.billable}
+            onclick={() => (form.billable = !form.billable)}
           >
             <DollarSign
-              class="size-4 shrink-0 {$form.billable
+              class="size-4 shrink-0 {form.billable
                 ? 'text-bright-green'
                 : 'text-fg-muted'}"
               aria-hidden="true"
             />
-            <span class={$form.billable ? "text-bright-green" : "text-fg-muted"}
-              >{$form.billable ? "Billable" : "Non-billable"}</span
+            <span class={form.billable ? "text-bright-green" : "text-fg-muted"}
+              >{form.billable ? "Billable" : "Non-billable"}</span
             >
             <span
-              class="ml-auto flex items-center w-8 h-[18px] p-0.5 rounded-full transition-colors duration-150 {$form.billable
+              class="ml-auto flex items-center w-8 h-[18px] p-0.5 rounded-full transition-colors duration-150 {form.billable
                 ? 'bg-bright-green'
                 : 'bg-bg-quaternary'}"
               aria-hidden="true"
             >
               <span
-                class="size-3.5 rounded-full bg-bg-primary transition-transform duration-150 {$form.billable
+                class="size-3.5 rounded-full bg-bg-primary transition-transform duration-150 {form.billable
                   ? 'translate-x-3.5'
                   : ''}"
               ></span>
@@ -848,7 +848,7 @@
         type="button"
         tone="purple"
         onclick={saveQuickEntry}
-        disabled={!$form.description.trim() || $form.processing}
+        disabled={!form.description.trim() || form.processing}
       >
         Save
       </Button>

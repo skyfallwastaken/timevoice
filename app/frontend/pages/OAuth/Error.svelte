@@ -5,11 +5,11 @@
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
   import { Link } from "@inertiajs/svelte";
-  import { AlertTriangle } from "lucide-svelte";
+  import { AlertTriangle } from "@lucide/svelte";
   import Button from "../../components/Button.svelte";
 
-  let error = $derived($page.props.error as string);
-  let message = $derived($page.props.message as string);
+  let error = $derived(page.props.error as string);
+  let message = $derived(page.props.message as string);
 </script>
 
 <div class="min-h-screen bg-bg-primary flex items-center justify-center p-4">

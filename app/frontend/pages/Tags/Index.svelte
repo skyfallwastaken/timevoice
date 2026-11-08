@@ -7,15 +7,14 @@
   import TextInput from "../../components/TextInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
-  import { page } from "@inertiajs/svelte";
-  import { useForm } from "@inertiajs/svelte";
+  import { page, router, useForm } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
-  import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "lucide-svelte";
+  import { Tag, Plus, Edit2, Trash2, Check, X, Hash } from "@lucide/svelte";
   import type { Tag as TagType } from "../../types";
 
-  const workspaceId = $derived($page.props.auth?.workspace?.hashid);
+  const workspaceId = $derived(page.props.auth?.workspace?.hashid);
 
-  let tags = $derived(($page.props.tags as TagType[]) || []);
+  let tags = $derived((page.props.tags as TagType[]) || []);
 
   let editingId: number | null = $state(null);
   let tagToDelete: TagType | null = $state(null);
@@ -29,37 +28,64 @@
   });
 
   function startEditing(tagItem: TagType) {
+    editForm.clearErrors();
     editingId = tagItem.id;
-    $editForm.name = tagItem.name;
+    editForm.name = tagItem.name;
   }
 
   function cancelEditing() {
     editingId = null;
-    $editForm.reset();
+    editForm.reset();
   }
+
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name);
 
   function handleCreate() {
     if (!workspaceId) return;
-    $createForm.post(routes.tags.create(workspaceId), {
-      onSuccess: () => {
-        $createForm.reset();
-      },
-    });
+    createForm
+      .optimistic<{ tags: TagType[] }>((props) => ({
+        tags: [...props.tags, { id: -Date.now(), name: createForm.name }].sort(
+          byName,
+        ),
+      }))
+      .post(routes.tags.create(workspaceId), {
+        onSuccess: () => {
+          createForm.reset();
+        },
+      });
   }
 
   function handleUpdate(tagId: number) {
     if (!workspaceId) return;
-    $editForm.patch(routes.tags.update(workspaceId, tagId), {
-      onSuccess: () => {
-        editingId = null;
-        $editForm.reset();
-      },
-    });
+    editingId = null;
+    let saved = false;
+    editForm
+      .optimistic<{ tags: TagType[] }>((props) => ({
+        tags: props.tags
+          .map((t) => (t.id === tagId ? { ...t, name: editForm.name } : t))
+          .sort(byName),
+      }))
+      .patch(routes.tags.update(workspaceId, tagId), {
+        onSuccess: () => {
+          saved = true;
+          if (editingId === null) editForm.reset();
+        },
+        // Reopen the row on any failure, unless another row is being edited.
+        onFinish: () => {
+          if (!saved && editingId === null) editingId = tagId;
+        },
+      });
   }
 
   function confirmDelete() {
     if (tagToDelete && workspaceId) {
-      $editForm.delete(routes.tags.delete(workspaceId, tagToDelete.id));
+      const { id } = tagToDelete;
+      router
+        .optimistic<{ tags: TagType[] }>((props) => ({
+          tags: props.tags.filter((t) => t.id !== id),
+        }))
+        .delete(routes.tags.delete(workspaceId, id));
     }
     tagToDelete = null;
   }
@@ -70,7 +96,7 @@
   icon={Tag}
   iconColor="text-bright-yellow"
   variant="narrow"
-  flash={$page.props.flash}
+  flash={page.props.flash}
 >
   <SectionCard
     title="Create New Tag"
@@ -84,10 +110,10 @@
           <TextInput
             id="tag-name"
             tone="yellow"
-            bind:value={$createForm.name}
+            bind:value={createForm.name}
             placeholder="Enter tag name..."
             onkeydown={(e) =>
-              e.key === "Enter" && $createForm.name && handleCreate()}
+              e.key === "Enter" && createForm.name && handleCreate()}
             aria-describedby={describedBy}
           />
         {/snippet}
@@ -97,7 +123,7 @@
         <Button
           tone="yellow"
           onclick={handleCreate}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
           <Plus class="w-4 h-4" />
           Create Tag
@@ -123,12 +149,17 @@
                 : ''} flex items-center gap-4"
             >
               <div class="flex-1">
-                <FormField id="edit-tag-{tagItem.id}" label="Tag Name" srOnly>
+                <FormField
+                  id="edit-tag-{tagItem.id}"
+                  label="Tag Name"
+                  srOnly
+                  error={editForm.errors.name}
+                >
                   {#snippet children({ describedBy })}
                     <TextInput
                       id="edit-tag-{tagItem.id}"
                       tone="yellow"
-                      bind:value={$editForm.name}
+                      bind:value={editForm.name}
                       aria-describedby={describedBy}
                     />
                   {/snippet}
@@ -143,7 +174,7 @@
                   tone="success"
                   aria-label="Save changes"
                   onclick={() => handleUpdate(tagItem.id)}
-                  disabled={$editForm.processing}
+                  disabled={editForm.processing}
                 >
                   <Check class="w-5 h-5" />
                 </IconButton>
@@ -160,6 +191,7 @@
               {#snippet actions()}
                 <IconButton
                   aria-label="Edit tag"
+                  disabled={tagItem.id < 0}
                   onclick={() => startEditing(tagItem)}
                 >
                   <Edit2 class="w-4 h-4" />
@@ -167,6 +199,7 @@
                 <IconButton
                   tone="danger"
                   aria-label="Delete tag"
+                  disabled={tagItem.id < 0}
                   onclick={() => (tagToDelete = tagItem)}
                 >
                   <Trash2 class="w-4 h-4" />

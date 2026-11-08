@@ -39,7 +39,7 @@ gem "thruster", require: false
 gem "vite_rails", "~> 3.0"
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.2"
 
 # Active Storage validations for file size and content type
 gem "active_storage_validations"
@@ -48,13 +48,13 @@ gem "active_storage_validations"
 # gem "rack-attack", "~> 6.7"
 
 # Inertia.js adapter for Rails
-gem "inertia_rails", "~> 3.0"
+gem "inertia_rails", "~> 3.23"
 
 # Authorization with Pundit
 gem "pundit", "~> 2.3"
 
 # PDF generation
-gem "prawn", "~> 2.4"
+gem "prawn", "~> 2.5"
 gem "prawn-table", "~> 0.2"
 gem "commonmarker", "~> 2.10"
 
@@ -102,6 +102,6 @@ group :test do
   gem "pdf-reader"
 end
 
-gem "mission_control-jobs", "~> 1.1"
+gem "mission_control-jobs", "~> 1.3"
 
-gem "scalar_ruby", "~> 1.1"
+gem "scalar_ruby", "~> 2.0"

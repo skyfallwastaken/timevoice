@@ -4,7 +4,7 @@
 
 <script lang="ts">
   import { page, router } from "@inertiajs/svelte";
-  import { Shield, Users, Clock } from "lucide-svelte";
+  import { Shield, Users, Clock } from "@lucide/svelte";
   import Button from "../../components/Button.svelte";
   import Flash from "../../components/Flash.svelte";
   import { routes } from "../../lib/routes";
@@ -18,9 +18,9 @@
     expires_at: string;
   };
 
-  let invite = $derived($page.props.invite as Invite);
+  let invite = $derived(page.props.invite as Invite);
   let flash = $derived(
-    $page.props.flash as { notice?: string; alert?: string } | undefined,
+    page.props.flash as { notice?: string; alert?: string } | undefined,
   );
   let processing = $state(false);
 

@@ -21,7 +21,7 @@
   let widgetId: string | null = null;
 
   const siteKey = $derived(
-    ($page.props.turnstile_site_key as string) || "1x00000000000000000000BB",
+    (page.props.turnstile_site_key as string) || "1x00000000000000000000BB",
   );
 
   $effect(() => {

@@ -14,7 +14,7 @@
     X,
     Plus,
     Workflow,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
   import FormField from "./FormField.svelte";
@@ -22,31 +22,140 @@
   import Button from "./Button.svelte";
   import IconButton from "./IconButton.svelte";
   import { fly, fade } from "svelte/transition";
+  import { untrack } from "svelte";
   import { Tween } from "svelte/motion";
   import { quintOut, cubicOut } from "svelte/easing";
   import { routes } from "../lib/routes";
 
   let { children } = $props();
 
-  const user = $derived($page.props.auth?.user);
-  const workspace = $derived($page.props.auth?.workspace);
-  const isAdmin = $derived($page.props.auth?.is_admin);
-  const isDevMode = $derived($page.props.rails_env === "development");
+  const user = $derived(page.props.auth?.user);
+  const workspace = $derived(page.props.auth?.workspace);
+  const isAdmin = $derived(page.props.auth?.is_admin);
+  const isDevMode = $derived(page.props.rails_env === "development");
 
   const currentWorkspaceHashid = $derived(
-    $page.props.auth?.workspace?.hashid || "",
+    page.props.auth?.workspace?.hashid || "",
   );
 
   const navItems = [
-    { href: routes.dashboard.index, icon: Clock, label: "Timer" },
-    { href: routes.clients.index, icon: Building2, label: "Clients" },
-    { href: routes.projects.index, icon: FolderKanban, label: "Projects" },
-    { href: routes.tags.index, icon: Tag, label: "Tags" },
-    { href: routes.reports.index, icon: BarChart3, label: "Reports" },
-    { href: routes.invoices.index, icon: FileText, label: "Invoices" },
-    { href: routes.settings.index, icon: Settings, label: "Settings" },
+    {
+      href: routes.dashboard.index,
+      icon: Clock,
+      label: "Timer",
+      component: "Dashboard/Index",
+    },
+    {
+      href: routes.clients.index,
+      icon: Building2,
+      label: "Clients",
+      component: "Clients/Index",
+    },
+    {
+      href: routes.projects.index,
+      icon: FolderKanban,
+      label: "Projects",
+      component: "Projects/Index",
+    },
+    {
+      href: routes.tags.index,
+      icon: Tag,
+      label: "Tags",
+      component: "Tags/Index",
+    },
+    {
+      href: routes.reports.index,
+      icon: BarChart3,
+      label: "Reports",
+      component: "Reports/Index",
+    },
+    {
+      href: routes.invoices.index,
+      icon: FileText,
+      label: "Invoices",
+      component: "Invoices/Index",
+    },
+    {
+      href: routes.settings.index,
+      icon: Settings,
+      label: "Settings",
+      component: "Settings/Workspace",
+    },
   ];
-  const workspaces = $derived($page.props.auth?.workspaces || []);
+
+  // The latest props of each sidebar page, by URL. A nav link with cached
+  // props is an instant visit: it renders the page from the cache at once
+  // while the visit fetches fresh props. Pages without cached props yet use a
+  // regular visit.
+  const pageCache: Record<string, Record<string, unknown>> = $state({});
+  // When each entry was stored, so a slow refresh can't replace newer props.
+  const cachedAt = new Map<string, number>();
+
+  function cache(url: string, props: Record<string, unknown>, at: number) {
+    if ((cachedAt.get(url) ?? 0) > at) return;
+    cachedAt.set(url, at);
+    pageCache[url] = props;
+  }
+
+  const instantPageProps =
+    (href: string) => (_: unknown, shared: Record<string, unknown>) => ({
+      ...pageCache[href],
+      ...shared,
+      flash: {},
+    });
+
+  // Fetches each sidebar page's props the way an Inertia visit would,
+  // without touching the current page or Inertia's prefetch cache.
+  function refreshPageCache(hrefs: string[]) {
+    for (const href of hrefs) {
+      const startedAt = performance.now();
+      if (href === page.url) {
+        cache(href, page.props, startedAt);
+        continue;
+      }
+      fetch(href, {
+        headers: {
+          "X-Inertia": "true",
+          "X-Inertia-Version": page.version ?? "",
+          Purpose: "prefetch",
+        },
+      })
+        .then((response) =>
+          response.ok && response.headers.has("X-Inertia")
+            ? response.json()
+            : null,
+        )
+        .then((fetched) => {
+          if (fetched?.props) cache(href, fetched.props, startedAt);
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Refill the cache on load, on switching workspace, and every minute.
+  $effect(() => {
+    const hrefs = navItems.map((item) => item.href(currentWorkspaceHashid));
+    untrack(() => {
+      for (const url of Object.keys(pageCache)) delete pageCache[url];
+      cachedAt.clear();
+    });
+
+    const stopNavigate = router.on("navigate", (event) => {
+      const { url, props } = event.detail.page;
+      if (hrefs.includes(url)) cache(url, props, performance.now());
+    });
+    const refresh = () => untrack(() => refreshPageCache(hrefs));
+    refresh();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 60_000);
+    return () => {
+      stopNavigate();
+      clearInterval(timer);
+    };
+  });
+
+  const workspaces = $derived(page.props.auth?.workspaces || []);
 
   let mobileNavOpen = $state(false);
   let mobileWorkspaceOpen = $state(false);
@@ -54,7 +163,7 @@
   let showCreateModal = $state(false);
 
   const activeIndex = $derived.by(() => {
-    const path = $page.url.split("?")[0];
+    const path = page.url.split("?")[0];
     if (path === `/${currentWorkspaceHashid}`) return 0;
     return navItems.findIndex((item) => {
       const href = item.href(currentWorkspaceHashid);
@@ -88,7 +197,7 @@
   }
 
   function openCreateModal() {
-    $createForm.reset();
+    createForm.reset();
     showCreateModal = true;
     mobileWorkspaceOpen = false;
     desktopWorkspaceOpen = false;
@@ -99,14 +208,14 @@
   }
 
   function submitCreateWorkspace() {
-    $createForm
+    createForm
       .transform((data) => ({ workspace: data }))
       .post(routes.workspaces.create, {
         onSuccess: () => {
           closeCreateModal();
           // Keep the blank defaults the next open resets to; Inertia otherwise
           // adopts the submitted values as the new defaults.
-          $createForm.defaults({});
+          createForm.defaults({});
         },
       });
   }
@@ -140,10 +249,11 @@
     {/if}
     {#each navItems as item}
       {@const href = item.href(currentWorkspaceHashid)}
-      {@const isActive = $page.url === href || $page.url.startsWith(href + "/")}
+      {@const isActive = page.url === href || page.url.startsWith(href + "/")}
       <Link
         {href}
-        prefetch
+        component={pageCache[href] ? item.component : undefined}
+        pageProps={instantPageProps(href)}
         {onclick}
         class="w-full relative flex items-center gap-2 px-3 py-2 rounded-[10px] transition-colors duration-150 {isActive
           ? 'text-bright-purple'
@@ -431,13 +541,13 @@
     <FormField
       id="workspace-name"
       label="Workspace Name"
-      error={$createForm.errors?.name}
+      error={createForm.errors?.name}
     >
       {#snippet children({ describedBy })}
         <TextInput
           id="workspace-name"
           tone="purple"
-          bind:value={$createForm.name}
+          bind:value={createForm.name}
           placeholder="My Team"
           aria-describedby={describedBy}
         />
@@ -449,16 +559,16 @@
         <Button
           variant="ghost"
           onclick={closeCreateModal}
-          disabled={$createForm.processing}
+          disabled={createForm.processing}
         >
           Cancel
         </Button>
         <Button
           tone="purple"
           onclick={submitCreateWorkspace}
-          disabled={$createForm.processing || !$createForm.name}
+          disabled={createForm.processing || !createForm.name}
         >
-          {$createForm.processing ? "Creating..." : "Create Workspace"}
+          {createForm.processing ? "Creating..." : "Create Workspace"}
         </Button>
       </div>
     {/snippet}

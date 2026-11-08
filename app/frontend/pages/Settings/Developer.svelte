@@ -12,7 +12,7 @@
     Key,
     ExternalLink,
     Play,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import ChipButton from "../../components/ChipButton.svelte";
   import EmptyState from "../../components/EmptyState.svelte";
   import Modal from "../../components/Modal.svelte";
@@ -41,17 +41,17 @@
     [key: string]: string;
   };
 
-  let applications = $derived(($page.props.applications as OAuthApp[]) || []);
-  let scopes = $derived(($page.props.scopes as ScopeDescription) || {});
+  let applications = $derived((page.props.applications as OAuthApp[]) || []);
+  let scopes = $derived((page.props.scopes as ScopeDescription) || {});
   let flash = $derived(
-    ($page.props.flash || {}) as {
+    (page.props.flash || {}) as {
       notice?: string;
       alert?: string;
       new_secret?: string;
       secret_app_id?: number;
     },
   );
-  let workspaceId = $derived($page.props.auth?.workspace?.hashid as string);
+  let workspaceId = $derived(page.props.auth?.workspace?.hashid as string);
 
   let showCreateModal = $state(false);
   let showEditModal = $state(false);
@@ -75,29 +75,29 @@
   });
 
   function submitCreate() {
-    $createForm.post(routes.oauthApplications.create(workspaceId), {
+    createForm.post(routes.oauthApplications.create(workspaceId), {
       preserveScroll: true,
       onSuccess: () => {
         showCreateModal = false;
         // Keep the blank defaults the next open resets to; Inertia otherwise
         // adopts the submitted values as the new defaults.
-        $createForm.defaults({});
+        createForm.defaults({});
       },
     });
   }
 
   function openEditModal(app: OAuthApp) {
     selectedApp = app;
-    $editForm.name = app.name;
-    $editForm.redirect_uri = app.redirect_uri;
-    $editForm.scopes = [...app.scopes];
-    $editForm.confidential = app.confidential;
+    editForm.name = app.name;
+    editForm.redirect_uri = app.redirect_uri;
+    editForm.scopes = [...app.scopes];
+    editForm.confidential = app.confidential;
     showEditModal = true;
   }
 
   function submitEdit() {
     if (!selectedApp) return;
-    $editForm.patch(
+    editForm.patch(
       routes.oauthApplications.update(workspaceId, selectedApp.id),
       {
         preserveScroll: true,
@@ -149,7 +149,7 @@
     }, 2000);
   }
 
-  function toggleScope(scope: string, form: typeof $createForm) {
+  function toggleScope(scope: string, form: typeof createForm) {
     if (form.scopes.includes(scope)) {
       form.scopes = form.scopes.filter((s) => s !== scope);
     } else {
@@ -223,7 +223,7 @@
         aria-label="Create new OAuth application"
         type="button"
         onclick={() => {
-          $createForm.reset();
+          createForm.reset();
           showCreateModal = true;
         }}
       >
@@ -442,7 +442,7 @@
         <TextInput
           id="app-name"
           tone="purple"
-          bind:value={$createForm.name}
+          bind:value={createForm.name}
           placeholder="My Awesome App"
           aria-describedby={describedBy}
         />
@@ -459,7 +459,7 @@
         <TextInput
           id="app-redirect"
           tone="purple"
-          bind:value={$createForm.redirect_uri}
+          bind:value={createForm.redirect_uri}
           placeholder="https://myapp.com/oauth/callback"
           aria-describedby={describedBy}
         />
@@ -479,8 +479,8 @@
             <input
               type="radio"
               name="create-confidential"
-              checked={!$createForm.confidential}
-              onchange={() => ($createForm.confidential = false)}
+              checked={!createForm.confidential}
+              onchange={() => (createForm.confidential = false)}
               class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
             />
             <div>
@@ -496,8 +496,8 @@
             <input
               type="radio"
               name="create-confidential"
-              checked={$createForm.confidential}
-              onchange={() => ($createForm.confidential = true)}
+              checked={createForm.confidential}
+              onchange={() => (createForm.confidential = true)}
               class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
             />
             <div>
@@ -524,8 +524,8 @@
             >
               <input
                 type="checkbox"
-                checked={$createForm.scopes.includes(scope)}
-                onchange={() => toggleScope(scope, $createForm)}
+                checked={createForm.scopes.includes(scope)}
+                onchange={() => toggleScope(scope, createForm)}
                 class="mt-0.5 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
               />
               <div>
@@ -546,7 +546,7 @@
           onclick={() => {
             showCreateModal = false;
           }}
-          disabled={$createForm.processing}
+          disabled={createForm.processing}
         >
           Cancel
         </Button>
@@ -554,11 +554,11 @@
           type="button"
           tone="purple"
           onclick={submitCreate}
-          disabled={$createForm.processing ||
-            !$createForm.name ||
-            !$createForm.redirect_uri}
+          disabled={createForm.processing ||
+            !createForm.name ||
+            !createForm.redirect_uri}
         >
-          {$createForm.processing ? "Creating..." : "Create Application"}
+          {createForm.processing ? "Creating..." : "Create Application"}
         </Button>
       </div>
     {/snippet}
@@ -578,7 +578,7 @@
         <TextInput
           id="edit-app-name"
           tone="purple"
-          bind:value={$editForm.name}
+          bind:value={editForm.name}
           aria-describedby={describedBy}
         />
       {/snippet}
@@ -594,7 +594,7 @@
         <TextInput
           id="edit-app-redirect"
           tone="purple"
-          bind:value={$editForm.redirect_uri}
+          bind:value={editForm.redirect_uri}
           aria-describedby={describedBy}
         />
       {/snippet}
@@ -613,8 +613,8 @@
             <input
               type="radio"
               name="edit-confidential"
-              checked={!$editForm.confidential}
-              onchange={() => ($editForm.confidential = false)}
+              checked={!editForm.confidential}
+              onchange={() => (editForm.confidential = false)}
               class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
             />
             <div>
@@ -630,8 +630,8 @@
             <input
               type="radio"
               name="edit-confidential"
-              checked={$editForm.confidential}
-              onchange={() => ($editForm.confidential = true)}
+              checked={editForm.confidential}
+              onchange={() => (editForm.confidential = true)}
               class="mt-0.5 border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
             />
             <div>
@@ -658,8 +658,8 @@
             >
               <input
                 type="checkbox"
-                checked={$editForm.scopes.includes(scope)}
-                onchange={() => toggleScope(scope, $editForm)}
+                checked={editForm.scopes.includes(scope)}
+                onchange={() => toggleScope(scope, editForm)}
                 class="mt-0.5 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple focus:ring-offset-0 bg-bg-tertiary"
               />
               <div>
@@ -680,7 +680,7 @@
           onclick={() => {
             showEditModal = false;
           }}
-          disabled={$editForm.processing}
+          disabled={editForm.processing}
         >
           Cancel
         </Button>
@@ -688,11 +688,11 @@
           type="button"
           tone="purple"
           onclick={submitEdit}
-          disabled={$editForm.processing ||
-            !$editForm.name ||
-            !$editForm.redirect_uri}
+          disabled={editForm.processing ||
+            !editForm.name ||
+            !editForm.redirect_uri}
         >
-          {$editForm.processing ? "Saving..." : "Save Changes"}
+          {editForm.processing ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     {/snippet}
