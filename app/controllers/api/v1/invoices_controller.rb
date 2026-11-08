@@ -91,7 +91,7 @@ module Api
         rate
       end
 
-      def serialize_invoice(invoice, include_lines: false, line_count: invoice.invoice_lines.size)
+      def serialize_invoice(invoice, include_lines: false, line_count: invoice.invoice_lines.load.size)
         client = invoice.client
         json = {
           id: invoice.hashid,

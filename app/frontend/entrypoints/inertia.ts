@@ -15,6 +15,10 @@ const pages: Record<string, () => Promise<ResolvedComponent>> = {
   "../pages/Dashboard/Index.svelte": async () => DashboardIndex,
 };
 
+// A deploy removes the chunks an open tab was built against; reload to pick
+// up the new ones instead of leaving a visit stuck on a failed import.
+window.addEventListener("vite:preloadError", () => window.location.reload());
+
 // The server reads this to bucket entries into days in the browser's timezone.
 document.cookie = `tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}; path=/; max-age=31536000; samesite=lax`;
 

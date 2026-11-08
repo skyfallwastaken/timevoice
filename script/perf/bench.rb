@@ -58,6 +58,7 @@ results = pages.to_h do |name, path|
     queries.clear
     t = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     session.get(path, headers: headers)
+    raise "#{name}: HTTP #{session.response.status}" unless session.response.status == 200
     (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t) * 1000
   end.sort
   body = session.response.body

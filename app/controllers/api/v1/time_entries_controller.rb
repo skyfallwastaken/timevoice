@@ -100,7 +100,7 @@ module Api
           tags = current_workspace.tags.where(id: ids.values.compact).index_by(&:id)
           attrs[:tags] = ids.map do |hashid, id|
             tags[id] || raise(InvalidParameter, "tag_ids #{hashid.to_s.inspect} does not exist in this workspace")
-          end
+          end.uniq
         end
         attrs
       end
