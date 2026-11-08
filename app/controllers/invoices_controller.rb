@@ -21,8 +21,7 @@ class InvoicesController < ApplicationController
 
     @clients = current_workspace.clients.order(:name)
 
-    @unbilled_entries = current_user.time_entries
-      .where(workspace: current_workspace)
+    @unbilled_entries = policy_scope(TimeEntry)
       .unbilled
       .includes(:tags, project: :client)
       .order(start_at: :desc)

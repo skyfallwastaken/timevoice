@@ -35,7 +35,7 @@ class DashboardController < ApplicationController
       q: params[:q].to_s.strip.presence
     }
 
-    entries = workspace_entries
+    entries = policy_scope(TimeEntry)
       .completed
       .includes(:project, :tags, files_attachments: :blob)
       .order(start_at: :desc)
@@ -47,7 +47,7 @@ class DashboardController < ApplicationController
     {
       recentEntries: entries.map { |entry| entry_json(entry) },
       filters: filters,
-      hasEntries: workspace_entries.completed.exists?,
+      hasEntries: policy_scope(TimeEntry).completed.exists?,
       entryLimit: ENTRY_LIMIT
     }
   end
@@ -59,7 +59,7 @@ class DashboardController < ApplicationController
       Date.current.beginning_of_week
     end
 
-    entries = workspace_entries
+    entries = policy_scope(TimeEntry)
       .completed
       .in_date_range(week_start, week_start + 6.days)
       .includes(:project, :tags, files_attachments: :blob)
@@ -69,10 +69,6 @@ class DashboardController < ApplicationController
       entries: entries.map { |entry| entry_json(entry) },
       weekStart: week_start.to_s
     }
-  end
-
-  def workspace_entries
-    current_user.time_entries.where(workspace: current_workspace)
   end
 
   # The list's arrows send a day in the period to show.
@@ -92,7 +88,7 @@ class DashboardController < ApplicationController
 
   # The latest entry for each distinct description, newest first, in one query.
   def recent_descriptions
-    ranked = workspace_entries.completed.where.not(description: [ nil, "" ]).select(
+    ranked = policy_scope(TimeEntry).completed.where.not(description: [ nil, "" ]).select(
       :id, :start_at,
       "ROW_NUMBER() OVER (PARTITION BY LOWER(time_entries.description) ORDER BY time_entries.start_at DESC, time_entries.id DESC) AS position"
     )

@@ -9,8 +9,7 @@ module Api
       before_action -> { require_scope! :time_entries }, only: [ :create, :update, :destroy, :start, :stop ]
 
       def index
-        time_entries = current_user.time_entries
-          .where(workspace: current_workspace)
+        time_entries = policy_scope(TimeEntry)
           .includes(:project, :tags)
           .order(start_at: :desc)
 
@@ -78,11 +77,11 @@ module Api
       private
 
       def set_time_entry
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).find_by_hashid!(params[:id])
+        @time_entry = policy_scope(TimeEntry).find_by_hashid!(params[:id])
       end
 
       def set_running_time_entry
-        @time_entry = current_user.time_entries.where(workspace: current_workspace).running.find_by_hashid!(params[:id])
+        @time_entry = policy_scope(TimeEntry).running.find_by_hashid!(params[:id])
       end
 
       # Accepts the documented field names (started_at/ended_at, hashid

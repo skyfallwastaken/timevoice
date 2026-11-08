@@ -132,7 +132,7 @@ class ApplicationController < ActionController::Base
   def running_entry_json
     return unless current_user && current_workspace
 
-    current_user.time_entries.running.where(workspace: current_workspace)
+    policy_scope(TimeEntry).running
       .eager_load(:project, :tags).order(:start_at).to_a.last
       &.as_json(
         only: [ :id, :description, :start_at, :billable ],

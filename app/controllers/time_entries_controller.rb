@@ -95,21 +95,17 @@ class TimeEntriesController < ApplicationController
 
   private
 
-  def workspace_entries
-    current_user.time_entries.where(workspace: current_workspace)
-  end
-
   def set_selected_time_entries
-    @time_entries = workspace_entries.where(id: Array(params[:ids])).includes(:tags).to_a
+    @time_entries = policy_scope(TimeEntry).where(id: Array(params[:ids])).includes(:tags).to_a
     @time_entries.each { |entry| authorize entry, :update? }
   end
 
   def set_time_entry
-    @time_entry = workspace_entries.find(params[:id])
+    @time_entry = policy_scope(TimeEntry).find(params[:id])
   end
 
   def set_running_time_entry
-    @time_entry = workspace_entries.running.find_by(id: params[:id])
+    @time_entry = policy_scope(TimeEntry).running.find_by(id: params[:id])
     unless @time_entry
       redirect_back(fallback_location: root_path, alert: "No running timer found in this workspace.") and return
     end

@@ -14,8 +14,7 @@ class ReportsController < ApplicationController
       flash.now[:notice] = "Reports cover at most 5 years, so this one starts on #{start_date.strftime("%b %-d, %Y")}."
     end
 
-    @entries = current_user.time_entries
-      .where(workspace: current_workspace)
+    @entries = policy_scope(TimeEntry)
       .completed
       .in_date_range(start_date, end_date)
       .includes(:tags, project: :client)

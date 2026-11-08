@@ -29,8 +29,6 @@ class TimeEntry < ApplicationRecord
   scope :running, -> { where(end_at: nil) }
   scope :completed, -> { where.not(end_at: nil) }
   scope :billable, -> { where(billable: true) }
-  scope :today, -> { where(start_at: Time.current.beginning_of_day..Time.current.end_of_day) }
-  scope :this_week, -> { where(start_at: Time.current.beginning_of_week..Time.current.end_of_week) }
   scope :in_date_range, ->(start_date, end_date) { where(start_at: start_date.beginning_of_day..end_date.end_of_day) }
   scope :unbilled, -> {
     completed
