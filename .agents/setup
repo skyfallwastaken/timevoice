@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Prepares an Amp orb: Ruby from .ruby-version (mise), gems, JS packages, and SQLite databases.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+repo_root="$PWD"
+
+step() {
+  local label="$1"
+  shift
+  local start=$SECONDS
+  echo "==> $label"
+  "$@"
+  echo "    $label took $((SECONDS - start))s"
+}
+
+install_mise() {
+  if [ ! -x "$HOME/.local/bin/mise" ]; then
+    curl -fsSL https://mise.run | sh
+  fi
+}
+
+persist_login_env() {
+  local marker="# timevoice orb environment"
+  if grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+    return
+  fi
+  cat >>"$HOME/.bash_profile" <<EOF
+
+$marker
+case ":\$PATH:" in
+  *":\$HOME/.local/share/mise/shims:"*) ;;
+  *) export PATH="\$HOME/.local/share/mise/shims:\$HOME/.local/bin:\$PATH" ;;
+esac
+# Placeholder credentials (same as CI) so Rails boots without RAILS_MASTER_KEY.
+if [ -z "\${RAILS_MASTER_KEY:-}" ] && [ ! -f "$repo_root/config/master.key" ]; then
+  export GOOGLE__CLIENT_ID="\${GOOGLE__CLIENT_ID:-ci-google-client-id}"
+  export GOOGLE__CLIENT_SECRET="\${GOOGLE__CLIENT_SECRET:-ci-google-client-secret}"
+  export CLOUDFLARE__TURNSTILE_SITE_KEY="\${CLOUDFLARE__TURNSTILE_SITE_KEY:-1x00000000000000000000AA}"
+  export CLOUDFLARE__TURNSTILE_SECRET_KEY="\${CLOUDFLARE__TURNSTILE_SECRET_KEY:-1x0000000000000000000000000000000AA}"
+  export SMTP__DEFAULT_FROM="\${SMTP__DEFAULT_FROM:-dev@example.com}"
+fi
+EOF
+}
+
+install_ruby() {
+  mise settings add idiomatic_version_file_enable_tools ruby >/dev/null 2>&1 || true
+  mise install ruby
+}
+
+install_gems() {
+  bundle check >/dev/null 2>&1 || bundle install --jobs "$(nproc)"
+}
+
+step "Install mise" install_mise
+step "Persist login environment" persist_login_env
+
+# Pick up mise and the placeholder credentials in this already-running process.
+set +u
+# shellcheck disable=SC1091
+source "$HOME/.bash_profile"
+set -u
+
+step "Install Ruby $(cat .ruby-version)" install_ruby
+step "Install gems" install_gems
+step "Install JS packages" bun install --frozen-lockfile
+step "Prepare development database" bin/rails db:prepare
+step "Prepare test database" env RAILS_ENV=test bin/rails db:prepare

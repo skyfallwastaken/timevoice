@@ -1,0 +1,9 @@
+services:
+  vite:
+    command: bin/vite dev
+    port: 3036
+  web:
+    command: bin/rails server -b 0.0.0.0 -p "$PORT"
+    health: /up
+    portal:
+      title: Timevoice

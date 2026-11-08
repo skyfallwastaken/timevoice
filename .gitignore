@@ -44,3 +44,6 @@ node_modules
 # macOS
 .DS_Store
 
+
+# Amp orb portal state
+.amp/portals/*
