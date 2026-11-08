@@ -65,7 +65,7 @@
   const DAY_MINUTES = 24 * 60;
   const MAX_FILES = 3;
 
-  let descriptionInput: HTMLInputElement | null = $state(null);
+  let descriptionInput: HTMLTextAreaElement | null = $state(null);
   let fileInput: HTMLInputElement | null = $state(null);
   let showProjectPicker = $state(false);
   let showTagPicker = $state(false);
@@ -226,17 +226,26 @@
     </div>
 
     <div class="px-4 pb-4 space-y-3">
-      <input
+      <!-- Wraps to show the whole description, but stays one line of text: Enter saves. -->
+      <textarea
         bind:this={descriptionInput}
         bind:value={d.description}
         id="quick-entry-description"
-        type="text"
+        rows="1"
         aria-label="Description"
         placeholder="What did you work on?"
         autocomplete="off"
-        class="w-full h-11 bg-transparent border-b-2 border-bg-tertiary focus:border-bright-purple text-xl font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-dim outline-none transition-colors duration-150"
-        onkeydown={(e) => e.key === "Enter" && save()}
-      />
+        class="block w-full py-2 field-sizing-content resize-none bg-transparent border-b-2 border-bg-tertiary focus:border-bright-purple text-xl font-semibold text-fg-primary placeholder:font-medium placeholder:text-fg-dim outline-none transition-colors duration-150"
+        oninput={(e) => {
+          const value = e.currentTarget.value;
+          if (value.includes("\n"))
+            d.description = value.replace(/\s*\n\s*/g, " ");
+        }}
+        onkeydown={(e) => {
+          if (e.key !== "Enter" || e.isComposing) return;
+          e.preventDefault();
+          save();
+        }}></textarea>
 
       <div>
         <div class="{row} items-start pb-1">
