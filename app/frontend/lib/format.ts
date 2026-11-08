@@ -11,8 +11,18 @@ export function parseRate(value: string): number {
   return Number.isFinite(num) ? Math.round(num * 100) : 0;
 }
 
+/**
+ * Format a YYYY-MM-DD date (e.g., "Nov 4, 2026")
+ */
 export function formatDate(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
+  return formatTimestamp(`${dateStr}T00:00:00`);
+}
+
+/**
+ * Format an ISO timestamp as a local date (e.g., "Nov 4, 2026")
+ */
+export function formatTimestamp(timestamp: string): string {
+  return new Date(timestamp).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
