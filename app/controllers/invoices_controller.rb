@@ -136,7 +136,7 @@ class InvoicesController < ApplicationController
       return
     end
 
-    redirect_to invoices_path, notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
+    redirect_to invoice_path(current_workspace.hashid, invoice.hashid), notice: "Invoice ##{invoice.invoice_number} created successfully with #{invoice.invoice_lines.count} line items."
   rescue ArgumentError
     redirect_with_error invoices_path, "Invalid invoice period dates.", field: :period_start
   rescue ActiveRecord::RecordNotFound
