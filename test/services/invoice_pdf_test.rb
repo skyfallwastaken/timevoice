@@ -12,7 +12,7 @@ class InvoicePdfTest < ActiveSupport::TestCase
 
       2026. Thanks
 
-      Terms: [https://pay.example.com/terms].
+      Terms: [https://pay.example.com/terms]. ![Logo https://cdn.example.com](logo.png)
     MD
 
     assert_includes lines, "Payment due within 30 days."
@@ -20,7 +20,7 @@ class InvoicePdfTest < ActiveSupport::TestCase
     assert_includes lines, "• Sort code: 04-00-04"
     assert_includes lines, "• Pay online or not this"
     assert_includes lines, "2026. Thanks"
-    assert_includes lines, "Terms: [https://pay.example.com/terms]."
+    assert_includes lines, "Terms: [https://pay.example.com/terms]. Logo https://cdn.example.com"
     assert_equal [ "https://pay.example.com", "https://pay.example.com/terms" ], @links
   end
 

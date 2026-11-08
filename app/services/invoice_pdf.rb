@@ -313,6 +313,7 @@ class InvoicePdf
         markdown_fragments(child, styles: styles, color: url ? BRAND_COLOR : color, link: url)
       when :image
         markdown_fragments(child, styles: styles, color: color, link: link)
+          .map { |fragment| fragment.merge(color: color, link: link).compact }
       else
         []
       end
