@@ -22,6 +22,15 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "html[data-theme=?][data-mode=?]", "catppuccin-latte", "light"
   end
 
+  test "billing notes are saved, and rejected past the length limit" do
+    patch "/#{@workspace.hashid}/settings/billing", params: { setting: { notes: "**Net 30**" } }
+    assert_equal "**Net 30**", @workspace.invoice_setting.reload.notes
+
+    patch "/#{@workspace.hashid}/settings/billing", params: { setting: { notes: "a" * 2_001 } }
+    assert_equal "**Net 30**", @workspace.invoice_setting.reload.notes
+    assert_match "Notes is too long", flash[:alert]
+  end
+
   test "an unknown theme is rejected" do
     patch "/#{@workspace.hashid}/settings/themes", params: { theme: "neon" }
 

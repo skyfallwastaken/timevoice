@@ -11,6 +11,7 @@
   import TextArea from "../../components/TextArea.svelte";
   import { formatRate, parseRate } from "../../lib/format";
   import { routes } from "../../lib/routes";
+  import { renderMarkdown } from "../../lib/markdown";
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
   let flash = $derived($page.props.flash || {});
@@ -21,7 +22,13 @@
     sender_address: ($page.props.invoiceSettings as any)?.sender_address || "",
     billable_rate_cents:
       ($page.props.invoiceSettings as any)?.billable_rate_cents || 0,
+    notes: ($page.props.invoiceSettings as any)?.notes || "",
   });
+
+  const notesMaxLength = $page.props.notesMaxLength as number;
+  let notesMode = $state<"write" | "preview">(
+    $page.props.canEdit === false ? "preview" : "write",
+  );
 
   let rateInputValue = $state(
     formatRate(($page.props.invoiceSettings as any)?.billable_rate_cents || 0),
@@ -117,6 +124,72 @@
         {/snippet}
       </FormField>
 
+      <FormField
+        id="invoice-notes"
+        label="Invoice Notes"
+        description="Printed under the totals on new invoices, e.g. payment terms or bank details. Markdown works; check Preview to see how it prints."
+        error={$form.errors.notes}
+      >
+        {#snippet children({ describedBy })}
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div
+              class="flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+              role="group"
+              aria-label="Notes editor mode"
+            >
+              {#each [{ key: "write", label: "Write" }, { key: "preview", label: "Preview" }] as const as option (option.key)}
+                <button
+                  type="button"
+                  aria-pressed={notesMode === option.key}
+                  class="inline-flex items-center h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {notesMode ===
+                  option.key
+                    ? 'bg-bg-tertiary text-fg-primary'
+                    : 'text-fg-muted hover:text-fg-primary'}"
+                  onclick={() => (notesMode = option.key)}
+                >
+                  {option.label}
+                </button>
+              {/each}
+            </div>
+            <span class="text-xs text-fg-muted tabular-nums">
+              {$form.notes.length.toLocaleString()} / {notesMaxLength.toLocaleString()}
+            </span>
+          </div>
+          <div class="grid">
+            <TextArea
+              id="invoice-notes"
+              tone="purple"
+              bind:value={$form.notes}
+              placeholder={"**Payment due within 30 days.**\n- Bank: Monzo\n- Sort code: 04-00-04\n- Account: 12345678"}
+              rows={8}
+              maxlength={notesMaxLength}
+              aria-describedby={describedBy}
+              class="[grid-area:1/1] {notesMode === 'preview'
+                ? 'invisible'
+                : ''}"
+            />
+            {#if notesMode === "preview"}
+              <div
+                class="[grid-area:1/1] rounded-[10px] bg-white px-6 py-5 text-sm text-[#666]"
+                role="region"
+                aria-label="Invoice notes preview"
+              >
+                <p class="mb-2 text-xs text-[#666]">Notes</p>
+                {#if $form.notes.trim()}
+                  <div
+                    class="prose prose-sm prose-quoteless max-w-none text-inherit prose-headings:text-[#1a1a1a] prose-headings:text-sm prose-headings:mt-0 prose-headings:mb-2 prose-strong:text-inherit prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-a:text-[#6366F1] prose-code:text-[#1a1a1a] prose-code:font-[inherit] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-blockquote:text-inherit prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:my-3 [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+                  >
+                    {@html renderMarkdown($form.notes)}
+                  </div>
+                {:else}
+                  <p class="italic">Nothing to preview yet.</p>
+                {/if}
+              </div>
+            {/if}
+          </div>
+        {/snippet}
+      </FormField>
+
       <div class="flex justify-end pt-4">
         <Button
           tone="purple"
@@ -139,6 +212,16 @@
         <strong class="font-medium text-fg-primary">Default Rate:</strong>
         When you create an invoice, this rate is automatically applied to billable
         time entries. You can override it per-invoice if needed.
+      </p>
+      <p>
+        <strong class="font-medium text-fg-primary">Invoice Notes:</strong>
+        Copied onto each invoice when it is created, so changing them later doesn't
+        alter invoices you've already sent. Markdown works for
+        <code class="text-fg-secondary">**bold**</code>,
+        <code class="text-fg-secondary">*italic*</code>,
+        <code class="text-fg-secondary">- lists</code> and
+        <code class="text-fg-secondary">[links](https://…)</code>, and line
+        breaks are kept as you type them.
       </p>
       <p>
         <strong class="font-medium text-fg-primary">Client Addresses:</strong>

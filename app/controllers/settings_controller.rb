@@ -65,18 +65,20 @@ class SettingsController < ApplicationController
     @invoice_settings = current_workspace.invoice_setting
 
     if @invoice_settings
-      settings_json = @invoice_settings.as_json(only: [ :id, :sender_name, :sender_address, :billable_rate_cents ])
+      settings_json = @invoice_settings.as_json(only: [ :id, :sender_name, :sender_address, :billable_rate_cents, :notes ])
     else
       settings_json = {
         sender_name: current_user.name,
         sender_address: "",
-        billable_rate_cents: 0
+        billable_rate_cents: 0,
+        notes: ""
       }
     end
 
     render inertia: "Settings/Billing", props: {
       invoiceSettings: settings_json,
-      canEdit: policy(current_workspace).update?
+      canEdit: policy(current_workspace).update?,
+      notesMaxLength: InvoiceSetting::NOTES_MAX_LENGTH
     }
   end
 
@@ -113,7 +115,7 @@ class SettingsController < ApplicationController
   end
 
   def billing_params
-    optional_params(:setting, :sender_name, :sender_address, :billable_rate_cents)
+    optional_params(:setting, :sender_name, :sender_address, :billable_rate_cents, :notes)
   end
 
   def workspace_params

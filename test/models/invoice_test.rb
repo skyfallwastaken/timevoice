@@ -1,7 +1,7 @@
 require "test_helper"
 
 class InvoiceTest < ActiveSupport::TestCase
-  test "generate_from_time_entries filters to the provided user" do
+  test "generate_from_time_entries filters to the provided user and keeps the notes it was created with" do
     owner = User.create!(
       email: "invoice-owner@example.com",
       name: "Invoice Owner",
@@ -20,6 +20,7 @@ class InvoiceTest < ActiveSupport::TestCase
     Membership.create!(workspace: workspace, user: teammate, role: "member")
 
     client = Client.create!(workspace: workspace, name: "Acme Corp")
+    setting = InvoiceSetting.create!(workspace: workspace, sender_name: "Owner", notes: "Net 30")
     project = Project.create!(
       workspace: workspace,
       client: client,
@@ -59,6 +60,9 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal [ owner_entry.id ], invoice.invoice_lines.pluck(:time_entry_id)
     assert_equal 10_000, invoice.total_cents
     assert_empty teammate_entry.reload.invoice_lines
+
+    setting.update!(notes: "Net 60")
+    assert_equal "Net 30", invoice.reload.notes
   end
 
   test "generate_from_time_entries without a period bills every unbilled entry and spans their dates" do
