@@ -32,7 +32,7 @@ class ReportsController < ApplicationController
         end: end_date.to_s
       },
       projectId: params[:project_id].presence,
-      projects: current_workspace.projects.includes(:client).order(:name).map(&:as_props)
+      projects: current_workspace.projects.includes(:client).sorted_by_name.map(&:as_props)
     }
   end
 

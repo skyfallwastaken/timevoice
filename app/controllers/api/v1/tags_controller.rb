@@ -8,7 +8,7 @@ module Api
       before_action -> { require_scope! :tags }, only: [ :create, :update, :destroy ]
 
       def index
-        tags = current_workspace.tags.order(:name)
+        tags = current_workspace.tags.sorted_by_name
 
         render json: tags.map { |tag| serialize_tag(tag) }
       end

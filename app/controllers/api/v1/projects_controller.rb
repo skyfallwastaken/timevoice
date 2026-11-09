@@ -8,7 +8,7 @@ module Api
       before_action -> { require_scope! :projects }, only: [ :create, :update, :destroy ]
 
       def index
-        projects = current_workspace.projects.includes(:client).order(:name)
+        projects = current_workspace.projects.includes(:client).sorted_by_name
 
         render json: projects.map { |project| serialize_project(project) }
       end

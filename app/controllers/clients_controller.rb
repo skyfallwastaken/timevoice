@@ -7,7 +7,7 @@ class ClientsController < ApplicationController
   before_action :authorize_client, only: [ :create, :update, :destroy ]
 
   def index
-    @clients = current_workspace.clients.order(:name)
+    @clients = current_workspace.clients.sorted_by_name
 
     render inertia: "Clients/Index", props: {
       clients: @clients.as_json(only: [ :id, :name, :billing_address, :email ])

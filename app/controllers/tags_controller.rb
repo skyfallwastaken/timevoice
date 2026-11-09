@@ -7,7 +7,7 @@ class TagsController < ApplicationController
   before_action :authorize_tag, only: [ :create, :update, :destroy ]
 
   def index
-    @tags = current_workspace.tags.order(:name)
+    @tags = current_workspace.tags.sorted_by_name
 
     render inertia: "Tags/Index", props: {
       tags: @tags.as_json(only: [ :id, :name ])

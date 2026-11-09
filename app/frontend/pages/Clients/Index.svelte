@@ -15,6 +15,8 @@
   import { Users, Plus, Edit2, Trash2, Building2 } from "@lucide/svelte";
   import type { Client } from "../../types";
 
+  let clients = $derived((page.props.clients as Client[]) || []);
+
   const blankClient = { name: "", email: "", billing_address: "" };
   const crud = createInlineCrud<Client, typeof blankClient>({
     key: "clients",
@@ -29,7 +31,6 @@
     toRecord: (form, client) => ({ ...client, ...form }),
   });
   const { createForm, editForm } = crud;
-  let clients = $derived(crud.items);
 </script>
 
 <PageLayout title="Clients" icon={Users} iconColor="text-bright-blue">

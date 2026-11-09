@@ -12,8 +12,8 @@ class DashboardController < ApplicationController
 
     render inertia: "Dashboard/Index", props: {
       view: view,
-      projects: current_workspace.projects.includes(:client).order(:name).map(&:as_props),
-      tags: current_workspace.tags.order(:name).as_json(only: [ :id, :name ]),
+      projects: current_workspace.projects.includes(:client).sorted_by_name.map(&:as_props),
+      tags: current_workspace.tags.sorted_by_name.as_json(only: [ :id, :name ]),
       recentDescriptions: recent_descriptions
     }.merge(view == "calendar" ? calendar_props : list_props)
   end
