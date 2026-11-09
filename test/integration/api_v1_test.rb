@@ -131,13 +131,14 @@ class ApiV1Test < ActionDispatch::IntegrationTest
 
     assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
     assert_equal "paid", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "paid" })["status"]
-    assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
     api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "draft" })
     assert_response :unprocessable_entity
+    assert_equal "issued", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "issued" })["status"]
 
     assert_equal "Only draft invoices can be deleted", api(:delete, "/#{workspace_id}/invoices/#{invoice["id"]}")["message"]
     assert_response :unprocessable_entity
     assert Invoice.exists?(Invoice.decode_id(invoice["id"]))
+    assert_equal "draft", api(:patch, "/#{workspace_id}/invoices/#{invoice["id"]}", { status: "draft" })["status"]
 
     api(:delete, "/#{workspace_id}/invoices/#{invoices(:one).hashid}")
     assert_response :no_content
