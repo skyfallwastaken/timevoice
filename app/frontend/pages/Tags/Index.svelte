@@ -14,8 +14,6 @@
   import { Tag, Plus, Edit2, Trash2, Hash } from "@lucide/svelte";
   import type { Tag as TagType } from "../../types";
 
-  let tags = $derived((page.props.tags as TagType[]) || []);
-
   const crud = createInlineCrud<TagType, { name: string }>({
     key: "tags",
     routes: routes.tags,
@@ -25,6 +23,7 @@
     toRecord: (form, tagItem) => ({ ...tagItem, name: form.name }),
   });
   const { createForm, editForm } = crud;
+  let tags = $derived(crud.items);
 </script>
 
 <PageLayout title="Tags" icon={Tag} iconColor="text-bright-yellow">

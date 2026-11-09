@@ -4,7 +4,7 @@ import { tick } from "svelte";
 
 type Named = { id: number; name: string };
 
-export const byName = (a: { name: string }, b: { name: string }) =>
+const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name);
 
 interface InlineCrudOptions<T extends Named, F extends FormDataType<F>> {
@@ -29,12 +29,17 @@ interface InlineCrudOptions<T extends Named, F extends FormDataType<F>> {
  * Clients, Projects and Tags pages. Creates, renames and deletes show up
  * immediately and roll back if the server rejects them; a failed update
  * reopens its row so the error shows next to the field.
+ *
+ * `items` is the list sorted here rather than by the server, whose order
+ * depends on the database collation, so a row doesn't jump when the
+ * server's list replaces the optimistic one.
  */
 export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
   options: InlineCrudOptions<T, F>,
 ) {
   const { key, routes } = options;
   const workspaceId = $derived(page.props.auth?.workspace?.hashid as string);
+  const items = $derived([...((page.props[key] as T[]) ?? [])].sort(byName));
   const createForm = useForm(structuredClone(options.createDefaults));
   const editForm = useForm(structuredClone(options.editDefaults));
   let editingId = $state<number | null>(null);
@@ -72,7 +77,7 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
         [key]: [
           ...props[key],
           options.toRecord(createForm.data(), { id: -Date.now() } as T),
-        ].sort(byName),
+        ],
       }))
       .post(routes.create(workspaceId), {
         onSuccess: () => {
@@ -89,9 +94,9 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
     let saved = false;
     editForm
       .optimistic<Props>((props) => ({
-        [key]: props[key]
-          .map((r) => (r.id === id ? options.toRecord(editForm.data(), r) : r))
-          .sort(byName),
+        [key]: props[key].map((r) =>
+          r.id === id ? options.toRecord(editForm.data(), r) : r,
+        ),
       }))
       .patch(routes.update(workspaceId, id), {
         onSuccess: () => {
@@ -142,6 +147,9 @@ export function createInlineCrud<T extends Named, F extends FormDataType<F>>(
   return {
     createForm,
     editForm,
+    get items() {
+      return items;
+    },
     get editingId() {
       return editingId;
     },

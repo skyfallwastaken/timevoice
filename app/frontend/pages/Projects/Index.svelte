@@ -17,7 +17,6 @@
   import { FolderKanban, Plus, Edit2, Trash2, Briefcase } from "@lucide/svelte";
   import type { Project, Client } from "../../types";
 
-  let projects = $derived((page.props.projects as Project[]) || []);
   let clients = $derived((page.props.clients as Client[]) || []);
   let colors = $derived((page.props.colors as string[]) || []);
 
@@ -62,6 +61,7 @@
     onCreated: () => (crud.createForm.color = colors[0] ?? ""),
   });
   const { createForm, editForm } = crud;
+  let projects = $derived(crud.items);
 </script>
 
 <PageLayout title="Projects" icon={FolderKanban} iconColor="text-bright-green">
