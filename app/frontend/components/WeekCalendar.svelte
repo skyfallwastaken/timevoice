@@ -2,7 +2,13 @@
   import { DollarSign, Timer } from "@lucide/svelte";
   import TimeEntryEditor from "./TimeEntryEditor.svelte";
   import type { TimeEntry, Project, Tag } from "../types";
-  import { formatHours, parseLocalDate, toDateString } from "../lib/format";
+  import {
+    formatHours,
+    formatTime,
+    parseLocalDate,
+    toDateString,
+    uses24HourClock,
+  } from "../lib/format";
   import { draftFromEntry, type TimeEntryDraft } from "../lib/time-entry-form";
 
   type RunningEntry = {
@@ -157,6 +163,7 @@
   }
 
   function hourLabel(hour: number) {
+    if (uses24HourClock()) return `${String(hour).padStart(2, "0")}:00`;
     const suffix = hour < 12 ? "AM" : "PM";
     return `${hour % 12 || 12} ${suffix}`;
   }
@@ -327,13 +334,7 @@
     editingId = null;
   }
 
-  const clock = (minute: number) => {
-    const date = new Date(0, 0, 1, 0, minute);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const clock = (minute: number) => formatTime(new Date(0, 0, 1, 0, minute));
 
   // Clicks on empty calendar space edit the selection instead of closing.
   function keepOpenForCalendar(event: PointerEvent) {

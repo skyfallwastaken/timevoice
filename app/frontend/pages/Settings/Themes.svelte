@@ -35,6 +35,28 @@
     "bg-bright-purple",
   ];
 
+  let use24HourClock = $state(
+    page.props.auth?.user?.use_24_hour_clock === true,
+  );
+  const clocks = [
+    { use24: false, label: "12-hour", example: "2:30 PM" },
+    { use24: true, label: "24-hour", example: "14:30" },
+  ];
+
+  function chooseClock(use24: boolean) {
+    if (use24 === use24HourClock) return;
+    use24HourClock = use24;
+    router.patch(
+      routes.settings.clock(workspaceId),
+      { use_24_hour_clock: use24 },
+      {
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => (use24HourClock = !use24),
+      },
+    );
+  }
+
   function choose(theme: Theme) {
     if (theme.key === selected) return;
     const previous = themes.find((t) => t.key === selected);
@@ -62,9 +84,38 @@
   </SectionCard>
 
   <p class="text-sm text-fg-muted">
-    Your theme follows your account on every device. It only changes how
-    Timevoice looks for you.
+    These follow your account on every device. They only change how Timevoice
+    looks for you.
   </p>
+
+  <section aria-labelledby="clock-heading">
+    <h3 id="clock-heading" class="text-sm font-semibold text-fg-secondary mb-3">
+      Time format
+    </h3>
+    <div
+      class="inline-flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+      role="radiogroup"
+      aria-labelledby="clock-heading"
+    >
+      {#each clocks as clock (clock.label)}
+        <button
+          type="button"
+          role="radio"
+          aria-checked={use24HourClock === clock.use24}
+          class="inline-flex items-center gap-1.5 h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {use24HourClock ===
+          clock.use24
+            ? 'bg-bg-tertiary text-fg-primary'
+            : 'text-fg-muted hover:text-fg-primary'}"
+          onclick={() => chooseClock(clock.use24)}
+        >
+          {clock.label}
+          <span class="text-fg-muted font-normal font-tabular"
+            >{clock.example}</span
+          >
+        </button>
+      {/each}
+    </div>
+  </section>
 
   {#each families as group (group.family)}
     <section aria-labelledby="family-{group.family}">

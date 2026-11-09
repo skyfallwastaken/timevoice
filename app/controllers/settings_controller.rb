@@ -113,6 +113,11 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_clock
+    current_user.update!(use_24_hour_clock: params[:use_24_hour_clock].to_s == "true")
+    redirect_to settings_themes_path
+  end
+
   private
 
   def authorize_workspace_view

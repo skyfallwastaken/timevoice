@@ -80,6 +80,7 @@ export const routes = {
       `/${workspaceId}/settings/workspace`,
     updateBilling: (workspaceId: string) => `/${workspaceId}/settings/billing`,
     themes: (workspaceId: string) => `/${workspaceId}/settings/themes`,
+    clock: (workspaceId: string) => `/${workspaceId}/settings/clock`,
   },
 
   oauthApplications: {

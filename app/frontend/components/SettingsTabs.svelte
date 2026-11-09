@@ -13,7 +13,7 @@
     { key: "workspace", label: "Workspace", href: routes.settings.workspace },
     { key: "billing", label: "Billing", href: routes.settings.billing },
     { key: "developer", label: "Developer", href: routes.settings.developer },
-    { key: "themes", label: "Themes", href: routes.settings.themes },
+    { key: "themes", label: "Appearance", href: routes.settings.themes },
   ] as const;
 </script>
 

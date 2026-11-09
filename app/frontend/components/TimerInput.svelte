@@ -15,6 +15,7 @@
   } from "@lucide/svelte";
   import { router, useForm, page, Link } from "@inertiajs/svelte";
   import DatePicker from "./DatePicker.svelte";
+  import TimeField from "./TimeField.svelte";
   import {
     formatDuration,
     formatFileSize,
@@ -643,8 +644,6 @@
   const chipFilled = "border-bg-tertiary bg-bg-primary text-fg-primary";
   const chipIcon =
     "grid place-items-center size-6 shrink-0 rounded-[4px] bg-bg-tertiary text-fg-secondary";
-  const timeField =
-    "bg-transparent text-fg-primary font-tabular h-8 px-1.5 rounded-lg hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150 [&::-webkit-calendar-picker-indicator]:hidden";
 </script>
 
 <svelte:window onkeydown={handleShortcut} />
@@ -950,21 +949,9 @@
 
       {#if isManual}
         <div class="flex items-center gap-1 text-sm">
-          <label class="sr-only" for="manual-start">Start time</label>
-          <input
-            id="manual-start"
-            type="time"
-            bind:value={manualStart}
-            class={timeField}
-          />
+          <TimeField label="Start time" bind:value={manualStart} />
           <span class="text-fg-dim" aria-hidden="true">–</span>
-          <label class="sr-only" for="manual-end">End time</label>
-          <input
-            id="manual-end"
-            type="time"
-            bind:value={manualEnd}
-            class={timeField}
-          />
+          <TimeField label="End time" bind:value={manualEnd} />
           <DatePicker
             id="manual-date"
             bind:value={manualDate}

@@ -61,6 +61,7 @@ Rails.application.routes.draw do
     patch "/settings/billing", to: "settings#update_billing"
     get "/settings/themes", to: "settings#themes"
     patch "/settings/themes", to: "settings#update_theme"
+    patch "/settings/clock", to: "settings#update_clock"
     get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
     resources :oauth_applications, only: [ :create, :update, :destroy ], path: "settings/developer/applications" do
       member do

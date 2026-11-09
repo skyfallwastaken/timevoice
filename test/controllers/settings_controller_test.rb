@@ -22,6 +22,18 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "html[data-theme=?][data-mode=?]", "catppuccin-latte", "light"
   end
 
+  test "the 24-hour clock choice is saved and shared with later pages" do
+    get "/#{@workspace.hashid}/timer"
+    assert_equal false, inertia_props.dig("auth", "user", "use_24_hour_clock")
+
+    patch "/#{@workspace.hashid}/settings/clock", params: { use_24_hour_clock: true }
+    get "/#{@workspace.hashid}/timer"
+    assert_equal true, inertia_props.dig("auth", "user", "use_24_hour_clock")
+
+    patch "/#{@workspace.hashid}/settings/clock", params: { use_24_hour_clock: false }
+    assert_not @user.reload.use_24_hour_clock
+  end
+
   test "billing notes are saved, and rejected past the length limit" do
     patch "/#{@workspace.hashid}/settings/billing", params: { setting: { notes: "**Net 30**" } }
     assert_equal "**Net 30**", @workspace.invoice_setting.reload.notes

@@ -2,6 +2,8 @@
  * Shared formatting utilities
  */
 
+import { page } from "@inertiajs/svelte";
+
 export function formatRate(cents: number): string {
   return (cents / 100).toFixed(2);
 }
@@ -27,7 +29,12 @@ const longDate = dateFormatter({
   year: "numeric",
 });
 const shortDate = dateFormatter({ month: "short", day: "numeric" });
-const shortTime = dateFormatter({ hour: "2-digit", minute: "2-digit" });
+const clock12 = dateFormatter({ hour: "numeric", minute: "2-digit" });
+const clock24 = dateFormatter({
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 
 /**
  * Parse a YYYY-MM-DD date as local midnight (not UTC, which can shift the day)
@@ -115,10 +122,18 @@ export function formatShortDate(dateString: string | Date): string {
 }
 
 /**
- * Format a time to 12-hour format (e.g., "02:30 PM")
+ * Whether the signed-in user picked the 24-hour clock in Settings. Reads
+ * reactive page props, so templates re-render when the choice changes.
  */
-export function formatTime(dateString: string): string {
-  return shortTime(new Date(dateString));
+export function uses24HourClock(): boolean {
+  return page.props.auth?.user?.use_24_hour_clock === true;
+}
+
+/**
+ * Format a time of day in the user's clock (e.g., "2:30 PM" or "14:30")
+ */
+export function formatTime(time: string | Date): string {
+  return (uses24HourClock() ? clock24 : clock12)(new Date(time));
 }
 
 /**
