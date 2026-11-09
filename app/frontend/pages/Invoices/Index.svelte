@@ -223,7 +223,7 @@
       <ul class="divide-y divide-bg-tertiary">
         {#each invoices as invoice (invoice.id)}
           <li
-            class="relative flex items-center gap-4 p-4 hover:bg-bg-tertiary/40 transition-colors duration-150"
+            class="relative flex items-center gap-4 p-4 hover:bg-bg-tertiary/40 transition-[background-color] duration-150"
           >
             <div
               class="hidden sm:flex w-10 h-10 shrink-0 rounded-[10px] items-center justify-center {getStatusClasses(

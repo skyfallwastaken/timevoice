@@ -35,7 +35,7 @@
 </script>
 
 <div
-  class="{paddingClass} flex items-center justify-between gap-4 hover:bg-bg-tertiary/50 transition-colors duration-150 {className}"
+  class="{paddingClass} flex items-center justify-between gap-4 hover:bg-bg-tertiary/50 transition-[background-color] duration-150 {className}"
 >
   <div class="flex items-center gap-3 min-w-0 flex-1 {contentClass}">
     {#if leading}
