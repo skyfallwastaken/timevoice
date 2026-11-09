@@ -1,10 +1,12 @@
 <script lang="ts">
   import { TimeField } from "bits-ui";
   import { Time } from "@internationalized/date";
+  import { tick } from "svelte";
   import { uses24HourClock } from "../lib/format";
 
   // A native time input follows the browser's locale, not the user's clock
-  // setting, so this edits an "HH:MM" string in either clock.
+  // setting, so this edits an "HH:MM" string in either clock. Like a native
+  // input, the value is "" while a segment is cleared.
   interface Props {
     value: string;
     label: string;
@@ -24,8 +26,16 @@
   // land in two segments; only replace it when the time really changed.
   let time = $state(toTime(value));
   $effect.pre(() => {
-    if (value !== toText(time)) time = toTime(value);
+    if (value && value !== toText(time)) time = toTime(value);
   });
+
+  // bits-ui only reports a value once every segment is filled, so watch for a
+  // segment cleared with Backspace or Delete.
+  async function syncCleared(event: { currentTarget: HTMLElement }) {
+    const field = event.currentTarget;
+    await tick();
+    if (field.querySelector('[aria-valuetext="Empty"]')) value = "";
+  }
 </script>
 
 <TimeField.Root
@@ -41,6 +51,7 @@
 >
   <TimeField.Input
     aria-label={label}
+    onkeydown={syncCleared}
     class="inline-flex items-center h-8 px-1.5 rounded-lg text-fg-primary font-tabular whitespace-nowrap hover:bg-bg-tertiary focus-within:bg-bg-tertiary transition-colors duration-150 {className}"
   >
     {#snippet children({ segments })}
