@@ -35,6 +35,7 @@
     dateFormatter,
     formatDuration,
     formatHours,
+    formatTime,
     parseLocalDate,
     toDateString,
   } from "../../lib/format";
@@ -308,9 +309,6 @@
     day: "numeric",
     year: "numeric",
   });
-
-  const clock = dateFormatter({ hour: "numeric", minute: "2-digit" });
-  const clockTime = (iso: string) => clock(new Date(iso));
 
   // Selection
   const selected = new SvelteSet<number>();
@@ -955,8 +953,8 @@
                     <span
                       class="hidden sm:block w-40 text-right text-sm text-fg-muted font-tabular whitespace-nowrap"
                     >
-                      {clockTime(entry.start_at)} – {entry.end_at
-                        ? clockTime(entry.end_at)
+                      {formatTime(entry.start_at)} – {entry.end_at
+                        ? formatTime(entry.end_at)
                         : "now"}
                     </span>
                     <span

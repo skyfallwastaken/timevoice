@@ -113,6 +113,11 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_clock
+    current_user.update!(use_24_hour_clock: ActiveModel::Type::Boolean.new.cast(params.fetch(:use_24_hour_clock)))
+    redirect_to settings_themes_path
+  end
+
   private
 
   def authorize_workspace_view

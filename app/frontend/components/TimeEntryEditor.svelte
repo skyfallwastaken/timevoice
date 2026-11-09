@@ -18,7 +18,8 @@
   import Button from "./Button.svelte";
   import DatePicker from "./DatePicker.svelte";
   import type { AttachedFile, Project, Tag, TimeEntry } from "../types";
-  import { formatFileSize, formatHours } from "../lib/format";
+  import TimeField from "./TimeField.svelte";
+  import { formatFileSize, formatHours, formatTime } from "../lib/format";
   import { routes } from "../lib/routes";
   import {
     draftFromEntry,
@@ -204,8 +205,6 @@
   const row =
     "flex items-center gap-3 w-full min-h-9 -mx-2 px-2 rounded-lg text-left transition-colors duration-150";
   const rowButton = `${row} hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary`;
-  const timeField =
-    "bg-transparent text-fg-primary font-tabular h-8 px-1.5 rounded-lg hover:bg-bg-tertiary focus:bg-bg-tertiary outline-none transition-colors duration-150 [&::-webkit-calendar-picker-indicator]:hidden";
   const card = "w-[26rem] max-w-[calc(100vw-1.5rem)] gap-0 p-0 shadow-2xl";
   const headerButton =
     "inline-flex items-center justify-center size-8 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150";
@@ -287,24 +286,18 @@
               />
               {#if running}
                 <span class="px-1.5 text-fg-muted font-tabular"
-                  >{timeOfDay(d.from)} – now</span
+                  >{formatTime(new Date(0, 0, 1, 0, d.from))} – now</span
                 >
               {:else}
                 <div class="flex items-center gap-0.5">
-                  <input
-                    type="time"
-                    aria-label="Start time"
-                    value={timeOfDay(d.from)}
-                    oninput={(e) => setStart(e.currentTarget.value)}
-                    class={timeField}
+                  <TimeField
+                    label="Start time"
+                    bind:value={() => timeOfDay(d.from), setStart}
                   />
                   <span class="text-fg-dim" aria-hidden="true">–</span>
-                  <input
-                    type="time"
-                    aria-label="End time"
-                    value={timeOfDay(d.to)}
-                    oninput={(e) => setEnd(e.currentTarget.value)}
-                    class={timeField}
+                  <TimeField
+                    label="End time"
+                    bind:value={() => timeOfDay(d.to), setEnd}
                   />
                 </div>
               {/if}
