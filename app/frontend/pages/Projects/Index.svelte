@@ -9,12 +9,13 @@
   import TextInput from "../../components/TextInput.svelte";
   import SelectInput from "../../components/SelectInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
   import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import { page } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import { createInlineCrud } from "../../lib/inline-crud.svelte";
-  import { FolderKanban, Plus, Edit2, Trash2, Briefcase } from "@lucide/svelte";
+  import { FolderKanban, Plus, Edit2, Briefcase } from "@lucide/svelte";
   import type { Project, Client } from "../../types";
 
   let projects = $derived((page.props.projects as Project[]) || []);
@@ -244,14 +245,15 @@
                 >
                   <Edit2 class="w-4 h-4" />
                 </IconButton>
-                <IconButton
-                  tone="danger"
+                <DeleteButton
                   aria-label="Delete project"
                   disabled={project.id < 0}
                   onclick={() => (crud.toDelete = project)}
-                >
-                  <Trash2 class="w-4 h-4" />
-                </IconButton>
+                  onShiftClick={() => {
+                    crud.toDelete = project;
+                    crud.confirmDelete();
+                  }}
+                />
               {/snippet}
             </ListRow>
           {/if}

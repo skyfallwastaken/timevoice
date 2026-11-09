@@ -5,7 +5,6 @@
   import {
     Code,
     Plus,
-    Trash2,
     RefreshCw,
     Copy,
     Check,
@@ -24,6 +23,7 @@
   import Button from "../../components/Button.svelte";
   import FormField from "../../components/FormField.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import { formatTimestamp } from "../../lib/format";
@@ -406,13 +406,14 @@
                 >
                   <RefreshCw class="w-4 h-4" aria-hidden="true" />
                 </IconButton>
-                <IconButton
-                  tone="danger"
+                <DeleteButton
                   aria-label="Delete {app.name}"
                   onclick={() => openDeleteModal(app)}
-                >
-                  <Trash2 class="w-4 h-4" aria-hidden="true" />
-                </IconButton>
+                  onShiftClick={() => {
+                    selectedApp = app;
+                    confirmDelete();
+                  }}
+                />
               </div>
             </div>
 

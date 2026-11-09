@@ -11,6 +11,7 @@
   import ConfirmDeleteModal from "../../components/ConfirmDeleteModal.svelte";
   import FormField from "../../components/FormField.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
   import SettingsTabs from "../../components/SettingsTabs.svelte";
   import TextInput from "../../components/TextInput.svelte";
@@ -362,13 +363,14 @@
               </span>
             {/snippet}
             {#snippet actions()}
-              <IconButton
-                tone="danger"
+              <DeleteButton
                 aria-label="Cancel invitation to {invite.email}"
                 onclick={() => openCancelInviteModal(invite.id, invite.email)}
-              >
-                <Trash2 class="w-4 h-4" aria-hidden="true" />
-              </IconButton>
+                onShiftClick={() => {
+                  inviteToCancel = { id: invite.id, email: invite.email };
+                  confirmCancelInvite();
+                }}
+              />
             {/snippet}
           </ListRow>
         {/each}

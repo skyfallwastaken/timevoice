@@ -8,11 +8,12 @@
   import TextInput from "../../components/TextInput.svelte";
   import TextArea from "../../components/TextArea.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
   import { page } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import { createInlineCrud } from "../../lib/inline-crud.svelte";
-  import { Users, Plus, Edit2, Trash2, Building2 } from "@lucide/svelte";
+  import { Users, Plus, Edit2, Building2 } from "@lucide/svelte";
   import type { Client } from "../../types";
 
   let clients = $derived((page.props.clients as Client[]) || []);
@@ -216,14 +217,15 @@ Country"
                 >
                   <Edit2 class="w-4 h-4" />
                 </IconButton>
-                <IconButton
-                  tone="danger"
+                <DeleteButton
                   aria-label="Delete client"
                   disabled={client.id < 0}
                   onclick={() => (crud.toDelete = client)}
-                >
-                  <Trash2 class="w-4 h-4" />
-                </IconButton>
+                  onShiftClick={() => {
+                    crud.toDelete = client;
+                    crud.confirmDelete();
+                  }}
+                />
               {/snippet}
             </ListRow>
           {/if}

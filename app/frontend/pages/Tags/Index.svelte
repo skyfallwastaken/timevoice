@@ -7,11 +7,12 @@
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import ListRow from "../../components/ListRow.svelte";
   import { page } from "@inertiajs/svelte";
   import { routes } from "../../lib/routes";
   import { createInlineCrud } from "../../lib/inline-crud.svelte";
-  import { Tag, Plus, Edit2, Trash2, Hash } from "@lucide/svelte";
+  import { Tag, Plus, Edit2, Hash } from "@lucide/svelte";
   import type { Tag as TagType } from "../../types";
 
   let tags = $derived((page.props.tags as TagType[]) || []);
@@ -134,14 +135,15 @@
                 >
                   <Edit2 class="w-4 h-4" />
                 </IconButton>
-                <IconButton
-                  tone="danger"
+                <DeleteButton
                   aria-label="Delete tag"
                   disabled={tagItem.id < 0}
                   onclick={() => (crud.toDelete = tagItem)}
-                >
-                  <Trash2 class="w-4 h-4" />
-                </IconButton>
+                  onShiftClick={() => {
+                    crud.toDelete = tagItem;
+                    crud.confirmDelete();
+                  }}
+                />
               {/snippet}
             </ListRow>
           {/if}
