@@ -24,9 +24,14 @@
 
   // Replacing the field's value mid-typing resets it, so "1" then "6" would
   // land in two segments; only replace it when the time really changed.
+  // While a segment is cleared, any value from outside (such as manual entry
+  // resetting after Add) must refill the field, even the same time.
   let time = $state(toTime(value));
+  let cleared = false;
   $effect.pre(() => {
-    if (value && value !== toText(time)) time = toTime(value);
+    if (!value || (!cleared && value === toText(time))) return;
+    cleared = false;
+    time = toTime(value);
   });
 
   // bits-ui only reports a value once every segment is filled, so watch for a
@@ -34,7 +39,9 @@
   async function syncCleared(event: { currentTarget: HTMLElement }) {
     const field = event.currentTarget;
     await tick();
-    if (field.querySelector('[aria-valuetext="Empty"]')) value = "";
+    if (!field.querySelector('[aria-valuetext="Empty"]')) return;
+    cleared = true;
+    value = "";
   }
 </script>
 
@@ -42,6 +49,7 @@
   value={time}
   onValueChange={(next) => {
     if (!next) return;
+    cleared = false;
     time = next;
     value = toText(next);
   }}
