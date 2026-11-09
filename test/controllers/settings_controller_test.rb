@@ -30,6 +30,10 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     get "/#{@workspace.hashid}/timer"
     assert_equal true, inertia_props.dig("auth", "user", "use_24_hour_clock")
 
+    patch "/#{@workspace.hashid}/settings/clock"
+    assert_response :bad_request
+    assert @user.reload.use_24_hour_clock
+
     patch "/#{@workspace.hashid}/settings/clock", params: { use_24_hour_clock: false }
     assert_not @user.reload.use_24_hour_clock
   end

@@ -52,7 +52,9 @@
       {
         preserveScroll: true,
         preserveState: true,
-        onError: () => (use24HourClock = !use24),
+        // A failed save leaves the props unchanged, which undoes the choice.
+        onFinish: () =>
+          (use24HourClock = page.props.auth?.user?.use_24_hour_clock === true),
       },
     );
   }
@@ -94,14 +96,13 @@
     </h3>
     <div
       class="inline-flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
-      role="radiogroup"
+      role="group"
       aria-labelledby="clock-heading"
     >
       {#each clocks as clock (clock.label)}
         <button
           type="button"
-          role="radio"
-          aria-checked={use24HourClock === clock.use24}
+          aria-pressed={use24HourClock === clock.use24}
           class="inline-flex items-center gap-1.5 h-full px-2.5 rounded-[5px] text-sm font-medium transition-colors duration-150 {use24HourClock ===
           clock.use24
             ? 'bg-bg-tertiary text-fg-primary'
