@@ -3,6 +3,7 @@
   import Modal from "../../components/Modal.svelte";
   import Button from "../../components/Button.svelte";
   import IconButton from "../../components/IconButton.svelte";
+  import DeleteButton from "../../components/DeleteButton.svelte";
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import TextArea from "../../components/TextArea.svelte";
@@ -569,17 +570,18 @@
                           <Edit2 class="w-4 h-4" aria-hidden="true" />
                         </IconButton>
                         {#if invoice.lines.length > 1}
-                          <IconButton
+                          <DeleteButton
                             size="sm"
-                            tone="danger"
                             aria-label="Remove line"
                             onclick={() => {
                               lineToRemove = line;
                               showRemoveLineModal = true;
                             }}
-                          >
-                            <Trash2 class="w-4 h-4" aria-hidden="true" />
-                          </IconButton>
+                            onShiftClick={() => {
+                              lineToRemove = line;
+                              removeLine();
+                            }}
+                          />
                         {/if}
                       </div>
                     </td>
