@@ -18,7 +18,8 @@ class Invoice < ApplicationRecord
   validates :period_end, presence: true
   validates :issued_on, presence: true
   validates :status, inclusion: { in: STATUSES }
-  validates :status, exclusion: { in: [ STATUS_DRAFT ], message: "can't go back to draft once the invoice is issued" }, on: :update, if: :status_changed?
+  validates :status, exclusion: { in: [ STATUS_DRAFT ], message: "can't go back to draft from paid. Mark it unpaid first" }, on: :update, if: -> { status_changed? && status_was == STATUS_PAID }
+  validate :number_editable_only_on_drafts, on: :update, if: :invoice_number_changed?
   validates :invoice_number, numericality: { only_integer: true, greater_than: 0 }, uniqueness: { scope: :workspace_id }, on: :update
 
   scope :draft, -> { where(status: STATUS_DRAFT) }
@@ -114,6 +115,10 @@ class Invoice < ApplicationRecord
   end
 
   private
+
+  def number_editable_only_on_drafts
+    errors.add(:invoice_number, "can only be changed on a draft") unless status_was == STATUS_DRAFT
+  end
 
   def ensure_draft
     return if self.class.lock.where(id: id).pick(:status) == STATUS_DRAFT

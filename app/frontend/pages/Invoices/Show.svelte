@@ -20,6 +20,7 @@
     X,
     Ellipsis,
     Undo2,
+    FilePen,
   } from "@lucide/svelte";
   import {
     formatCurrency,
@@ -64,6 +65,7 @@
   let turnstileToken = $state("");
   let showDeleteModal = $state(false);
   let showMarkUnpaidModal = $state(false);
+  let showRevertToDraftModal = $state(false);
   let editingNumber = $state(false);
   let editInvoiceNumber = $state(0);
 
@@ -334,6 +336,14 @@
                 <Undo2 aria-hidden="true" /> Mark as unpaid
               </DropdownMenu.Item>
             {/if}
+            {#if invoice.status === "issued" && page.props.canEdit}
+              <DropdownMenu.Item
+                class="px-3 py-2 gap-2"
+                onSelect={() => (showRevertToDraftModal = true)}
+              >
+                <FilePen aria-hidden="true" /> Revert to draft
+              </DropdownMenu.Item>
+            {/if}
             {#if invoice.status !== "paid"}
               <DropdownMenu.Item class="px-3 py-2 gap-2">
                 {#snippet child({ props })}
@@ -359,12 +369,14 @@
                 </a>
               {/snippet}
             </DropdownMenu.Item>
-            <DropdownMenu.Item
-              class="px-3 py-2 gap-2"
-              onSelect={startEditingInvoiceNumber}
-            >
-              <Edit2 aria-hidden="true" /> Edit number
-            </DropdownMenu.Item>
+            {#if canEditLines}
+              <DropdownMenu.Item
+                class="px-3 py-2 gap-2"
+                onSelect={startEditingInvoiceNumber}
+              >
+                <Edit2 aria-hidden="true" /> Edit number
+              </DropdownMenu.Item>
+            {/if}
             {#if invoice.status === "draft"}
               <DropdownMenu.Separator />
               <DropdownMenu.Item
@@ -709,4 +721,18 @@
     updateInvoiceStatus("issued");
   }}
   onClose={() => (showMarkUnpaidModal = false)}
+/>
+
+<ConfirmDeleteModal
+  bind:open={showRevertToDraftModal}
+  title="Revert to draft"
+  actionVerb="revert"
+  confirmTone="purple"
+  itemName={`Invoice #${invoice.invoice_number}`}
+  warningMessage="It becomes an editable draft again and keeps its number and lines. Issuing it again sets a new issue date. If you've already sent it, the client still has the old version."
+  onConfirm={() => {
+    showRevertToDraftModal = false;
+    updateInvoiceStatus("draft");
+  }}
+  onClose={() => (showRevertToDraftModal = false)}
 />

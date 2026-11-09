@@ -29,6 +29,18 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_not invoice.update(invoice_number: "")
   end
 
+  test "only a draft can be renumbered" do
+    invoice = invoices(:one)
+    invoice.update!(status: Invoice::STATUS_ISSUED)
+
+    assert_not invoice.update(invoice_number: 7)
+    assert_equal 1, invoice.reload.invoice_number
+
+    invoice.update!(status: Invoice::STATUS_DRAFT)
+    invoice.update!(invoice_number: 7)
+    assert_equal 7, invoice.reload.invoice_number
+  end
+
   test "generate_from_time_entries filters to the provided user and keeps the notes it was created with" do
     owner = User.create!(
       email: "invoice-owner@example.com",
@@ -172,17 +184,36 @@ class InvoiceTest < ActiveSupport::TestCase
       invoice.update!(status: Invoice::STATUS_ISSUED)
     end
     assert_equal Date.new(2026, 4, 10), invoice.reload.issued_on
+
+    travel_to Date.new(2026, 6, 3) do
+      invoice.update!(status: Invoice::STATUS_DRAFT)
+      invoice.update!(status: Invoice::STATUS_ISSUED)
+    end
+    assert_equal Date.new(2026, 6, 3), invoice.reload.issued_on
   end
 
-  test "an issued or paid invoice can't go back to draft" do
+  test "a paid invoice goes back to draft only through issued" do
     invoice = invoices(:one)
+    invoice.update!(status: Invoice::STATUS_PAID)
 
-    [ Invoice::STATUS_ISSUED, Invoice::STATUS_PAID ].each do |status|
-      invoice.update!(status: status)
+    assert_not invoice.update(status: Invoice::STATUS_DRAFT)
+    assert_equal Invoice::STATUS_PAID, invoice.reload.status
 
-      assert_not invoice.update(status: Invoice::STATUS_DRAFT)
-      assert_equal status, invoice.reload.status
-    end
+    invoice.update!(status: Invoice::STATUS_ISSUED)
+    invoice.update!(status: Invoice::STATUS_DRAFT)
+    assert_equal Invoice::STATUS_DRAFT, invoice.reload.status
+  end
+
+  test "reverting to draft makes the lines editable again" do
+    invoice = invoices(:one)
+    line = invoice.invoice_lines.create!(description: "Work", qty_hours: 1, rate_cents: 100, amount_cents: 100, time_entry: time_entries(:one))
+    invoice.update!(status: Invoice::STATUS_ISSUED)
+
+    assert_not invoice.update_line(line, description: "Changed")
+
+    invoice.update!(status: Invoice::STATUS_DRAFT)
+    assert invoice.update_line(line, description: "Changed")
+    assert_equal "Changed", line.reload.description
   end
 
   test "a workspace with invoices can be deleted" do
