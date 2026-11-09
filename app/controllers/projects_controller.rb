@@ -7,8 +7,8 @@ class ProjectsController < ApplicationController
   before_action :authorize_project, only: [ :create, :update, :destroy ]
 
   def index
-    @projects = current_workspace.projects.includes(:client).order(:name)
-    @clients = current_workspace.clients.order(:name)
+    @projects = current_workspace.projects.includes(:client).sorted_by_name
+    @clients = current_workspace.clients.sorted_by_name
 
     render inertia: "Projects/Index", props: {
       projects: @projects.map(&:as_props),

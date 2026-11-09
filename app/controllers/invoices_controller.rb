@@ -20,7 +20,7 @@ class InvoicesController < ApplicationController
       .order(created_at: :desc)
     line_counts = InvoiceLine.where(invoice_id: current_workspace.invoices.select(:id)).group(:invoice_id).count
 
-    @clients = current_workspace.clients.order(:name)
+    @clients = current_workspace.clients.sorted_by_name
 
     @unbilled_entries = policy_scope(TimeEntry)
       .unbilled

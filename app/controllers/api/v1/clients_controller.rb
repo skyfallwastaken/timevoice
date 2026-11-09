@@ -8,7 +8,7 @@ module Api
       before_action -> { require_scope! :clients }, only: [ :create, :update, :destroy ]
 
       def index
-        clients = current_workspace.clients.order(:name)
+        clients = current_workspace.clients.sorted_by_name
 
         render json: clients.map { |client| serialize_client(client) }
       end
