@@ -4,11 +4,19 @@ import { tick } from "svelte";
 
 type Named = { id: number; name: string };
 
-const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+// Compares code points, as Ruby does. `<` compares UTF-16 code units, which
+// puts emoji before characters from U+E000 up.
+const compare = (a: string, b: string) => {
+  const x = [...a];
+  const y = [...b];
+  for (let i = 0; i < Math.min(x.length, y.length); i++) {
+    if (x[i] !== y[i]) return x[i].codePointAt(0)! - y[i].codePointAt(0)!;
+  }
+  return x.length - y.length;
+};
 
 // The server's order (ApplicationRecord.sorted_by_name): case-insensitive,
-// then exact. `<` compares character codes as Ruby does; localeCompare
-// ignores case and punctuation differently.
+// then exact. localeCompare would ignore case and punctuation differently.
 export const byName = (a: { name: string }, b: { name: string }) =>
   compare(a.name.toLowerCase(), b.name.toLowerCase()) ||
   compare(a.name, b.name);
