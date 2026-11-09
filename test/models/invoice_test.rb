@@ -31,10 +31,12 @@ class InvoiceTest < ActiveSupport::TestCase
 
   test "only a draft can be renumbered" do
     invoice = invoices(:one)
-    invoice.update!(status: Invoice::STATUS_ISSUED)
+    [ Invoice::STATUS_PAID, Invoice::STATUS_ISSUED ].each do |status|
+      invoice.update!(status: status)
 
-    assert_not invoice.update(invoice_number: 7)
-    assert_equal 1, invoice.reload.invoice_number
+      assert_not invoice.update(invoice_number: 7)
+      assert_equal 1, invoice.reload.invoice_number
+    end
 
     invoice.update!(status: Invoice::STATUS_DRAFT)
     invoice.update!(invoice_number: 7)
