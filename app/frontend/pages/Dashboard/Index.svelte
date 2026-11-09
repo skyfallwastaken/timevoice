@@ -883,7 +883,7 @@
                   {@const isSelected = selected.has(entry.id)}
                   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                   <li
-                    class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-colors duration-150 {isSelected
+                    class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-[background-color] duration-150 {isSelected
                       ? 'bg-bright-purple/10'
                       : 'hover:bg-bg-tertiary/40'}"
                     onclick={(e) => handleRowClick(e, entry)}
