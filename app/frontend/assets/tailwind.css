@@ -125,8 +125,7 @@ body {
   }
 
   input,
-  textarea,
-  [contenteditable="true"] {
+  textarea {
     -webkit-user-select: text;
     user-select: text;
   }
