@@ -534,7 +534,7 @@
                     {/if}
                   </span>
                   <span
-                    class="hidden shrink-0 font-medium font-tabular @min-[12rem]:inline"
+                    class="hidden shrink-0 font-medium font-tabular @min-[11rem]:inline"
                     >{formatHours(seconds)}</span
                   >
                 </span>
