@@ -140,6 +140,23 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_nil Invoice.generate_from_time_entries(workspace, client, nil, nil, 10_000, user)
   end
 
+  test "generate_from_time_entries prices each line from its stored two-decimal hours" do
+    workspace = workspaces(:one)
+    project = Project.create!(workspace: workspace, client: clients(:one), name: "Rounding", color: "#458588")
+    start = Time.zone.parse("2026-08-01 09:00")
+    TimeEntry.create!(user: users(:one), workspace: workspace, project: project, description: "Call",
+      start_at: start, end_at: start + 25.minutes, billable: true)
+
+    invoice = Invoice.generate_from_time_entries(workspace, clients(:one), Date.new(2026, 8, 1), Date.new(2026, 8, 1), 15_000, users(:one))
+    line = invoice.invoice_lines.sole
+
+    assert_equal [ BigDecimal("0.42"), 6_300 ], [ line.qty_hours, line.amount_cents ]
+    assert_equal 6_300, invoice.reload.total_cents
+
+    assert invoice.update_line(line, description: "Kickoff call")
+    assert_equal [ "Kickoff call", 6_300 ], [ line.reload.description, line.amount_cents ]
+  end
+
   test "generate_from_time_entries copies each entry into a validated line, or creates nothing" do
     workspace = workspaces(:one)
     project = Project.create!(workspace: workspace, client: clients(:one), name: "Line Copy", color: "#458588")

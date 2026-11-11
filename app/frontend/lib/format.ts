@@ -13,6 +13,15 @@ export function parseRate(value: string): number {
   return Number.isFinite(num) ? Math.round(num * 100) : 0;
 }
 
+// Matches the server: invoice lines store hours rounded half up to two
+// decimals, then round the amount half up. Working in whole hundredths keeps
+// 0.57 × 2550 at 1454, and toPrecision turns 1.005 × 100 = 100.49999… back
+// into 100.5 so it rounds to 1.01 hours like the server.
+export function lineAmountCents(hours: number, rateCents: number): number {
+  const hundredths = Math.round(Number((hours * 100).toPrecision(15)));
+  return Math.round((hundredths * rateCents) / 100);
+}
+
 // toLocaleDateString builds a new Intl formatter on every call (~0.1 ms), which
 // adds up to hundreds of milliseconds on long lists, so reuse one per format.
 export function dateFormatter(

@@ -74,7 +74,7 @@ class Invoice < ApplicationRecord
       )
 
       lines = entries.map do |entry|
-        hours = entry.duration_hours
+        hours = entry.invoice_hours.to_d
 
         InvoiceLine.new(
           invoice: invoice,
