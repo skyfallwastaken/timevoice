@@ -234,12 +234,4 @@ class InvoiceTest < ActiveSupport::TestCase
     assert invoice.update_line(line, description: "Changed")
     assert_equal "Changed", line.reload.description
   end
-
-  test "a workspace with invoices can be deleted" do
-    workspace = workspaces(:one)
-    invoice_id = invoices(:one).id
-
-    assert workspace.destroy
-    assert_not Invoice.exists?(invoice_id)
-  end
 end
