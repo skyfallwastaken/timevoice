@@ -516,6 +516,8 @@
                 : ''}{entry.description || 'No description'} ({formatHours(
                 seconds,
               )})"
+              aria-disabled={block.running || undefined}
+              tabindex={block.running ? -1 : undefined}
               onpointerdown={(e) => e.stopPropagation()}
               onclick={() => !block.running && editEntry(entry)}
             >
