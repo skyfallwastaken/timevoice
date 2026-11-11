@@ -113,14 +113,17 @@
   function saveWorkspaceName() {
     if (hasWorkspaceNameChanges && !savingWorkspaceName) {
       savingWorkspaceName = true;
+      const submitted = workspaceNameInput;
       router.patch(
         routes.settings.updateWorkspace(workspaceId),
         {
-          workspace: { name: workspaceNameInput.trim() },
+          workspace: { name: submitted.trim() },
         },
         {
           preserveScroll: true,
           onSuccess: () => {
+            // Keep anything typed while the save was in flight.
+            if (workspaceNameDraft !== submitted) return;
             hasWorkspaceNameDraft = false;
             workspaceNameDraft = "";
           },

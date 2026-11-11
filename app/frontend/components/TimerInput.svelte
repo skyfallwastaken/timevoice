@@ -412,7 +412,11 @@
   }
 
   function sendStop({ keepForm = false, endAt, onDone }: StopOptions) {
-    if (!runningEntry) return;
+    // The timer can be stopped elsewhere while its description saves.
+    if (!runningEntry) {
+      stopping = false;
+      return;
+    }
 
     const formData = new FormData();
     if (endAt) formData.append("time_entry[end_at]", endAt.toISOString());
