@@ -262,10 +262,20 @@
     return totals.bucket === "week" ? `Week of ${short}` : short;
   }
 
-  // Past a month of bars, label only every few so they don't overlap.
-  let labelEvery = $derived(
-    dailyEntries.length > 31 ? Math.ceil(dailyEntries.length / 10) : 1,
-  );
+  // Label every bar while each label fits under its bar; otherwise label
+  // every few bars with a short date, spaced so they don't overlap.
+  let chartWidth = $state(0);
+  let barWidth = $derived(chartWidth / Math.max(1, dailyEntries.length));
+  // Room a thinned label needs: "Nov 2026" for months, "Nov 9" otherwise.
+  let labelSlot = $derived(totals.bucket === "month" ? 72 : 56);
+  let labelEvery = $derived.by(() => {
+    const count = dailyEntries.length;
+    if (!chartWidth) return count > 31 ? Math.ceil(count / 10) : 1;
+    if (barWidth >= (totals.bucket === "month" ? 56 : 20)) return 1;
+    return Math.ceil(count / Math.max(1, Math.floor(chartWidth / labelSlot)));
+  });
+  // Narrower bars get narrower gaps, scaling smoothly from 1px to 8px.
+  let barGap = $derived(Math.min(8, Math.max(1, Math.round(barWidth / 4))));
 
   let selectedProjectName = $derived(
     projects.find((p) => String(p.id) === String(selectedProjectId))?.name,
@@ -275,7 +285,7 @@
 <PageLayout title="Reports" icon={BarChart3} iconColor="text-bright-purple">
   {#snippet headerActions()}
     <div
-      class="flex flex-1 sm:flex-none min-w-0 items-center h-9 rounded-[10px] border border-bg-tertiary bg-bg-secondary"
+      class="flex flex-1 sm:flex-initial min-w-0 items-center h-9 rounded-[10px] border border-bg-tertiary bg-bg-secondary"
     >
       <button
         type="button"
@@ -287,21 +297,25 @@
       </button>
       <DropdownMenu.Root>
         <DropdownMenu.Trigger
-          class="flex flex-1 min-w-0 items-center justify-center gap-2 h-full px-3 border-x border-bg-tertiary text-sm font-medium font-tabular whitespace-nowrap hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary transition-colors"
+          class="flex flex-1 min-w-0 items-center justify-center gap-2 h-full px-2 sm:px-3 border-x border-bg-tertiary text-sm font-medium font-tabular whitespace-nowrap hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary transition-colors"
           aria-label="Report period: {periodLabel}. Choose a preset"
           title={periodLabel}
         >
           <CalendarDays
-            class="hidden sm:block size-4 shrink-0 text-fg-muted"
+            class="hidden lg:block size-4 shrink-0 text-fg-muted"
             aria-hidden="true"
           />
           {#if activePreset}
-            <span class="hidden sm:inline">{activePreset}</span>
-            <span class="hidden sm:inline text-fg-muted font-normal">·</span>
+            <!-- Phones name the preset alone; the dates don't fit beside it. -->
+            <span class="truncate sm:hidden">{activePreset}</span>
+            <span class="hidden lg:inline">{activePreset}</span>
+            <span class="hidden lg:inline text-fg-muted font-normal">·</span>
           {/if}
-          <span class="truncate">{periodLabel}</span>
+          <span class="truncate {activePreset ? 'max-sm:hidden' : ''}"
+            >{periodLabel}</span
+          >
           <ChevronDown
-            class="size-4 shrink-0 text-fg-muted"
+            class="hidden lg:block size-4 shrink-0 text-fg-muted"
             aria-hidden="true"
           />
         </DropdownMenu.Trigger>
@@ -348,11 +362,11 @@
       onclick={() => (showFilters = !showFilters)}
     >
       <Filter class="w-4 h-4" />
-      <span class="hidden sm:inline">Filters</span>
+      <span class="hidden lg:inline">Filters</span>
       {#if showFilters}
-        <ChevronUp class="w-4 h-4" />
+        <ChevronUp class="hidden lg:block w-4 h-4" />
       {:else}
-        <ChevronDown class="w-4 h-4" />
+        <ChevronDown class="hidden lg:block w-4 h-4" />
       {/if}
     </Button>
   {/snippet}
@@ -451,9 +465,9 @@
   {#if entries.length > 0}
     <SectionCard title={`${bucketTitle[totals.bucket]} Hours`} bodyClass="p-4">
       <div
-        class="flex items-stretch h-48 {dailyEntries.length > 31
-          ? 'gap-0.5'
-          : 'gap-2'}"
+        bind:clientWidth={chartWidth}
+        class="flex items-stretch h-48"
+        style="column-gap: {barGap}px"
       >
         {#each dailyEntries as [date, data], i}
           <div
@@ -490,7 +504,8 @@
                 : ''}"
             >
               {#if labelEvery > 1}
-                {#if i % labelEvery === 0}
+                <!-- A thinned label starts at its bar, so skip one too close to the end. -->
+                {#if i % labelEvery === 0 && (!chartWidth || (dailyEntries.length - i) * barWidth >= labelSlot - 12)}
                   {totals.bucket === "month"
                     ? bucketLabel(date)
                     : formatShortDate(parseLocalDate(date))}
