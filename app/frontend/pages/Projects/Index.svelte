@@ -223,7 +223,7 @@
                   {project.name}
                   {#if project.billable_default}
                     <span
-                      class="px-2 py-0.5 text-xs font-medium bg-bright-green/20 text-bright-green rounded-full"
+                      class="px-2 py-0.5 text-xs font-medium bg-bright-green/20 text-bright-green rounded-full select-none"
                       >Billable</span
                     >
                   {/if}

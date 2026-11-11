@@ -472,7 +472,7 @@
 <div class="h-screen bg-bg-primary text-fg-primary flex overflow-hidden">
   {#if isDevMode}
     <div
-      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-30 bg-yellow-500 text-black text-center text-xs font-semibold py-1 px-2"
+      class="fixed top-14 md:top-0 left-0 right-0 md:left-64 z-30 bg-yellow-500 text-black text-center text-xs font-semibold py-1 px-2 select-none"
     >
       DEV MODE
     </div>
@@ -481,7 +481,7 @@
   <a href="#main-content" class="skip-link"> Skip to main content </a>
 
   <header
-    class="md:hidden fixed top-0 left-0 right-0 z-30 bg-bg-secondary border-b border-bg-tertiary"
+    class="md:hidden fixed top-0 left-0 right-0 z-30 bg-bg-secondary border-b border-bg-tertiary select-none"
   >
     <div class="h-14 px-4 flex items-center justify-between">
       <IconButton
@@ -549,7 +549,7 @@
         transition:fade={{ duration: 200 }}
       ></button>
       <aside
-        class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col overflow-y-auto"
+        class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col overflow-y-auto select-none"
         transition:fly={{ x: -300, duration: 300, easing: quintOut }}
       >
         <div
@@ -599,7 +599,7 @@
   {/if}
 
   <aside
-    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col overflow-y-auto z-50"
+    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col overflow-y-auto z-50 select-none"
     aria-label="Application sidebar"
   >
     <div class="p-6 border-b border-bg-tertiary">

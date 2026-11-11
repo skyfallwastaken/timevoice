@@ -411,7 +411,7 @@
 <div
   bind:this={scroller}
   bind:clientWidth={viewWidth}
-  class="h-full overflow-auto"
+  class="h-full overflow-auto select-none"
   onscrollend={snapToColumn}
 >
   <div
@@ -475,7 +475,7 @@
              add entries with the timer bar's manual entry. -->
         <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
         <div
-          class="relative border-l border-bg-tertiary select-none {isToday
+          class="relative border-l border-bg-tertiary {isToday
             ? 'bg-bright-purple/[0.03]'
             : ''}"
           style="height: {24 *

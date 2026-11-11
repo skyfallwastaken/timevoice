@@ -18,7 +18,7 @@
 </script>
 
 <!-- Two rows on narrow phones, where the four tabs don't fit in one. -->
-<div class="grid grid-cols-2 sm:flex">
+<div class="grid grid-cols-2 sm:flex select-none">
   {#each tabs as tab, index}
     <Link
       href={tab.href(workspaceId)}
