@@ -614,7 +614,7 @@
                     >
                     <span
                       class="sm:hidden block text-xs text-fg-muted font-tabular"
-                      >{line.rate}</span
+                      ><span class="sr-only">Rate </span>{line.rate}</span
                     >
                   </td>
                   <td

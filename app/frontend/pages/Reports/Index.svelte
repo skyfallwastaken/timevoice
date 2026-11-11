@@ -266,12 +266,16 @@
   // every few bars with a short date, spaced so they don't overlap.
   let chartWidth = $state(0);
   let barWidth = $derived(chartWidth / Math.max(1, dailyEntries.length));
+  // Room a thinned label needs: "Nov 2026" for months, "Nov 9" otherwise.
+  let labelSlot = $derived(totals.bucket === "month" ? 72 : 56);
   let labelEvery = $derived.by(() => {
     const count = dailyEntries.length;
     if (!chartWidth) return count > 31 ? Math.ceil(count / 10) : 1;
     if (barWidth >= (totals.bucket === "month" ? 56 : 20)) return 1;
-    return Math.ceil(count / Math.floor(chartWidth / 56));
+    return Math.ceil(count / Math.max(1, Math.floor(chartWidth / labelSlot)));
   });
+  // Narrower bars get narrower gaps, scaling smoothly from 1px to 8px.
+  let barGap = $derived(Math.min(8, Math.max(1, Math.round(barWidth / 4))));
 
   let selectedProjectName = $derived(
     projects.find((p) => String(p.id) === String(selectedProjectId))?.name,
@@ -462,11 +466,8 @@
     <SectionCard title={`${bucketTitle[totals.bucket]} Hours`} bodyClass="p-4">
       <div
         bind:clientWidth={chartWidth}
-        class="flex items-stretch h-48 {barWidth < 16
-          ? 'gap-px'
-          : dailyEntries.length > 31
-            ? 'gap-0.5'
-            : 'gap-2'}"
+        class="flex items-stretch h-48"
+        style="column-gap: {barGap}px"
       >
         {#each dailyEntries as [date, data], i}
           <div
@@ -504,7 +505,7 @@
             >
               {#if labelEvery > 1}
                 <!-- A thinned label starts at its bar, so skip one too close to the end. -->
-                {#if i % labelEvery === 0 && (!chartWidth || (dailyEntries.length - i) * barWidth >= 44)}
+                {#if i % labelEvery === 0 && (!chartWidth || (dailyEntries.length - i) * barWidth >= labelSlot - 12)}
                   {totals.bucket === "month"
                     ? bucketLabel(date)
                     : formatShortDate(parseLocalDate(date))}
