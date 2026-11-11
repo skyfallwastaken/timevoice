@@ -48,7 +48,10 @@
       widgetId = window.turnstile.render(container, {
         sitekey: siteKey,
         theme,
-        size,
+        // The flexible widget is at least 300px wide; narrow modals on small
+        // phones clip it, so fall back to the compact one.
+        size:
+          size === "flexible" && container.clientWidth < 300 ? "compact" : size,
         callback: (token: string) => {
           onSuccess?.(token);
         },

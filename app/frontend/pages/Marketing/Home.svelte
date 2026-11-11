@@ -26,7 +26,7 @@
       >
         T
       </div>
-      <span class="font-semibold text-lg">Timevoice</span>
+      <span class="font-semibold text-lg max-[374px]:sr-only">Timevoice</span>
     </a>
 
     <nav class="flex items-center gap-2 sm:gap-4">

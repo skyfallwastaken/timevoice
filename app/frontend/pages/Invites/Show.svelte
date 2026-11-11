@@ -126,12 +126,12 @@
           </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-col min-[360px]:flex-row gap-3">
           <Button
             variant="primary"
             tone="purple"
             size="lg"
-            class="flex-1"
+            class="min-[360px]:flex-1"
             onclick={acceptInvite}
             disabled={processing}
           >

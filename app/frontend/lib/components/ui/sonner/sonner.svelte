@@ -12,7 +12,7 @@
   duration={3500}
   gap={8}
   offset={20}
-  mobileOffset={16}
+  mobileOffset={{ bottom: 16, left: 0, right: 0 }}
   toastOptions={{
     unstyled: true,
     classes: {

@@ -146,7 +146,7 @@
           <Button
             type="button"
             tone="green"
-            class="w-full"
+            class="w-full h-auto min-h-9 py-2"
             disabled={isSubmitting}
             onclick={handleAuthorize}
           >
