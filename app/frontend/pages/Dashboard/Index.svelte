@@ -466,7 +466,7 @@
     "inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-lg border border-bg-tertiary bg-bg-primary text-base md:text-sm font-medium hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary transition-colors";
 
   const checkboxReveal =
-    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
+    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100";
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -927,6 +927,7 @@
                       {#if entry.tags.length > 0}
                         <span
                           class="hidden xl:flex items-center gap-1 min-w-0 overflow-hidden"
+                          title={entry.tags.map((tag) => tag.name).join(", ")}
                         >
                           {#each entry.tags as tag (tag.id)}
                             <span
@@ -965,7 +966,7 @@
                     <div class="flex items-center shrink-0">
                       <IconButton
                         size="sm"
-                        class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                        class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100"
                         aria-label="Continue {entry.description || 'entry'}"
                         title="Continue this entry"
                         onclick={() => continueEntry(entry)}
@@ -978,7 +979,7 @@
                             <IconButton
                               {...props}
                               size="sm"
-                              class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
+                              class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
                               aria-label="More actions"
                             >
                               <EllipsisVertical
