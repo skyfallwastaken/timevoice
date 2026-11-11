@@ -109,8 +109,10 @@
     showDeleteModal = false;
   }
 
+  let savingWorkspaceName = $state(false);
   function saveWorkspaceName() {
-    if (hasWorkspaceNameChanges) {
+    if (hasWorkspaceNameChanges && !savingWorkspaceName) {
+      savingWorkspaceName = true;
       router.patch(
         routes.settings.updateWorkspace(workspaceId),
         {
@@ -122,6 +124,7 @@
             hasWorkspaceNameDraft = false;
             workspaceNameDraft = "";
           },
+          onFinish: () => (savingWorkspaceName = false),
         },
       );
     }
@@ -223,9 +226,10 @@
                 tone="purple"
                 size="sm"
                 type="button"
+                disabled={savingWorkspaceName}
                 onclick={saveWorkspaceName}
               >
-                Save
+                {savingWorkspaceName ? "Saving..." : "Save"}
               </Button>
             {/if}
           </div>

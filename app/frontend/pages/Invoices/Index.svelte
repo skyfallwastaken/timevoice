@@ -170,7 +170,17 @@
     createFormEl?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function updateInvoiceStatus(invoiceHashid: string, status: InvoiceStatus) {
+  // Issue turns into Mark paid in place, so a double tap would do both: the
+  // second click of a double click is ignored, and so is any click while the
+  // row's change is still saving.
+  let updatingStatus = $state<string[]>([]);
+  function updateInvoiceStatus(
+    invoiceHashid: string,
+    status: InvoiceStatus,
+    event: MouseEvent,
+  ) {
+    if (event.detail > 1 || updatingStatus.includes(invoiceHashid)) return;
+    updatingStatus = [...updatingStatus, invoiceHashid];
     router
       .optimistic<{ invoices: InvoiceListItem[] }>((props) => ({
         invoices: props.invoices.map((i) =>
@@ -180,7 +190,13 @@
       .patch(
         routes.invoices.update(workspaceId, invoiceHashid),
         { invoice: { status } },
-        { preserveScroll: true },
+        {
+          preserveScroll: true,
+          onFinish: () =>
+            (updatingStatus = updatingStatus.filter(
+              (hashid) => hashid !== invoiceHashid,
+            )),
+        },
       );
   }
 </script>
@@ -259,7 +275,9 @@
                 size="sm"
                 variant="secondary"
                 class="relative hidden sm:inline-flex"
-                onclick={() => updateInvoiceStatus(invoice.hashid, "issued")}
+                disabled={updatingStatus.includes(invoice.hashid)}
+                onclick={(e) =>
+                  updateInvoiceStatus(invoice.hashid, "issued", e)}
               >
                 <Check class="w-4 h-4" />
                 Issue
@@ -269,7 +287,8 @@
                 size="sm"
                 variant="secondary"
                 class="relative hidden sm:inline-flex"
-                onclick={() => updateInvoiceStatus(invoice.hashid, "paid")}
+                disabled={updatingStatus.includes(invoice.hashid)}
+                onclick={(e) => updateInvoiceStatus(invoice.hashid, "paid", e)}
               >
                 <Check class="w-4 h-4" />
                 Mark paid
