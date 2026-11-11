@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HTMLButtonAttributes } from "svelte/elements";
+  import { cn } from "$lib/utils.js";
 
   interface Props extends HTMLButtonAttributes {
     tone?: "default" | "danger" | "primary" | "success";
@@ -40,7 +41,7 @@
 <button
   {type}
   {disabled}
-  class="{baseClass} {sizeClass} {toneClass} {className}"
+  class={cn(baseClass, sizeClass, toneClass, className)}
   {...rest}
 >
   {@render children?.()}
