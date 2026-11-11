@@ -1,3 +1,30 @@
+<script module lang="ts">
+  // Only the invite and invoice email forms use Turnstile, so its script loads
+  // the first time a widget mounts instead of on every page.
+  type TurnstileApi = NonNullable<Window["turnstile"]>;
+  let loading: Promise<TurnstileApi> | undefined;
+
+  function loadTurnstile(): Promise<TurnstileApi> {
+    if (window.turnstile) return Promise.resolve(window.turnstile);
+    loading ??= new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      const fail = () => {
+        script.remove();
+        loading = undefined;
+        reject();
+      };
+      script.onload = () =>
+        window.turnstile ? resolve(window.turnstile) : fail();
+      script.onerror = fail;
+      document.head.append(script);
+    });
+    return loading;
+  }
+</script>
+
 <script lang="ts">
   import { page } from "@inertiajs/svelte";
 
@@ -37,59 +64,40 @@
 
   $effect(() => {
     if (!container) return;
-    const widgetSize = size === "flexible" && narrow ? "compact" : size;
-
-    let intervalId: ReturnType<typeof setInterval> | undefined;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const clearTimers = () => {
-      if (intervalId) clearInterval(intervalId);
-      if (timeoutId) clearTimeout(timeoutId);
+    const options = {
+      sitekey: siteKey,
+      theme,
+      size: size === "flexible" && narrow ? "compact" : size,
     };
+    let cancelled = false;
 
-    const destroyWidget = () => {
+    loadTurnstile().then(
+      (turnstile) => {
+        if (cancelled) return;
+        widgetId = turnstile.render(container, {
+          ...options,
+          callback: (token: string) => {
+            onSuccess?.(token);
+          },
+          "error-callback": () => {
+            onError?.();
+          },
+          "expired-callback": () => {
+            onExpire?.();
+          },
+        });
+      },
+      () => {
+        if (!cancelled) onError?.();
+      },
+    );
+
+    return () => {
+      cancelled = true;
       if (widgetId && window.turnstile) {
         window.turnstile.remove(widgetId);
         widgetId = null;
       }
-    };
-
-    const renderWidget = () => {
-      if (!window.turnstile || !container || widgetId) return;
-
-      widgetId = window.turnstile.render(container, {
-        sitekey: siteKey,
-        theme,
-        size: widgetSize,
-        callback: (token: string) => {
-          onSuccess?.(token);
-        },
-        "error-callback": () => {
-          onError?.();
-        },
-        "expired-callback": () => {
-          onExpire?.();
-        },
-      });
-    };
-
-    destroyWidget();
-    renderWidget();
-
-    if (!widgetId) {
-      intervalId = setInterval(() => {
-        if (window.turnstile) {
-          clearTimers();
-          renderWidget();
-        }
-      }, 100);
-
-      timeoutId = setTimeout(clearTimers, 10000);
-    }
-
-    return () => {
-      clearTimers();
-      destroyWidget();
     };
   });
 </script>
