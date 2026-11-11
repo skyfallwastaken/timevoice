@@ -24,6 +24,7 @@
     formatDuration,
     formatRate,
     parseRate,
+    lineAmountCents,
     formatDate,
     getStatusClasses,
     toDateString,
@@ -126,7 +127,7 @@
   );
   let previewAmountCents = $derived(
     previewEntries.reduce(
-      (sum, entry) => sum + Math.round(entry.hours * createForm.rate_cents),
+      (sum, entry) => sum + lineAmountCents(entry.hours, createForm.rate_cents),
       0,
     ),
   );

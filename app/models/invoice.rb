@@ -74,7 +74,9 @@ class Invoice < ApplicationRecord
       )
 
       lines = entries.map do |entry|
-        hours = entry.duration_hours
+        # Lines store hours to two decimals; price the stored hours so the
+        # amount matches hours × rate and doesn't change when the line is edited.
+        hours = entry.duration_hours.round(2).to_d
 
         InvoiceLine.new(
           invoice: invoice,

@@ -28,6 +28,7 @@
     formatDate,
     formatRate,
     getStatusClasses,
+    lineAmountCents,
     parseRate,
     toDateString,
   } from "../../lib/format";
@@ -79,7 +80,7 @@
   let showRemoveLineModal = $state(false);
 
   let lineAmountPreview = $derived(
-    Math.round((parseFloat(lineHours) || 0) * parseRate(lineRate)),
+    lineAmountCents(parseFloat(lineHours) || 0, parseRate(lineRate)),
   );
 
   // A second tap while the delete is in flight would 404 on the deleted invoice.
