@@ -598,21 +598,21 @@
             ></span>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm hover:bg-bg-tertiary transition-colors"
+              class="inline-flex items-center gap-1.5 h-6 [@media(pointer:coarse)]:h-8 px-2 rounded-[5px] text-sm hover:bg-bg-tertiary transition-colors"
               onclick={() => (showBulkEdit = true)}
             >
               <Pencil class="w-4 h-4" aria-hidden="true" /> Edit
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 h-6 px-2 rounded-[5px] text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
+              class="inline-flex items-center gap-1.5 h-6 [@media(pointer:coarse)]:h-8 px-2 rounded-[5px] text-sm text-bright-red hover:bg-bright-red/10 transition-colors"
               onclick={() => (showBulkDelete = true)}
             >
               <Trash2 class="w-4 h-4" aria-hidden="true" /> Delete
             </button>
             <button
               type="button"
-              class="ml-auto grid place-items-center size-6 rounded-[5px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
+              class="ml-auto grid place-items-center size-6 [@media(pointer:coarse)]:size-8 rounded-[5px] text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors"
               aria-label="Clear selection"
               title="Clear selection (Esc)"
               onclick={clearSelection}
@@ -765,7 +765,7 @@
             onclick={() => switchView(option.key as "list" | "calendar")}
           >
             <option.icon class="size-4" aria-hidden="true" />
-            <span class={view === option.key ? "" : "@max-md:sr-only"}
+            <span class={view === option.key ? "" : "@max-5xl:sr-only"}
               >{option.label}</span
             >
           </button>
@@ -898,11 +898,11 @@
                     />
 
                     <div
-                      class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-0.5"
+                      class="flex-1 min-w-0 flex flex-col lg:flex-row lg:items-center gap-x-3 gap-y-0.5"
                     >
                       <button
                         type="button"
-                        class="min-w-0 truncate text-left {entry.description
+                        class="min-w-0 max-w-full lg:max-w-[60%] lg:shrink-0 truncate text-left {entry.description
                           ? 'text-fg-primary'
                           : 'text-fg-dim'}"
                         onclick={(e) => {
@@ -914,7 +914,7 @@
                       </button>
                       {#if entry.project}
                         <span
-                          class="flex items-center gap-1.5 text-sm text-fg-secondary min-w-0 shrink-0"
+                          class="flex items-center gap-1.5 text-sm text-fg-secondary min-w-0"
                         >
                           <span
                             class="w-2 h-2 rounded-full shrink-0"
@@ -926,7 +926,7 @@
                       {/if}
                       {#if entry.tags.length > 0}
                         <span
-                          class="hidden md:flex items-center gap-1 shrink-0"
+                          class="hidden xl:flex items-center gap-1 min-w-0 overflow-hidden"
                         >
                           {#each entry.tags as tag (tag.id)}
                             <span
@@ -951,7 +951,7 @@
                       aria-label={entry.billable ? "Billable" : "Non-billable"}
                     />
                     <span
-                      class="hidden sm:block w-40 text-right text-sm text-fg-muted font-tabular whitespace-nowrap"
+                      class="hidden lg:block w-40 text-right text-sm text-fg-muted font-tabular whitespace-nowrap"
                     >
                       {formatTime(entry.start_at)} – {entry.end_at
                         ? formatTime(entry.end_at)
@@ -965,7 +965,7 @@
                     <div class="flex items-center shrink-0">
                       <IconButton
                         size="sm"
-                        class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        class="hidden sm:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                         aria-label="Continue {entry.description || 'entry'}"
                         title="Continue this entry"
                         onclick={() => continueEntry(entry)}
@@ -978,7 +978,7 @@
                             <IconButton
                               {...props}
                               size="sm"
-                              class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
+                              class="sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 data-[state=open]:opacity-100 data-[state=open]:bg-bg-tertiary"
                               aria-label="More actions"
                             >
                               <EllipsisVertical
