@@ -11,13 +11,14 @@
       script.src =
         "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       script.async = true;
-      script.onload = () =>
-        window.turnstile ? resolve(window.turnstile) : reject();
-      script.onerror = () => {
+      const fail = () => {
         script.remove();
         loading = undefined;
         reject();
       };
+      script.onload = () =>
+        window.turnstile ? resolve(window.turnstile) : fail();
+      script.onerror = fail;
       document.head.append(script);
     });
     return loading;
