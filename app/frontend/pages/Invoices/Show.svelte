@@ -406,7 +406,7 @@
         <div class="flex items-center gap-2">
           <h3 class="font-semibold truncate">{invoice.client.name}</h3>
           <span
-            class="px-2 py-0.5 text-xs font-medium rounded-full capitalize {getStatusClasses(
+            class="px-2 py-0.5 text-xs font-medium rounded-full capitalize select-none {getStatusClasses(
               invoice.status,
             )}"
           >

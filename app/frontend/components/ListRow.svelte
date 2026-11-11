@@ -62,7 +62,7 @@
   {/if}
 
   {#if actions}
-    <div class="flex items-center gap-2 shrink-0 {actionsClass}">
+    <div class="flex items-center gap-2 shrink-0 select-none {actionsClass}">
       {@render actions()}
     </div>
   {/if}

@@ -258,7 +258,7 @@
                   Invoice #{invoice.invoice_number}
                 </Link>
                 <span
-                  class="px-2 py-0.5 text-xs font-medium rounded-full capitalize {getStatusClasses(
+                  class="px-2 py-0.5 text-xs font-medium rounded-full capitalize select-none {getStatusClasses(
                     invoice.status,
                   )}"
                 >

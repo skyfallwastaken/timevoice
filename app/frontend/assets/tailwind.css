@@ -104,6 +104,33 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Controls aren't text to copy: a drag, double-click, shift-click or
+   long-press on one shouldn't select its label. Fields stay selectable even
+   inside a select-none container. */
+@layer base {
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="switch"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="option"],
+  label,
+  summary {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
 /* Animation keyframes - Entry/exit: translateY(4px) + opacity */
 @keyframes slide-in {
   from {

@@ -466,7 +466,7 @@
     <SectionCard title={`${bucketTitle[totals.bucket]} Hours`} bodyClass="p-4">
       <div
         bind:clientWidth={chartWidth}
-        class="flex items-stretch h-48"
+        class="flex items-stretch h-48 select-none"
         style="column-gap: {barGap}px"
       >
         {#each dailyEntries as [date, data], i}
@@ -532,7 +532,7 @@
         {/each}
       </div>
       <div
-        class="flex items-center justify-center gap-4 mt-4 text-xs text-fg-muted"
+        class="flex items-center justify-center gap-4 mt-4 text-xs text-fg-muted select-none"
       >
         <span class="flex items-center gap-1.5">
           <span class="w-3 h-3 rounded-sm bg-bright-green"></span> Billable

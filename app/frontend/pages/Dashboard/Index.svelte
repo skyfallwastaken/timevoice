@@ -599,7 +599,7 @@
 
   <div class="@container shrink-0 bg-bg-secondary border-b border-bg-tertiary">
     <div
-      class="flex flex-wrap items-center gap-2 px-4 md:px-6 py-2"
+      class="flex flex-wrap items-center gap-2 px-4 md:px-6 py-2 select-none"
       role="toolbar"
       aria-label={view === "calendar"
         ? "Calendar"
@@ -815,7 +815,7 @@
     </div>
 
     <div
-      class="flex items-center gap-3 h-9 px-4 md:px-6 border-t border-bg-tertiary text-sm"
+      class="flex items-center gap-3 h-9 px-4 md:px-6 border-t border-bg-tertiary text-sm select-none"
     >
       <span class="text-fg-muted shrink-0">Logged</span>
       <div
@@ -904,7 +904,7 @@
                 aria-label={dayLabel(group.key)}
               >
                 <header
-                  class="group flex items-center gap-3 px-4 h-11 border-b border-bg-tertiary"
+                  class="group flex items-center gap-3 px-4 h-11 border-b border-bg-tertiary select-none"
                 >
                   <Checkbox
                     class="{groupSelected > 0 ? '' : checkboxReveal} {selecting
@@ -929,7 +929,7 @@
                     {@const isSelected = selected.has(entry.id)}
                     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                     <li
-                      class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer transition-[background-color] duration-150 {isSelected
+                      class="group flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer select-none transition-[background-color] duration-150 {isSelected
                         ? 'bg-bright-purple/10'
                         : 'hover:bg-bg-tertiary/40'}"
                       onclick={(e) => handleRowClick(e, entry)}
