@@ -108,17 +108,15 @@
     onFinish: () => (loading = false),
   };
 
-  function visit(
-    params: Record<string, string | undefined>,
-    onFinish?: (visit: { cancelled: boolean; interrupted: boolean }) => void,
-  ) {
+  function visit(params: Record<string, string | undefined>) {
     router.get(routes.dashboard.index(workspaceId), params, {
       preserveState: true,
       preserveScroll: true,
       onStart: loadingCallbacks.onStart,
       onFinish: (visit) => {
         loading = false;
-        onFinish?.(visit);
+        // Whichever visit landed, the loaded week is now the one to show.
+        if (!visit.cancelled && !visit.interrupted) requestedWeek = null;
       },
     });
   }
@@ -135,9 +133,7 @@
     const start = parseLocalDate(shownWeekStart);
     start.setDate(start.getDate() + weeks * 7);
     requestedWeek = toDateString(start);
-    visit({ view: "calendar", week_start: requestedWeek }, (visit) => {
-      if (!visit.cancelled && !visit.interrupted) requestedWeek = null;
-    });
+    visit({ view: "calendar", week_start: requestedWeek });
   }
 
   const DAY_COUNT_KEY = "calendar-day-count";
