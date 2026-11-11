@@ -239,6 +239,17 @@
     }),
   );
 
+  // Optimistic changes roll back when a request never reaches the server;
+  // say so instead of leaving the user to notice the row came back.
+  $effect(() =>
+    router.on("networkError", (event) => {
+      event.preventDefault();
+      toast.error(
+        "Couldn't reach the server. Check your connection and try again.",
+      );
+    }),
+  );
+
   const activeIndex = $derived.by(() => {
     const path = page.url.split("?")[0];
     if (path === `/${currentWorkspaceHashid}`) return 0;
