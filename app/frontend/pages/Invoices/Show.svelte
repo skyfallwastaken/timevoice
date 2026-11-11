@@ -461,14 +461,17 @@
     </div>
 
     <div class="border-t border-bg-tertiary">
-      <div class="p-4 overflow-x-auto">
+      <!-- relative keeps the sr-only header inside the scroll box. -->
+      <div class="relative p-4 overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="text-fg-muted">
             <tr class="border-b border-bg-tertiary">
               <th class="text-left font-medium py-2">Description</th>
-              <th class="text-right font-medium py-2 pl-4">Hours</th>
-              <th class="text-right font-medium py-2 pl-4">Rate</th>
-              <th class="text-right font-medium py-2 pl-4">Amount</th>
+              <th class="text-right font-medium py-2 pl-2 sm:pl-4">Hours</th>
+              <th class="hidden sm:table-cell text-right font-medium py-2 pl-4">
+                Rate
+              </th>
+              <th class="text-right font-medium py-2 pl-2 sm:pl-4">Amount</th>
               {#if canEditLines}
                 <th class="py-2 pl-2"><span class="sr-only">Actions</span></th>
               {/if}
@@ -478,7 +481,67 @@
             {#each invoice.lines as line (line.id)}
               {#if editingLineId === line.id}
                 <tr>
-                  <td class="py-2 pr-2">
+                  <!-- Phones edit in one stacked cell; the row's columns are too narrow. -->
+                  <td colspan="4" class="sm:hidden py-3">
+                    <div class="space-y-2">
+                      <TextInput
+                        tone="purple"
+                        bind:value={lineDescription}
+                        aria-label="Description"
+                        onkeydown={(e) => e.key === "Enter" && saveLine()}
+                      />
+                      <div class="grid grid-cols-2 gap-2">
+                        <TextInput
+                          type="number"
+                          tone="purple"
+                          step="0.01"
+                          min="0.01"
+                          bind:value={lineHours}
+                          aria-label="Hours"
+                          placeholder="Hours"
+                          class="text-right font-tabular"
+                          onkeydown={(e) => e.key === "Enter" && saveLine()}
+                        />
+                        <div class="relative">
+                          <span
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"
+                            aria-hidden="true">$</span
+                          >
+                          <TextInput
+                            type="number"
+                            tone="purple"
+                            step="0.01"
+                            min="0"
+                            bind:value={lineRate}
+                            aria-label="Rate per hour"
+                            class="pl-6 text-right font-tabular"
+                            onkeydown={(e) => e.key === "Enter" && saveLine()}
+                          />
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        <span class="mr-auto font-tabular text-fg-muted"
+                          >{formatCurrency(lineAmountPreview)}</span
+                        >
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onclick={() => (editingLineId = null)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          tone="purple"
+                          disabled={savingLine}
+                          onclick={saveLine}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hidden sm:table-cell py-2 pr-2">
                     <TextInput
                       tone="purple"
                       bind:value={lineDescription}
@@ -487,7 +550,7 @@
                       onkeydown={(e) => e.key === "Enter" && saveLine()}
                     />
                   </td>
-                  <td class="py-2 pl-2">
+                  <td class="hidden sm:table-cell py-2 pl-2">
                     <div class="w-24 ml-auto">
                       <TextInput
                         type="number"
@@ -501,7 +564,7 @@
                       />
                     </div>
                   </td>
-                  <td class="py-2 pl-2">
+                  <td class="hidden sm:table-cell py-2 pl-2">
                     <div class="relative w-28 ml-auto">
                       <span
                         class="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"
@@ -520,10 +583,10 @@
                     </div>
                   </td>
                   <td
-                    class="py-2 pl-4 text-right font-tabular whitespace-nowrap text-fg-muted"
+                    class="hidden sm:table-cell py-2 pl-4 text-right font-tabular whitespace-nowrap text-fg-muted"
                     >{formatCurrency(lineAmountPreview)}</td
                   >
-                  <td class="py-2 pl-2">
+                  <td class="hidden sm:table-cell py-2 pl-2">
                     <div class="flex items-center justify-end gap-1">
                       <Button
                         size="sm"
@@ -545,25 +608,29 @@
                 </tr>
               {:else}
                 <tr>
-                  <td class="py-3 pr-4">
+                  <td class="py-3 pr-2 sm:pr-4">
                     <span class="text-fg-primary"
                       >{line.description || "No description"}</span
                     >
+                    <span
+                      class="sm:hidden block text-xs text-fg-muted font-tabular"
+                      >{line.rate}</span
+                    >
                   </td>
                   <td
-                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    class="py-3 pl-2 sm:pl-4 text-right font-tabular whitespace-nowrap"
                     >{Number(line.qty_hours).toFixed(2)}</td
                   >
                   <td
-                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    class="hidden sm:table-cell py-3 pl-4 text-right font-tabular whitespace-nowrap"
                     >{line.rate}</td
                   >
                   <td
-                    class="py-3 pl-4 text-right font-tabular whitespace-nowrap"
+                    class="py-3 pl-2 sm:pl-4 text-right font-tabular whitespace-nowrap"
                     >{line.amount}</td
                   >
                   {#if canEditLines}
-                    <td class="py-1 pl-2">
+                    <td class="py-1 pl-1 sm:pl-2">
                       <div class="flex items-center justify-end">
                         <IconButton
                           size="sm"
@@ -595,7 +662,15 @@
           </tbody>
           <tfoot>
             <tr class="border-t border-bg-tertiary">
-              <td colspan="3" class="pt-3 text-right text-fg-muted">Total</td>
+              <td
+                colspan="3"
+                class="hidden sm:table-cell pt-3 text-right text-fg-muted"
+              >
+                Total
+              </td>
+              <td colspan="2" class="sm:hidden pt-3 text-right text-fg-muted">
+                Total
+              </td>
               <td
                 class="pt-3 pl-4 text-right font-semibold font-tabular whitespace-nowrap"
                 >{invoice.total_amount}</td
