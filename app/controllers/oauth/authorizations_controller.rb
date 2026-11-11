@@ -47,16 +47,16 @@ class Oauth::AuthorizationsController < Doorkeeper::AuthorizationsController
   end
 
   def render_error
-    if pre_auth.error == :invalid_redirect_uri
+    error_response = pre_auth.error_response
+    if error_response.name == :invalid_redirect_uri
       render inertia: "OAuth/Error", props: {
         error: "Invalid redirect URI",
         message: "The application provided an invalid redirect URI."
       }
     else
-      error_response = pre_auth.error_response
       render inertia: "OAuth/Error", props: {
-        error: pre_auth.error.to_s.humanize,
-        message: error_response.try(:description) || "Authorization request failed."
+        error: error_response.name.to_s.humanize,
+        message: error_response.description.presence || "Authorization request failed."
       }
     end
   end
