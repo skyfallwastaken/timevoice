@@ -495,12 +495,12 @@
               : (entry.duration_seconds ?? 0)}
             <button
               type="button"
-              class="absolute flex flex-col gap-px overflow-hidden rounded-md px-2 text-left text-xs transition-[filter] duration-150 {block.running
+              class="@container absolute flex flex-col gap-px overflow-hidden rounded-md px-2 text-left text-xs transition-[filter] duration-150 {block.running
                 ? 'cursor-default'
                 : 'cursor-pointer hover:brightness-110'} {entry.id ===
                 editingId && !block.running
                 ? 'invisible'
-                : ''} {height < 40 ? 'py-px' : 'py-1.5'} {color
+                : ''} {height < 46 ? 'py-px' : 'py-1.5'} {color
                 ? ''
                 : 'bg-bg-secondary ring-1 ring-inset ring-bg-quaternary text-fg-primary'} {block.running
                 ? 'ring-2 ring-inset ring-white/50'
@@ -523,12 +523,20 @@
             >
               {#if height < 18}
                 <!-- Too short for text; the title carries the details. -->
-              {:else if height < 40}
-                <span class="truncate font-semibold">
-                  {entry.project?.name ?? entry.description ?? "No description"}
-                  {#if entry.project && entry.description}
-                    <span class="font-normal">· {entry.description}</span>
-                  {/if}
+              {:else if height < 33}
+                <span class="flex items-baseline justify-between gap-2">
+                  <span class="truncate font-semibold">
+                    {entry.project?.name ??
+                      entry.description ??
+                      "No description"}
+                    {#if entry.project && entry.description}
+                      <span class="font-normal">· {entry.description}</span>
+                    {/if}
+                  </span>
+                  <span
+                    class="hidden shrink-0 font-medium font-tabular @min-[11rem]:inline"
+                    >{formatHours(seconds)}</span
+                  >
                 </span>
               {:else}
                 <span class="flex items-baseline justify-between gap-2">
@@ -537,8 +545,9 @@
                       entry.description ??
                       "No description"}</span
                   >
-                  {#if height < 64 && block.lanes === 1}
-                    <span class="shrink-0 font-medium font-tabular"
+                  {#if height < 64}
+                    <span
+                      class="shrink-0 font-medium font-tabular @max-[6.5rem]:hidden"
                       >{formatHours(seconds)}</span
                     >
                   {/if}
@@ -557,8 +566,11 @@
                         <span
                           class="size-1.5 rounded-full bg-current animate-pulse"
                         ></span>
-                      {:else if block.lanes === 1}
-                        <Timer class="size-3" aria-hidden="true" />
+                      {:else}
+                        <Timer
+                          class="size-3 @max-[6.5rem]:hidden"
+                          aria-hidden="true"
+                        />
                       {/if}
                       {formatHours(seconds)}
                     </span>
