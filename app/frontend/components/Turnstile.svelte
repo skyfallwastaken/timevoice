@@ -19,13 +19,25 @@
 
   let container: HTMLDivElement;
   let widgetId: string | null = null;
+  // The flexible widget is at least 300px wide; narrow modals on small
+  // phones clip it, so fall back to the compact one.
+  let narrow = $state(false);
 
   const siteKey = $derived(
     (page.props.turnstile_site_key as string) || "1x00000000000000000000BB",
   );
 
   $effect(() => {
+    const observer = new ResizeObserver(([entry]) => {
+      narrow = entry.contentRect.width < 300;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  });
+
+  $effect(() => {
     if (!container) return;
+    const widgetSize = size === "flexible" && narrow ? "compact" : size;
 
     let intervalId: ReturnType<typeof setInterval> | undefined;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -48,10 +60,7 @@
       widgetId = window.turnstile.render(container, {
         sitekey: siteKey,
         theme,
-        // The flexible widget is at least 300px wide; narrow modals on small
-        // phones clip it, so fall back to the compact one.
-        size:
-          size === "flexible" && container.clientWidth < 300 ? "compact" : size,
+        size: widgetSize,
         callback: (token: string) => {
           onSuccess?.(token);
         },
