@@ -398,9 +398,10 @@
   function stopTimer(options: StopOptions = {}) {
     if (!runningEntry || stopping) return;
     stopping = true;
+    const entryId = runningEntry.id;
     saveDescription((saved) => {
       if (saved || options.keepForm) {
-        sendStop(options);
+        sendStop(entryId, options);
       } else {
         stopping = false;
         finishing = false;
@@ -411,9 +412,13 @@
     });
   }
 
-  function sendStop({ keepForm = false, endAt, onDone }: StopOptions) {
-    // The timer can be stopped elsewhere while its description saves.
-    if (!runningEntry) {
+  function sendStop(
+    entryId: number,
+    { keepForm = false, endAt, onDone }: StopOptions,
+  ) {
+    // The timer can be stopped elsewhere while its description saves, and
+    // another one started; only stop the one this Stop was for.
+    if (runningEntry?.id !== entryId) {
       stopping = false;
       return;
     }
