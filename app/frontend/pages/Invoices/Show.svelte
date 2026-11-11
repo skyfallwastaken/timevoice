@@ -82,11 +82,14 @@
     Math.round((parseFloat(lineHours) || 0) * parseRate(lineRate)),
   );
 
+  // A second tap while the delete is in flight would 404 on the deleted invoice.
+  let deleting = false;
   function deleteInvoice() {
+    if (deleting) return;
+    deleting = true;
+    showDeleteModal = false;
     router.delete(routes.invoices.delete(workspaceId, invoice.hashid), {
-      onSuccess: () => {
-        showDeleteModal = false;
-      },
+      onFinish: () => (deleting = false),
     });
   }
 

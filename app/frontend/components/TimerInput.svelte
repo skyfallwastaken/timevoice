@@ -298,6 +298,8 @@
   // A countdown or focus session stops its entry when time is up; a
   // finished focus session starts the break.
   let finishing = false;
+  // Set from Stop until the stop request finishes, so a double tap sends one.
+  let stopping = $state(false);
   $effect(() => {
     if (!activeTarget || elapsed < activeTarget.seconds || finishing) return;
     finishing = true;
@@ -334,7 +336,7 @@
   }
 
   function startTimer() {
-    if (!form.description.trim()) return;
+    if (!form.description.trim() || form.processing) return;
 
     endBreak();
     form.start_at = new Date().toISOString();
@@ -359,7 +361,12 @@
   }
 
   function addManualEntry() {
-    if (!form.description.trim() || !manualRange || displayedSeconds <= 0)
+    if (
+      !form.description.trim() ||
+      !manualRange ||
+      displayedSeconds <= 0 ||
+      form.processing
+    )
       return;
     const { start, end } = manualRange;
 
@@ -389,11 +396,14 @@
   // timer running so the typed description isn't lost; a finished countdown
   // still stops, keeping its description in the form.
   function stopTimer(options: StopOptions = {}) {
-    if (!runningEntry) return;
+    if (!runningEntry || stopping) return;
+    stopping = true;
+    const entryId = runningEntry.id;
     saveDescription((saved) => {
       if (saved || options.keepForm) {
-        sendStop(options);
+        sendStop(entryId, options);
       } else {
+        stopping = false;
         finishing = false;
         toast.error(
           "Couldn't save your changes, so the timer is still running.",
@@ -402,8 +412,16 @@
     });
   }
 
-  function sendStop({ keepForm = false, endAt, onDone }: StopOptions) {
-    if (!runningEntry) return;
+  function sendStop(
+    entryId: number,
+    { keepForm = false, endAt, onDone }: StopOptions,
+  ) {
+    // The timer can be stopped elsewhere while its description saves, and
+    // another one started; only stop the one this Stop was for.
+    if (runningEntry?.id !== entryId) {
+      stopping = false;
+      return;
+    }
 
     const formData = new FormData();
     if (endAt) formData.append("time_entry[end_at]", endAt.toISOString());
@@ -423,7 +441,10 @@
           onDone?.();
           setTimeout(() => descriptionInput?.focus(), 100);
         },
-        onFinish: () => (finishing = false),
+        onFinish: () => {
+          stopping = false;
+          finishing = false;
+        },
       },
     );
   }
@@ -1128,7 +1149,8 @@
         {#if runningEntry}
           <button
             onclick={() => stopTimer()}
-            class="size-9 shrink-0 grid place-items-center rounded-full bg-bright-red hover:bg-accent-red text-bg-primary transition-colors duration-150"
+            disabled={stopping}
+            class="size-9 shrink-0 grid place-items-center rounded-full bg-bright-red hover:bg-accent-red text-bg-primary transition-colors duration-150 disabled:opacity-50"
             aria-label="Stop timer"
           >
             <Square class="w-3.5 h-3.5 fill-current" aria-hidden="true" />
@@ -1136,7 +1158,9 @@
         {:else if isManual}
           <button
             onclick={addManualEntry}
-            disabled={!form.description.trim() || displayedSeconds <= 0}
+            disabled={!form.description.trim() ||
+              displayedSeconds <= 0 ||
+              form.processing}
             class="h-9 shrink-0 px-4 rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary text-sm font-semibold transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add
@@ -1144,7 +1168,7 @@
         {:else}
           <button
             onclick={startTimer}
-            disabled={!form.description.trim()}
+            disabled={!form.description.trim() || form.processing}
             class="size-9 shrink-0 grid place-items-center rounded-full bg-bright-purple hover:bg-accent-purple text-bg-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Start timer"
           >

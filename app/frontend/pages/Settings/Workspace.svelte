@@ -109,19 +109,25 @@
     showDeleteModal = false;
   }
 
+  let savingWorkspaceName = $state(false);
   function saveWorkspaceName() {
-    if (hasWorkspaceNameChanges) {
+    if (hasWorkspaceNameChanges && !savingWorkspaceName) {
+      savingWorkspaceName = true;
+      const submitted = workspaceNameInput;
       router.patch(
         routes.settings.updateWorkspace(workspaceId),
         {
-          workspace: { name: workspaceNameInput.trim() },
+          workspace: { name: submitted.trim() },
         },
         {
           preserveScroll: true,
           onSuccess: () => {
+            // Keep anything typed while the save was in flight.
+            if (workspaceNameDraft !== submitted) return;
             hasWorkspaceNameDraft = false;
             workspaceNameDraft = "";
           },
+          onFinish: () => (savingWorkspaceName = false),
         },
       );
     }
@@ -223,9 +229,10 @@
                 tone="purple"
                 size="sm"
                 type="button"
+                disabled={savingWorkspaceName}
                 onclick={saveWorkspaceName}
               >
-                Save
+                {savingWorkspaceName ? "Saving..." : "Save"}
               </Button>
             {/if}
           </div>
