@@ -15,6 +15,7 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import * as Command from "$lib/components/ui/command/index.js";
   import { toast } from "svelte-sonner";
+  import { MediaQuery } from "svelte/reactivity";
   import Button from "./Button.svelte";
   import DatePicker from "./DatePicker.svelte";
   import type { AttachedFile, Project, Tag, TimeEntry } from "../types";
@@ -196,6 +197,13 @@
     }
   }
 
+  // On touch screens, focusing raises the keyboard over the editor, which is
+  // only worth it for a new entry that needs a description.
+  const coarsePointer = new MediaQuery("(pointer: coarse)");
+  function focusDescription() {
+    if (!(entry && coarsePointer.current)) descriptionInput?.focus();
+  }
+
   function remove() {
     if (!entry) return;
     onClose();
@@ -205,7 +213,8 @@
   const row =
     "flex items-center gap-3 w-full min-h-9 -mx-2 px-2 rounded-lg text-left transition-colors duration-150";
   const rowButton = `${row} hover:bg-bg-tertiary data-[state=open]:bg-bg-tertiary`;
-  const card = "w-[26rem] max-w-[calc(100vw-1.5rem)] gap-0 p-0 shadow-2xl";
+  const card =
+    "w-[26rem] max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-1.5rem)] overflow-y-auto grid-cols-1 gap-0 p-0 shadow-2xl";
   const headerButton =
     "inline-flex items-center justify-center size-8 rounded-lg text-fg-muted hover:text-fg-primary hover:bg-bg-tertiary transition-colors duration-150";
 </script>
@@ -645,7 +654,7 @@
       aria-label={label}
       onOpenAutoFocus={(e) => {
         e.preventDefault();
-        descriptionInput?.focus();
+        focusDescription();
       }}
     >
       {@render body()}
@@ -668,7 +677,7 @@
       aria-label={label}
       onOpenAutoFocus={(e) => {
         e.preventDefault();
-        descriptionInput?.focus();
+        focusDescription();
       }}
       onCloseAutoFocus={(e) => e.preventDefault()}
       {onInteractOutside}

@@ -10,6 +10,7 @@
     uses24HourClock,
   } from "../lib/format";
   import { draftFromEntry, type TimeEntryDraft } from "../lib/time-entry-form";
+  import { MediaQuery } from "svelte/reactivity";
 
   type RunningEntry = {
     id: number;
@@ -70,11 +71,10 @@
   };
 
   // The running timer is drawn as a block that grows until now. The entry
-  // being edited is drawn as the editable selection instead of a block.
+  // being edited keeps its place in the layout, so its neighbours don't
+  // widen, but is hidden behind the editable selection.
   let allEntries = $derived.by(() => {
-    const list = entries
-      .filter((entry) => entry.id !== editingId)
-      .map((entry) => ({ entry, running: false }));
+    const list = entries.map((entry) => ({ entry, running: false }));
     if (runningEntry) {
       list.push({
         entry: {
@@ -173,14 +173,15 @@
   const HOURS_WIDTH = 64;
   const MIN_COLUMN = 104;
   let viewWidth = $state(0);
-  let columnWidth = $derived.by(() => {
-    const room = viewWidth - HOURS_WIDTH;
-    const fits = Math.max(1, Math.floor(room / MIN_COLUMN));
-    return viewWidth && fits < dayCount ? room / fits : null;
-  });
+  let fits = $derived(
+    Math.max(1, Math.floor((viewWidth - HOURS_WIDTH) / MIN_COLUMN)),
+  );
+  let columnWidth = $derived(
+    viewWidth && fits < dayCount ? (viewWidth - HOURS_WIDTH) / fits : null,
+  );
 
   // Start scrolled to the first tracked hour of the week, or 8 AM, with
-  // today's column at the left edge, or the week's first day otherwise.
+  // today as the last column in view, so the days before it show too.
   let scroller: HTMLDivElement | null = $state(null);
   let scrolledWeek = "";
   $effect(() => {
@@ -193,8 +194,27 @@
     scroller.scrollTop = Math.max(0, (firstHour - 1) * HOUR - 12);
     const today = scroller.querySelector<HTMLElement>("[data-today]");
     scroller.scrollLeft =
-      today && columnWidth ? Number(today.dataset.dayIndex) * columnWidth : 0;
+      today && columnWidth
+        ? Math.max(0, Number(today.dataset.dayIndex) - fits + 1) * columnWidth
+        : 0;
+    snappedLeft = scroller.scrollLeft;
   });
+
+  // Horizontal scrolling settles on a column edge. CSS scroll snapping did
+  // this but also jumped a day sideways after vertical flicks on touch, so
+  // only a scroll that moved sideways snaps.
+  let snappedLeft = 0;
+  function snapToColumn() {
+    if (!scroller || !columnWidth || scroller.scrollLeft === snappedLeft)
+      return;
+    snappedLeft = Math.round(scroller.scrollLeft / columnWidth) * columnWidth;
+    scroller.scrollTo({ left: snappedLeft, behavior: "smooth" });
+  }
+
+  // Phones and touch screens edit in a centred dialog: a popover beside the
+  // entry doesn't fit, and a finger can't drag the selection without
+  // scrolling the calendar.
+  const useDialog = new MediaQuery("(pointer: coarse), (max-width: 1023px)");
 
   // Drag on an empty part of a day to select a time for a new entry, or click
   // an entry to edit it. The selection stays editable like Google Calendar's:
@@ -216,6 +236,19 @@
   let showQuickEdit = $state(false);
   let placeholder: HTMLElement | null = $state(null);
 
+  // An edited entry's selection keeps its lane while it stays on that day.
+  let selectionLane = $derived.by(() => {
+    if (editingId === null || !selection) return null;
+    const index = days.findIndex(
+      (day) => day.getTime() === selection!.day.getTime(),
+    );
+    return (
+      blocksByDay[index]?.find(
+        (block) => !block.running && block.entry.id === editingId,
+      ) ?? null
+    );
+  });
+
   let selectedProject = $derived(
     projects.find((p) => p.id === selection?.project_id),
   );
@@ -235,7 +268,32 @@
     return null;
   }
 
+  // A touch scrolls the calendar, so a tap on empty space creates instead.
+  let lastPointerType = "";
+  function tapToCreate(event: MouseEvent, day: Date) {
+    if (lastPointerType !== "touch" || showQuickEdit) return;
+    if ((event.target as Element).closest("button")) return;
+    const column = event.currentTarget as HTMLElement;
+    const y = event.clientY - column.getBoundingClientRect().top;
+    const from = Math.max(
+      0,
+      Math.min(DAY_MINUTES - 30, Math.floor(y / pxPerMinute / 15) * 15),
+    );
+    editingId = null;
+    selection = {
+      description: "",
+      project_id: null,
+      tag_ids: [],
+      billable: false,
+      day,
+      from,
+      to: from + 30,
+    };
+    showQuickEdit = true;
+  }
+
   function startDrag(event: PointerEvent, day: Date) {
+    lastPointerType = event.pointerType;
     if (event.button !== 0 || event.pointerType === "touch") return;
     const column = event.currentTarget as HTMLElement;
     const minute = Math.min(
@@ -353,7 +411,8 @@
 <div
   bind:this={scroller}
   bind:clientWidth={viewWidth}
-  class="h-full overflow-auto snap-x snap-mandatory scroll-pl-16"
+  class="h-full overflow-auto"
+  onscrollend={snapToColumn}
 >
   <div
     style="min-width: {columnWidth
@@ -412,9 +471,11 @@
 
       {#each days as day, i (day.getTime())}
         {@const isToday = toDateString(day) === todayKey}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <!-- Tapping to create is the touch version of dragging; keyboards
+             add entries with the timer bar's manual entry. -->
+        <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
         <div
-          class="relative snap-start border-l border-bg-tertiary select-none {isToday
+          class="relative border-l border-bg-tertiary select-none {isToday
             ? 'bg-bright-purple/[0.03]'
             : ''}"
           style="height: {24 *
@@ -423,6 +484,7 @@
           data-today={isToday || undefined}
           data-day-index={i}
           onpointerdown={(e) => startDrag(e, day)}
+          onclick={(e) => tapToCreate(e, day)}
         >
           {#each blocksByDay[i] as block (block.running ? "running" : block.entry.id)}
             {@const { entry } = block}
@@ -433,10 +495,12 @@
               : (entry.duration_seconds ?? 0)}
             <button
               type="button"
-              class="absolute flex flex-col gap-px overflow-hidden rounded-md px-2 text-left text-xs cursor-pointer transition-[filter] duration-150 hover:brightness-110 {height <
-              40
-                ? 'py-px'
-                : 'py-1.5'} {color
+              class="absolute flex flex-col gap-px overflow-hidden rounded-md px-2 text-left text-xs transition-[filter] duration-150 {block.running
+                ? 'cursor-default'
+                : 'cursor-pointer hover:brightness-110'} {entry.id ===
+                editingId && !block.running
+                ? 'invisible'
+                : ''} {height < 40 ? 'py-px' : 'py-1.5'} {color
                 ? ''
                 : 'bg-bg-secondary ring-1 ring-inset ring-bg-quaternary text-fg-primary'} {block.running
                 ? 'ring-2 ring-inset ring-white/50'
@@ -471,7 +535,7 @@
                       entry.description ??
                       "No description"}</span
                   >
-                  {#if height < 64}
+                  {#if height < 64 && block.lanes === 1}
                     <span class="shrink-0 font-medium font-tabular"
                       >{formatHours(seconds)}</span
                     >
@@ -491,7 +555,7 @@
                         <span
                           class="size-1.5 rounded-full bg-current animate-pulse"
                         ></span>
-                      {:else}
+                      {:else if block.lanes === 1}
                         <Timer class="size-3" aria-hidden="true" />
                       {/if}
                       {formatHours(seconds)}
@@ -511,9 +575,9 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               bind:this={placeholder}
-              class="absolute inset-x-[3px] z-10 flex flex-col overflow-hidden rounded-md border-2 border-dashed px-1.5 py-0.5 text-xs font-medium font-tabular {color
+              class="absolute z-10 flex flex-col overflow-hidden rounded-md border-2 border-dashed px-1.5 py-0.5 text-xs font-medium font-tabular {color
                 ? 'text-fg-primary'
-                : 'border-bright-purple bg-bright-purple/15 text-bright-purple'} {showQuickEdit
+                : 'border-bright-purple bg-[color-mix(in_srgb,var(--color-bright-purple)_15%,var(--color-bg-primary))] text-bright-purple'} {showQuickEdit
                 ? 'cursor-grab active:cursor-grabbing shadow-lg'
                 : 'pointer-events-none'}"
               style="top: {selection.from * pxPerMinute}px; height: {(Math.min(
@@ -521,8 +585,10 @@
                 shownTo,
               ) -
                 selection.from) *
-                pxPerMinute}px; {color
-                ? `border-color: ${color}; background-color: ${color}33;`
+                pxPerMinute}px; {selectionLane
+                ? `left: calc(${(selectionLane.lane / selectionLane.lanes) * 100}% + 3px); width: calc(${100 / selectionLane.lanes}% - 6px);`
+                : 'left: 3px; right: 3px;'} {color
+                ? `border-color: ${color}; background-color: color-mix(in srgb, ${color} 20%, var(--color-bg-primary));`
                 : ''}"
               onpointerdown={(e) => adjustSelection(e, "move")}
             >
@@ -563,6 +629,7 @@
 
 <TimeEntryEditor
   open={showQuickEdit}
+  modal={useDialog.current}
   bind:draft={selection}
   entry={editingEntry}
   anchor={placeholder}
