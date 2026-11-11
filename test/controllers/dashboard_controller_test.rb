@@ -24,21 +24,6 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "a timer running in another workspace is not shown" do
-    other = Workspace.create!(name: "Other", owner: @user)
-    Membership.create!(workspace: other, user: @user, role: "owner")
-    TimeEntry.create!(user: @user, workspace: other, description: "Elsewhere", start_at: 5.minutes.ago)
-
-    get "/#{@workspace.hashid}/timer"
-    assert_nil inertia_props["runningEntry"]
-
-    get "/#{@workspace.hashid}/timer", params: { view: "calendar" }
-    assert_nil inertia_props["runningEntry"]
-
-    get "/#{other.hashid}/timer", params: { view: "calendar" }
-    assert_equal "Elsewhere", inertia_props.dig("runningEntry", "description")
-  end
-
   test "every page shares only the current user's running timer in the current workspace" do
     other = Workspace.create!(name: "Other", owner: @user)
     Membership.create!(workspace: other, user: @user, role: "owner")
