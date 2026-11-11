@@ -165,7 +165,7 @@
         {#snippet children({ describedBy })}
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div
-              class="flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+              class="flex items-center h-8 [@media(pointer:coarse)]:h-10 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
               role="group"
               aria-label="Notes editor mode"
             >

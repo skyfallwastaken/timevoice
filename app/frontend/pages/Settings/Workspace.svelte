@@ -295,8 +295,14 @@
             <span
               class="flex items-center gap-1 {getRoleColor(membership.role)}"
             >
-              <RoleIcon class="w-4 h-4" aria-hidden="true" />
-              <span class="capitalize">{membership.role}</span>
+              <RoleIcon
+                class="w-4 h-4"
+                role="img"
+                aria-label={membership.role}
+              />
+              <span class="capitalize max-sm:hidden" aria-hidden="true"
+                >{membership.role}</span
+              >
             </span>
           {/snippet}
           {#snippet actions()}
@@ -362,11 +368,13 @@
             {#snippet meta()}
               <span class="flex items-center gap-1 {getRoleColor(invite.role)}">
                 {#if invite.role === "admin"}
-                  <Shield class="w-4 h-4" aria-hidden="true" />
+                  <Shield class="w-4 h-4" role="img" aria-label={invite.role} />
                 {:else}
-                  <Users class="w-4 h-4" aria-hidden="true" />
+                  <Users class="w-4 h-4" role="img" aria-label={invite.role} />
                 {/if}
-                <span class="capitalize">{invite.role}</span>
+                <span class="capitalize max-sm:hidden" aria-hidden="true"
+                  >{invite.role}</span
+                >
               </span>
             {/snippet}
             {#snippet actions()}

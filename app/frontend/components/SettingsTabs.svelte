@@ -17,15 +17,19 @@
   ] as const;
 </script>
 
-<div class="flex overflow-x-auto">
+<!-- Two rows on narrow phones, where the four tabs don't fit in one. -->
+<div class="grid grid-cols-2 sm:flex">
   {#each tabs as tab, index}
     <Link
       href={tab.href(workspaceId)}
       class="flex-1 px-3 sm:px-4 py-2 text-sm font-medium text-center whitespace-nowrap transition-colors duration-150 {active ===
       tab.key
         ? 'bg-bg-tertiary text-fg-primary'
-        : 'text-fg-secondary hover:bg-bg-tertiary'} {index < tabs.length - 1
-        ? 'border-r border-bg-tertiary'
+        : 'text-fg-secondary hover:bg-bg-tertiary'} border-bg-tertiary {index <
+      2
+        ? 'max-sm:border-b'
+        : ''} {index % 2 === 0 ? 'border-r' : ''} {index === 1
+        ? 'sm:border-r'
         : ''}"
       aria-current={active === tab.key ? "page" : undefined}
     >

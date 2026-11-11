@@ -95,7 +95,7 @@
       Time format
     </h3>
     <div
-      class="inline-flex items-center h-8 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
+      class="inline-flex items-center h-8 [@media(pointer:coarse)]:h-10 p-0.5 rounded-lg bg-bg-primary border border-bg-tertiary"
       role="group"
       aria-labelledby="clock-heading"
     >

@@ -287,6 +287,7 @@
       .post(routes.workspaces.create, {
         onSuccess: () => {
           closeCreateModal();
+          closeMobileNav();
           // Keep the blank defaults the next open resets to; Inertia otherwise
           // adopts the submitted values as the new defaults.
           createForm.defaults({});
@@ -537,7 +538,7 @@
         transition:fade={{ duration: 200 }}
       ></button>
       <aside
-        class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col"
+        class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-bg-secondary border-r border-bg-tertiary flex flex-col overflow-y-auto"
         transition:fly={{ x: -300, duration: 300, easing: quintOut }}
       >
         <div
@@ -587,7 +588,7 @@
   {/if}
 
   <aside
-    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col z-50"
+    class="hidden md:flex w-64 bg-bg-secondary border-r border-bg-tertiary flex-col overflow-y-auto z-50"
     aria-label="Application sidebar"
   >
     <div class="p-6 border-b border-bg-tertiary">
