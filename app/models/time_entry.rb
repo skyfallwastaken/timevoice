@@ -85,6 +85,11 @@ class TimeEntry < ApplicationRecord
     (duration_seconds || 0) / SECONDS_PER_HOUR.to_f
   end
 
+  # Invoice lines store hours to two decimals and are priced from them.
+  def invoice_hours
+    duration_hours.round(2)
+  end
+
   def tag_names
     tags.pluck(:name)
   end

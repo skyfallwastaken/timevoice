@@ -153,8 +153,8 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_equal [ BigDecimal("0.42"), 6_300 ], [ line.qty_hours, line.amount_cents ]
     assert_equal 6_300, invoice.reload.total_cents
 
-    invoice.update_line(line, description: "Kickoff call")
-    assert_equal 6_300, line.reload.amount_cents
+    assert invoice.update_line(line, description: "Kickoff call")
+    assert_equal [ "Kickoff call", 6_300 ], [ line.reload.description, line.amount_cents ]
   end
 
   test "generate_from_time_entries copies each entry into a validated line, or creates nothing" do
