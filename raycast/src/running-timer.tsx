@@ -1,5 +1,5 @@
-import { Color, Icon, LaunchType, MenuBarExtra, launchCommand, open } from "@raycast/api";
-import { showFailureToast, useCachedPromise, withAccessToken } from "@raycast/utils";
+import { Color, Icon, LaunchType, MenuBarExtra, launchCommand, open, showHUD } from "@raycast/api";
+import { useCachedPromise, withAccessToken } from "@raycast/utils";
 import {
   TimeEntry,
   continueInput,
@@ -18,8 +18,13 @@ function RunningTimer() {
   const {
     data: [entries, runningEntries],
     isLoading,
+    error,
     mutate,
-  } = useCachedPromise(() => Promise.all([listEntries(7), getRunningEntries()]), [], { initialData: [[], []] });
+  } = useCachedPromise(() => Promise.all([listEntries(7), getRunningEntries()]), [], {
+    initialData: [[], []],
+    // Shown in the menu instead of the hook's default failure toast.
+    onError: () => undefined,
+  });
   const running = runningEntries[0];
   // The running entry is the newest, so deduplicating first also drops older entries of the work it continues.
   const recent = uniqueByWork(entries.filter((entry) => entry.description))
@@ -31,7 +36,7 @@ function RunningTimer() {
     try {
       await mutate(action());
     } catch (error) {
-      await showFailureToast(error);
+      await showError("Timevoice action failed", error);
     }
   }
 
@@ -42,8 +47,23 @@ function RunningTimer() {
       title={
         running ? `${formatDuration(elapsedSeconds(running), false)} ${running.description ?? ""}`.trim() : undefined
       }
-      tooltip={running ? `Timevoice: ${running.description ?? "Timer running"}` : "Timevoice: no timer running"}
+      tooltip={
+        running
+          ? `Timevoice: ${running.description ?? "Timer running"}`
+          : error
+            ? "Timevoice: could not load"
+            : "Timevoice: no timer running"
+      }
     >
+      {error && (
+        <MenuBarExtra.Section>
+          <MenuBarExtra.Item
+            icon={{ source: Icon.Warning, tintColor: Color.Red }}
+            title="Could not load Timevoice"
+            subtitle={error.message}
+          />
+        </MenuBarExtra.Section>
+      )}
       {running ? (
         <MenuBarExtra.Section title="Running">
           <MenuBarExtra.Item
@@ -54,9 +74,11 @@ function RunningTimer() {
           <MenuBarExtra.Item icon={Icon.Stop} title="Stop Timer" onAction={() => run(() => stopEntry(running.id))} />
         </MenuBarExtra.Section>
       ) : (
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item title="No timer running" />
-        </MenuBarExtra.Section>
+        !error && (
+          <MenuBarExtra.Section>
+            <MenuBarExtra.Item title="No timer running" />
+          </MenuBarExtra.Section>
+        )
       )}
       <MenuBarExtra.Section>
         <MenuBarExtra.Item
@@ -66,7 +88,7 @@ function RunningTimer() {
             try {
               await launchCommand({ name: "start-timer", type: LaunchType.UserInitiated });
             } catch (error) {
-              await showFailureToast(error, { title: "Could not open Start Timer" });
+              await showError("Could not open Start Timer", error);
             }
           }}
         />
@@ -89,6 +111,11 @@ function RunningTimer() {
       </MenuBarExtra.Section>
     </MenuBarExtra>
   );
+}
+
+// Menu bar commands run without a window, where toasts are unavailable, so errors go to a HUD.
+function showError(title: string, error: unknown) {
+  return showHUD(`${title}: ${error instanceof Error ? error.message : String(error)}`);
 }
 
 function uniqueByWork(entries: TimeEntry[]): TimeEntry[] {
