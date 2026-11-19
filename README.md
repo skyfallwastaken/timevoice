@@ -6,7 +6,7 @@ _A time tracking and invoicing application built with Ruby on Rails, Inertia, Ta
 
 ## Requirements
 
-- Ruby 3.4+
+- Ruby 4.0+
 - Node.js 20+
 - PostgreSQL (production) or SQLite (development)
 
